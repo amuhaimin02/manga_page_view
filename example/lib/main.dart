@@ -17,12 +17,34 @@ class MangaPagesExampleApp extends StatelessWidget {
       theme: ThemeData.dark(),
       home: Scaffold(
         appBar: AppBar(title: const Text('Manga Pages')),
-        body: MangaPageView(
-          children: [
-            for (int i = 0; i < 30; i++) RandomPage(label: 'Page ${i + 1}'),
-          ],
+        body: MangaPageView.builder(
+          itemCount: 26,
+          itemBuilder: (context, index) {
+            final letter = String.fromCharCode(65 + index);
+            return Buffered(child: RandomPage(label: 'Page $letter'));
+          },
         ),
       ),
+    );
+  }
+}
+
+class Buffered extends StatelessWidget {
+  const Buffered({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: Future.delayed(Duration(milliseconds: 500)),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return child;
+        } else {
+          return Center(child: CircularProgressIndicator());
+        }
+      },
     );
   }
 }
@@ -57,7 +79,7 @@ class RandomPage extends StatelessWidget {
         color: color,
         child: CustomPaint(
           painter: CheckerboardPainter(
-            squareSize: 60,
+            squareSize: 100,
             color1: Color.lerp(color, Colors.white, 0.2)!,
             color2: color,
           ),

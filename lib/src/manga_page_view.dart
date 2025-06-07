@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 class MangaPageView extends StatefulWidget {
-  const MangaPageView({
+  const MangaPageView.builder({
     super.key,
     this.options = const MangaPageViewOptions(),
-    required this.children,
+    required this.itemCount,
+    required this.itemBuilder,
   });
 
   final MangaPageViewOptions options;
-  final List<Widget> children;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
 
   @override
   State<MangaPageView> createState() => _MangaPageViewState();
@@ -45,6 +47,10 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _handleTouch() {
+    // Stop currently running fling action
+    _flingAnimationX.stop();
+    _flingAnimationY.stop();
+
     _zoomLevelOnTouch = _zoomLevel;
   }
 
@@ -80,7 +86,7 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _handleFling(ScaleEndDetails details) {
-    _settlePageOffset(velocity: details.velocity.pixelsPerSecond);
+    _settlePageOffset(velocity: details.velocity.pixelsPerSecond / _zoomLevel);
   }
 
   void _handlePinch(ScaleUpdateDetails details) {
@@ -254,14 +260,11 @@ class _MangaPageViewState extends State<MangaPageView>
                     height: widget.options.scrollDirection == Axis.horizontal
                         ? constraints.maxHeight
                         : null,
-                    child: Flex(
-                      direction: widget.options.scrollDirection,
+                    child: _MangaPageContainer(
                       key: _pageContainerKey,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (int i = 0; i < widget.children.length; i++)
-                          _buildPage(context, i),
-                      ],
+                      options: widget.options,
+                      itemCount: widget.itemCount,
+                      itemBuilder: widget.itemBuilder,
                     ),
                   ),
                 ],
@@ -271,11 +274,6 @@ class _MangaPageViewState extends State<MangaPageView>
         },
       ),
     );
-  }
-
-  Widget _buildPage(BuildContext context, int index) {
-    final page = widget.children[index];
-    return FittedBox(fit: BoxFit.contain, child: page);
   }
 
   Widget _buildDebugPanel({
@@ -330,5 +328,53 @@ class _MangaPageViewState extends State<MangaPageView>
         ),
       ],
     );
+  }
+}
+
+class _MangaPageContainer extends StatelessWidget {
+  const _MangaPageContainer({
+    super.key,
+    required this.options,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  final MangaPageViewOptions options;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Flex(
+      direction: options.scrollDirection,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < itemCount; i++)
+          _CachedPage(key: ValueKey(i), builder: () => _buildPage(context, i)),
+      ],
+    );
+  }
+
+  Widget _buildPage(BuildContext context, int index) {
+    final page = itemBuilder(context, index);
+    return FittedBox(fit: BoxFit.contain, child: page);
+  }
+}
+
+class _CachedPage extends StatefulWidget {
+  const _CachedPage({super.key, required this.builder});
+
+  final Widget Function() builder;
+
+  @override
+  State<_CachedPage> createState() => _CachedPageState();
+}
+
+class _CachedPageState extends State<_CachedPage> {
+  late final Widget _child = widget.builder();
+
+  @override
+  Widget build(BuildContext context) {
+    return _child;
   }
 }
