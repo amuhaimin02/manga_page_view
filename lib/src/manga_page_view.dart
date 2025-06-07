@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:manga_page_view/manga_page_view.dart';
 
 class MangaPageView extends StatefulWidget {
-  const MangaPageView({super.key, required this.children});
+  const MangaPageView({
+    super.key,
+    this.options = const MangaPageViewOptions(),
+    required this.children,
+  });
 
+  final MangaPageViewOptions options;
   final List<Widget> children;
 
   @override
@@ -66,7 +72,10 @@ class _MangaPageViewState extends State<MangaPageView>
     final difference = details.localFocalPoint.dy - _lastTouchPoint!.dy;
 
     setState(() {
-      _zoomLevel = (_zoomLevelOnTouch! + difference / 100).clamp(1.0, 4.0);
+      _zoomLevel = (_zoomLevelOnTouch! + difference / 100).clamp(
+        widget.options.minZoomLevel,
+        widget.options.maxZoomLevel,
+      );
     });
   }
 
@@ -75,7 +84,10 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _handlePinch(ScaleUpdateDetails details) {
-    final newZoom = (_zoomLevelOnTouch! * details.scale).clamp(1.0, 4.0);
+    final newZoom = (_zoomLevelOnTouch! * details.scale).clamp(
+      widget.options.minZoomLevel,
+      widget.options.maxZoomLevel,
+    );
 
     setState(() {
       _zoomLevel = newZoom;
@@ -102,7 +114,7 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _settlePageOffset({Offset velocity = Offset.zero}) {
-    void handleFlingForAxis({
+    void doScrollAxis({
       required double currentOffset,
       required double minOffset,
       required double maxOffset,
@@ -110,11 +122,14 @@ class _MangaPageViewState extends State<MangaPageView>
       required AnimationController flingAnimation,
       Function(double offset)? update,
     }) {
+      // In case of zooming out
+      final isZoomingOut = maxOffset < minOffset;
+
       final simulation = BouncingScrollSimulation(
         position: currentOffset,
         velocity: velocity,
-        leadingExtent: minOffset,
-        trailingExtent: maxOffset,
+        leadingExtent: !isZoomingOut ? minOffset : 0,
+        trailingExtent: !isZoomingOut ? maxOffset : 0,
         spring: SpringDescription.withDampingRatio(
           mass: 0.5,
           stiffness: 100.0,
@@ -146,7 +161,7 @@ class _MangaPageViewState extends State<MangaPageView>
       containerSize.height - viewportSize.height + scrollPaddingY,
     );
 
-    handleFlingForAxis(
+    doScrollAxis(
       currentOffset: _offset.dx,
       velocity: -velocity.dx,
       minOffset: scrollableRegion.left,
@@ -156,7 +171,7 @@ class _MangaPageViewState extends State<MangaPageView>
         _offset = Offset(val, _offset.dy);
       }),
     );
-    handleFlingForAxis(
+    doScrollAxis(
       currentOffset: _offset.dy,
       velocity: -velocity.dy,
       minOffset: scrollableRegion.top,
@@ -226,6 +241,7 @@ class _MangaPageViewState extends State<MangaPageView>
             child: Transform.scale(
               scale: _zoomLevel,
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Positioned(
                     left: -_offset.dx,
@@ -292,11 +308,12 @@ class _MangaPageViewState extends State<MangaPageView>
                 ),
                 Slider(
                   value: _zoomLevel,
-                  min: 1.0,
-                  max: 4.0,
-                  divisions: 6,
+                  min: widget.options.minZoomLevel,
+                  max: widget.options.maxZoomLevel,
                   onChanged: (val) {
-                    _animateZoomChange(targetLevel: val);
+                    setState(() {
+                      _zoomLevel = val;
+                    });
                   },
                 ),
               ],
