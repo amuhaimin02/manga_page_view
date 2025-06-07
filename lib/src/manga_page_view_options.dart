@@ -6,6 +6,7 @@ class MangaPageViewOptions {
   final List<double> presetZoomLevels;
   final Axis scrollDirection;
   final bool reverseItemOrder;
+  final Size maxItemSize;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
@@ -13,5 +14,6 @@ class MangaPageViewOptions {
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
     this.scrollDirection = Axis.vertical,
     this.reverseItemOrder = false,
+    this.maxItemSize = const Size(2400, 1600),
   });
 }

@@ -7,6 +7,8 @@ void main() {
   runApp(const MangaPagesExampleApp());
 }
 
+final _random = Random();
+
 class MangaPagesExampleApp extends StatelessWidget {
   const MangaPagesExampleApp({super.key});
 
@@ -18,10 +20,25 @@ class MangaPagesExampleApp extends StatelessWidget {
       home: Scaffold(
         appBar: AppBar(title: const Text('Manga Pages')),
         body: MangaPageView.builder(
-          itemCount: 26,
+          itemCount: 26 + 1,
           itemBuilder: (context, index) {
-            final letter = String.fromCharCode(65 + index);
-            return Buffered(child: RandomPage(label: 'Page $letter'));
+            if (index == 0) {
+              return RandomPage(
+                label: 'Strip',
+                color: Colors.grey,
+                width: 120,
+                height: 1200,
+              );
+            }
+            final letter = String.fromCharCode(64 + index);
+            return Buffered(
+              child: RandomPage(
+                label: 'Page $letter',
+                color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                width: _random.nextInt(750) + 250,
+                height: _random.nextInt(750) + 250,
+              ),
+            );
           },
         ),
       ),
@@ -50,17 +67,21 @@ class Buffered extends StatelessWidget {
 }
 
 class RandomPage extends StatelessWidget {
-  const RandomPage({super.key, required this.label});
+  const RandomPage({
+    super.key,
+    required this.label,
+    required this.color,
+    required this.width,
+    required this.height,
+  });
 
   final String label;
-
-  static final _random = Random();
+  final Color color;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    final width = _random.nextInt(750) + 250;
-    final height = _random.nextInt(750) + 250;
-    final color = Color(0xFF000000 | _random.nextInt(0xFFFFFF));
     final textColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
         ? Colors.white

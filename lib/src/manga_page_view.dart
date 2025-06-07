@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:manga_page_view/manga_page_view.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView.builder({
@@ -290,6 +289,7 @@ class _MangaPageViewState extends State<MangaPageView>
       itemBuilder: widget.itemBuilder,
       scrollDirection: scrollDirection,
       reverseItemOrder: reverseItemOrder,
+      maxItemSize: widget.options.maxItemSize,
     );
 
     if (!reverseItemOrder) {
@@ -427,12 +427,14 @@ class _MangaPageContainer extends StatelessWidget {
     required this.itemBuilder,
     required this.scrollDirection,
     required this.reverseItemOrder,
+    required this.maxItemSize,
   });
 
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final Axis scrollDirection;
   final bool reverseItemOrder;
+  final Size maxItemSize;
 
   @override
   Widget build(BuildContext context) {
@@ -460,7 +462,13 @@ class _MangaPageContainer extends StatelessWidget {
 
   Widget _buildPage(BuildContext context, int index) {
     final page = itemBuilder(context, index);
-    return FittedBox(fit: BoxFit.contain, child: page);
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: maxItemSize.width,
+        maxHeight: maxItemSize.height,
+      ),
+      child: FittedBox(fit: BoxFit.contain, child: page),
+    );
   }
 }
 
@@ -476,6 +484,18 @@ class _CachedPage extends StatefulWidget {
 
 class _CachedPageState extends State<_CachedPage> {
   late final Widget _child = widget.builder();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Wait until first frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final RenderBox box = context.findRenderObject() as RenderBox;
+      final Offset position = box.localToGlobal(Offset.zero);
+      print("Position after render item ${widget.index}: $position");
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
