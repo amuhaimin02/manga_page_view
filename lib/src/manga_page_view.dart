@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:manga_page_view/manga_page_view.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView.builder({
@@ -25,6 +26,12 @@ class _MangaPageViewState extends State<MangaPageView>
   late final _flingAnimationY = AnimationController.unbounded(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
 
+  // TODO: Temporary
+  late var _scrollDirection = widget.options.scrollDirection;
+  Axis get scrollDirection => _scrollDirection;
+  late var _reverseItemOrder = widget.options.reverseItemOrder;
+  bool get reverseItemOrder => _reverseItemOrder;
+
   late var _offset = Offset.zero;
 
   double _zoomLevel = 1.0;
@@ -47,17 +54,18 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _handleTouch() {
-    // Stop currently running fling action
-    _flingAnimationX.stop();
-    _flingAnimationY.stop();
+    _stopFlingAnimation();
 
     _zoomLevelOnTouch = _zoomLevel;
   }
 
-  void _handleStartDrag(ScaleStartDetails details) {
-    // Stop currently running fling action
+  void _stopFlingAnimation() {
     _flingAnimationX.stop();
     _flingAnimationY.stop();
+  }
+
+  void _handleStartDrag(ScaleStartDetails details) {
+    _stopFlingAnimation();
 
     _lastTouchPoint = details.localFocalPoint;
     _zoomLevelOnTouch = _zoomLevel;
@@ -138,7 +146,7 @@ class _MangaPageViewState extends State<MangaPageView>
       required AnimationController flingAnimation,
       Function(double offset)? update,
     }) {
-      final reverseOrderFactor = widget.options.reverseItemOrder ? -1 : 1;
+      final reverseOrderFactor = reverseItemOrder ? -1 : 1;
 
       // In case of zooming out
       final isZoomingOut = maxOffset < minOffset;
@@ -270,20 +278,21 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   Widget _buildPageContainer(BuildContext context, BoxConstraints constraints) {
-    final boundWidth = widget.options.scrollDirection == Axis.vertical
+    final boundWidth = scrollDirection == Axis.vertical
         ? constraints.maxWidth
         : null;
-    final boundHeight = widget.options.scrollDirection == Axis.horizontal
+    final boundHeight = scrollDirection == Axis.horizontal
         ? constraints.maxHeight
         : null;
     final child = _MangaPageContainer(
       key: _pageContainerKey,
-      options: widget.options,
       itemCount: widget.itemCount,
       itemBuilder: widget.itemBuilder,
+      scrollDirection: scrollDirection,
+      reverseItemOrder: reverseItemOrder,
     );
 
-    if (!widget.options.reverseItemOrder) {
+    if (!reverseItemOrder) {
       // Normal top-down or left-to-right layout
       return Positioned(
         left: -_offset.dx,
@@ -294,7 +303,7 @@ class _MangaPageViewState extends State<MangaPageView>
         child: child,
       );
     } else {
-      if (widget.options.scrollDirection == Axis.horizontal) {
+      if (scrollDirection == Axis.horizontal) {
         // Right-to-left layout
         return Positioned(
           right: _offset.dx,
@@ -343,14 +352,52 @@ class _MangaPageViewState extends State<MangaPageView>
                   children: [
                     IconButton(
                       onPressed: () {
-                        _flingAnimationX.stop();
-                        _flingAnimationY.stop();
+                        _stopFlingAnimation();
+
                         setState(() {
                           _zoomLevel = 1.0;
                           _offset = Offset.zero;
                         });
                       },
                       icon: Icon(Icons.refresh),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _reverseItemOrder = !reverseItemOrder;
+                          _stopFlingAnimation();
+                          _offset = -_offset;
+
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _settlePageOffset();
+                          });
+                        });
+                      },
+                      icon: Icon(
+                        reverseItemOrder ? Icons.move_up : Icons.move_down,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          if (scrollDirection == Axis.vertical) {
+                            _scrollDirection = Axis.horizontal;
+                          } else {
+                            _scrollDirection = Axis.vertical;
+                          }
+                        });
+
+                        _stopFlingAnimation();
+                        _offset = Offset(_offset.dy, _offset.dx);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _settlePageOffset();
+                        });
+                      },
+                      icon: Icon(
+                        scrollDirection == Axis.vertical
+                            ? Icons.swap_horiz
+                            : Icons.swap_vert,
+                      ),
                     ),
                   ],
                 ),
@@ -376,28 +423,35 @@ class _MangaPageViewState extends State<MangaPageView>
 class _MangaPageContainer extends StatelessWidget {
   const _MangaPageContainer({
     super.key,
-    required this.options,
     required this.itemCount,
     required this.itemBuilder,
+    required this.scrollDirection,
+    required this.reverseItemOrder,
   });
 
-  final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
+  final Axis scrollDirection;
+  final bool reverseItemOrder;
 
   @override
   Widget build(BuildContext context) {
     return Flex(
-      direction: options.scrollDirection,
+      direction: scrollDirection,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (options.reverseItemOrder)
+        if (reverseItemOrder)
           for (int i = itemCount - 1; i >= 0; i--)
-            _CachedPage(key: ValueKey(i), builder: () => _buildPage(context, i))
+            _CachedPage(
+              key: ValueKey(i),
+              index: i,
+              builder: () => _buildPage(context, i),
+            )
         else
           for (int i = 0; i < itemCount; i++)
             _CachedPage(
               key: ValueKey(i),
+              index: i,
               builder: () => _buildPage(context, i),
             ),
       ],
@@ -411,9 +465,10 @@ class _MangaPageContainer extends StatelessWidget {
 }
 
 class _CachedPage extends StatefulWidget {
-  const _CachedPage({super.key, required this.builder});
+  const _CachedPage({super.key, required this.builder, required this.index});
 
   final Widget Function() builder;
+  final int index;
 
   @override
   State<_CachedPage> createState() => _CachedPageState();

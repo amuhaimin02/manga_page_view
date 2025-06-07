@@ -11,7 +11,7 @@ class MangaPageViewOptions {
     this.minZoomLevel = 0.25,
     this.maxZoomLevel = 4.0,
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
-    this.scrollDirection = Axis.horizontal,
-    this.reverseItemOrder = true,
+    this.scrollDirection = Axis.vertical,
+    this.reverseItemOrder = false,
   });
 }
