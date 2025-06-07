@@ -246,8 +246,16 @@ class _MangaPageViewState extends State<MangaPageView>
                   Positioned(
                     left: -_offset.dx,
                     top: -_offset.dy,
-                    width: constraints.maxWidth,
-                    child: Column(
+
+                    // The cross axis need to have bounds
+                    width: widget.options.scrollDirection == Axis.vertical
+                        ? constraints.maxWidth
+                        : null,
+                    height: widget.options.scrollDirection == Axis.horizontal
+                        ? constraints.maxHeight
+                        : null,
+                    child: Flex(
+                      direction: widget.options.scrollDirection,
                       key: _pageContainerKey,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
