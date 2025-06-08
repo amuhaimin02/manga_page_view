@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 class MangaPageView extends StatefulWidget {
@@ -19,8 +20,6 @@ class MangaPageView extends StatefulWidget {
 
 class _MangaPageViewState extends State<MangaPageView>
     with TickerProviderStateMixin {
-  final _pageContainerKey = GlobalKey();
-
   late final _flingAnimationX = AnimationController.unbounded(vsync: this);
   late final _flingAnimationY = AnimationController.unbounded(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
@@ -31,6 +30,8 @@ class _MangaPageViewState extends State<MangaPageView>
   bool _zoomDragMode = false;
   double? _zoomLevelOnTouch;
   Offset? _lastTouchPoint;
+
+  late final _containerController = _MangaPageViewContainerController();
 
   @override
   void dispose() {
@@ -64,14 +65,13 @@ class _MangaPageViewState extends State<MangaPageView>
     }
 
     if (scrollDirectionChanged || itemOrderChanged) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _settlePageOffset());
+      Future.delayed(Duration(milliseconds: 100), () => _settlePageOffset());
     }
   }
 
-  Size _getBoundingSize(BuildContext context) {
-    final renderBox = context.findRenderObject() as RenderBox;
-    return renderBox.size;
-  }
+  Size get containerSize => _containerController.containerSize.value;
+
+  Size get viewportSize => (context.findRenderObject() as RenderBox).size;
 
   void _handleTouch() {
     _stopFlingAnimation();
@@ -156,7 +156,7 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   void _settlePageOffset({Offset velocity = Offset.zero}) {
-    void doScrollAxis({
+    void settleOnAxis({
       required double currentOffset,
       required double minOffset,
       required double maxOffset,
@@ -189,9 +189,6 @@ class _MangaPageViewState extends State<MangaPageView>
         ..animateWith(simulation);
     }
 
-    final containerSize = _getBoundingSize(_pageContainerKey.currentContext!);
-    final viewportSize = _getBoundingSize(context);
-
     // Formula to calculate desirable offset range depending on zoom level
     f(double v, double z) => (1 - 1 / z) * (v / 2);
 
@@ -205,7 +202,7 @@ class _MangaPageViewState extends State<MangaPageView>
       containerSize.height - viewportSize.height + scrollPaddingY,
     );
 
-    doScrollAxis(
+    settleOnAxis(
       currentOffset: _offset.value.dx,
       velocity: -velocity.dx,
       minOffset: scrollableRegion.left,
@@ -213,7 +210,7 @@ class _MangaPageViewState extends State<MangaPageView>
       flingAnimation: _flingAnimationX,
       update: (val) => _offset.value = Offset(val, _offset.value.dy),
     );
-    doScrollAxis(
+    settleOnAxis(
       currentOffset: _offset.value.dy,
       velocity: -velocity.dy,
       minOffset: scrollableRegion.top,
@@ -328,8 +325,8 @@ class _MangaPageViewState extends State<MangaPageView>
                       }
                     }
                   },
-                  child: _MangaPageContainer(
-                    key: _pageContainerKey,
+                  child: _MangaPageViewContainer(
+                    controller: _containerController,
                     options: widget.options,
                     itemCount: widget.itemCount,
                     itemBuilder: widget.itemBuilder,
@@ -344,17 +341,28 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 }
 
-class _MangaPageContainer extends StatelessWidget {
-  const _MangaPageContainer({
+class _MangaPageViewContainerController {
+  final containerSize = ValueNotifier(Size.zero);
+}
+
+class _MangaPageViewContainer extends StatelessWidget {
+  const _MangaPageViewContainer({
     super.key,
+    required this.controller,
     required this.options,
     required this.itemCount,
     required this.itemBuilder,
   });
 
+  final _MangaPageViewContainerController controller;
   final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
+
+  void _onLayoutSizeChanged(BuildContext context, int pageIndex) {
+    final containerRenderBox = context.findRenderObject() as RenderBox;
+    controller.containerSize.value = containerRenderBox.size;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -371,13 +379,28 @@ class _MangaPageContainer extends StatelessWidget {
   }
 
   Widget _buildPage(BuildContext context, int index) {
-    final page = itemBuilder(context, index);
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: options.maxItemSize.width,
-        maxHeight: options.maxItemSize.height,
+    return NotificationListener(
+      onNotification: (event) {
+        if (event is SizeChangedLayoutNotification) {
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            _onLayoutSizeChanged(context, index);
+          });
+          return true;
+        }
+        return false;
+      },
+      child: SizeChangedLayoutNotifier(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: options.maxItemSize.width,
+            maxHeight: options.maxItemSize.height,
+          ),
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: itemBuilder(context, index),
+          ),
+        ),
       ),
-      child: FittedBox(fit: BoxFit.contain, child: page),
     );
   }
 }
