@@ -25,12 +25,6 @@ class _MangaPageViewState extends State<MangaPageView>
   late final _flingAnimationY = AnimationController.unbounded(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
 
-  // TODO: Temporary
-  late var _scrollDirection = widget.options.scrollDirection;
-  Axis get scrollDirection => _scrollDirection;
-  late var _reverseItemOrder = widget.options.reverseItemOrder;
-  bool get reverseItemOrder => _reverseItemOrder;
-
   late var _offset = ValueNotifier(Offset.zero);
   late var _zoomLevel = ValueNotifier(1.0);
 
@@ -46,6 +40,32 @@ class _MangaPageViewState extends State<MangaPageView>
     _offset.dispose();
     _zoomLevel.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MangaPageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    bool scrollDirectionChanged = false;
+    bool itemOrderChanged = false;
+
+    if (widget.options.scrollDirection != oldWidget.options.scrollDirection) {
+      scrollDirectionChanged = true;
+      _stopFlingAnimation();
+      // Swap main & cross axis
+      _offset.value = Offset(_offset.value.dy, _offset.value.dx);
+    }
+
+    if (widget.options.reverseItemOrder != oldWidget.options.reverseItemOrder) {
+      itemOrderChanged = true;
+      _stopFlingAnimation();
+      // Flip axis
+      _offset.value = -_offset.value;
+    }
+
+    if (scrollDirectionChanged || itemOrderChanged) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _settlePageOffset());
+    }
   }
 
   Size _getBoundingSize(BuildContext context) {
@@ -144,7 +164,7 @@ class _MangaPageViewState extends State<MangaPageView>
       required AnimationController flingAnimation,
       Function(double offset)? update,
     }) {
-      final reverseOrderFactor = reverseItemOrder ? -1 : 1;
+      final reverseOrderFactor = widget.options.reverseItemOrder ? -1 : 1;
 
       // In case of zooming out
       final isZoomingOut = maxOffset < minOffset;
@@ -223,61 +243,72 @@ class _MangaPageViewState extends State<MangaPageView>
 
   @override
   Widget build(BuildContext context) {
-    return _buildDebugPanel(
-      context: context,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTapDown: (details) {
-              _handleTouch();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTapDown: (details) {
+            _handleTouch();
+          },
+          onScaleStart: (details) {
+            _handleStartDrag(details);
+          },
+          onDoubleTapDown: (details) {
+            _zoomDragMode = true;
+          },
+          onDoubleTap: () {
+            _handleZoomDoubleTap();
+            _zoomDragMode = false;
+            _lastTouchPoint = null;
+          },
+          onScaleUpdate: (details) {
+            if (_zoomDragMode) {
+              _handleZoomDrag(details);
+            } else if (details.pointerCount == 2) {
+              _handlePinch(details);
+            } else if (details.pointerCount == 1) {
+              _handlePanDrag(details);
+            }
+          },
+          onScaleEnd: (details) {
+            _handleLift(details);
+            _handleFling(details);
+          },
+          child: ValueListenableBuilder(
+            valueListenable: _zoomLevel,
+            builder: (context, zoomLevel, child) {
+              return Transform.scale(scale: zoomLevel, child: child);
             },
-            onScaleStart: (details) {
-              _handleStartDrag(details);
-            },
-            onDoubleTapDown: (details) {
-              _zoomDragMode = true;
-            },
-            onDoubleTap: () {
-              _handleZoomDoubleTap();
-              _zoomDragMode = false;
-              _lastTouchPoint = null;
-            },
-            onScaleUpdate: (details) {
-              if (_zoomDragMode) {
-                _handleZoomDrag(details);
-              } else if (details.pointerCount == 2) {
-                _handlePinch(details);
-              } else if (details.pointerCount == 1) {
-                _handlePanDrag(details);
-              }
-            },
-            onScaleEnd: (details) {
-              _handleLift(details);
-              _handleFling(details);
-            },
-            child: ValueListenableBuilder(
-              valueListenable: _zoomLevel,
-              builder: (context, zoomLevel, child) {
-                return Transform.scale(scale: zoomLevel, child: child);
-              },
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ValueListenableBuilder(
-                    valueListenable: _offset,
-                    builder: (context, offset, child) {
-                      final boundWidth = scrollDirection == Axis.vertical
-                          ? constraints.maxWidth
-                          : null;
-                      final boundHeight = scrollDirection == Axis.horizontal
-                          ? constraints.maxHeight
-                          : null;
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ValueListenableBuilder(
+                  valueListenable: _offset,
+                  builder: (context, offset, child) {
+                    final boundWidth =
+                        widget.options.scrollDirection == Axis.vertical
+                        ? constraints.maxWidth
+                        : null;
+                    final boundHeight =
+                        widget.options.scrollDirection == Axis.horizontal
+                        ? constraints.maxHeight
+                        : null;
 
-                      if (!reverseItemOrder) {
-                        // Normal top-down or left-to-right layout
+                    if (!widget.options.reverseItemOrder) {
+                      // Normal top-down or left-to-right layout
+                      return Positioned(
+                        left: -offset.dx,
+                        top: -offset.dy,
+
+                        width: boundWidth,
+                        height: boundHeight,
+                        child: child!,
+                      );
+                    } else {
+                      if (widget.options.scrollDirection == Axis.horizontal) {
+                        // Right-to-left layout
                         return Positioned(
-                          left: -offset.dx,
+                          right: offset.dx,
                           top: -offset.dy,
 
                           width: boundWidth,
@@ -285,123 +316,30 @@ class _MangaPageViewState extends State<MangaPageView>
                           child: child!,
                         );
                       } else {
-                        if (scrollDirection == Axis.horizontal) {
-                          // Right-to-left layout
-                          return Positioned(
-                            right: offset.dx,
-                            top: -offset.dy,
+                        // Bottom-up layout
+                        return Positioned(
+                          left: -offset.dx,
+                          bottom: offset.dy,
 
-                            width: boundWidth,
-                            height: boundHeight,
-                            child: child!,
-                          );
-                        } else {
-                          // Bottom-up layout
-                          return Positioned(
-                            left: -offset.dx,
-                            bottom: offset.dy,
-
-                            width: boundWidth,
-                            height: boundHeight,
-                            child: child!,
-                          );
-                        }
-                      }
-                    },
-                    child: _MangaPageContainer(
-                      key: _pageContainerKey,
-                      itemCount: widget.itemCount,
-                      itemBuilder: widget.itemBuilder,
-                      scrollDirection: scrollDirection,
-                      reverseItemOrder: reverseItemOrder,
-                      maxItemSize: widget.options.maxItemSize,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildDebugPanel({
-    required BuildContext context,
-    required Widget child,
-  }) {
-    return Stack(
-      children: [
-        Positioned.fill(child: child),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            padding: EdgeInsets.all(8),
-            color: Colors.black54,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 16,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        _stopFlingAnimation();
-
-                        _zoomLevel.value = 1.0;
-                        _offset.value = Offset.zero;
-                      },
-                      icon: Icon(Icons.refresh),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _reverseItemOrder = !reverseItemOrder;
-                          _stopFlingAnimation();
-                          _offset.value = -_offset.value;
-
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _settlePageOffset();
-                          });
-                        });
-                      },
-                      icon: Icon(
-                        reverseItemOrder ? Icons.move_up : Icons.move_down,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          if (scrollDirection == Axis.vertical) {
-                            _scrollDirection = Axis.horizontal;
-                          } else {
-                            _scrollDirection = Axis.vertical;
-                          }
-                        });
-
-                        _stopFlingAnimation();
-                        _offset.value = Offset(
-                          _offset.value.dy,
-                          _offset.value.dx,
+                          width: boundWidth,
+                          height: boundHeight,
+                          child: child!,
                         );
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _settlePageOffset();
-                        });
-                      },
-                      icon: Icon(
-                        scrollDirection == Axis.vertical
-                            ? Icons.swap_horiz
-                            : Icons.swap_vert,
-                      ),
-                    ),
-                  ],
+                      }
+                    }
+                  },
+                  child: _MangaPageContainer(
+                    key: _pageContainerKey,
+                    options: widget.options,
+                    itemCount: widget.itemCount,
+                    itemBuilder: widget.itemBuilder,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -409,26 +347,22 @@ class _MangaPageViewState extends State<MangaPageView>
 class _MangaPageContainer extends StatelessWidget {
   const _MangaPageContainer({
     super.key,
+    required this.options,
     required this.itemCount,
     required this.itemBuilder,
-    required this.scrollDirection,
-    required this.reverseItemOrder,
-    required this.maxItemSize,
   });
 
+  final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
-  final Axis scrollDirection;
-  final bool reverseItemOrder;
-  final Size maxItemSize;
 
   @override
   Widget build(BuildContext context) {
     return Flex(
-      direction: scrollDirection,
+      direction: options.scrollDirection,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (reverseItemOrder)
+        if (options.reverseItemOrder)
           for (int i = itemCount - 1; i >= 0; i--) _buildPage(context, i)
         else
           for (int i = 0; i < itemCount; i++) _buildPage(context, i),
@@ -440,8 +374,8 @@ class _MangaPageContainer extends StatelessWidget {
     final page = itemBuilder(context, index);
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxWidth: maxItemSize.width,
-        maxHeight: maxItemSize.height,
+        maxWidth: options.maxItemSize.width,
+        maxHeight: options.maxItemSize.height,
       ),
       child: FittedBox(fit: BoxFit.contain, child: page),
     );

@@ -9,8 +9,16 @@ void main() {
 
 final _random = Random();
 
-class MangaPagesExampleApp extends StatelessWidget {
+class MangaPagesExampleApp extends StatefulWidget {
   const MangaPagesExampleApp({super.key});
+
+  @override
+  State<MangaPagesExampleApp> createState() => _MangaPagesExampleAppState();
+}
+
+class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
+  Axis _scrollDirection = Axis.vertical;
+  bool _reverseItemOrder = false;
 
   @override
   Widget build(BuildContext context) {
@@ -19,27 +27,83 @@ class MangaPagesExampleApp extends StatelessWidget {
       theme: ThemeData.dark(),
       home: Scaffold(
         appBar: AppBar(title: const Text('Manga Pages')),
-        body: MangaPageView.builder(
-          itemCount: 26 + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return RandomPage(
-                label: 'Strip',
-                color: Colors.grey,
-                width: 120,
-                height: 1200,
-              );
-            }
-            final letter = String.fromCharCode(64 + index);
-            return Buffered(
-              child: RandomPage(
-                label: 'Page $letter',
-                color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                width: _random.nextInt(750) + 250,
-                height: _random.nextInt(750) + 250,
+        body: Stack(
+          children: [
+            MangaPageView.builder(
+              options: MangaPageViewOptions(
+                scrollDirection: _scrollDirection,
+                reverseItemOrder: _reverseItemOrder,
               ),
-            );
-          },
+              itemCount: 26 + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return RandomPage(
+                    label: 'Strip',
+                    color: Colors.grey,
+                    width: 120,
+                    height: 1200,
+                  );
+                }
+                final letter = String.fromCharCode(64 + index);
+                return Buffered(
+                  child: RandomPage(
+                    label: 'Page $letter',
+                    color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                    width: _random.nextInt(750) + 250,
+                    height: _random.nextInt(750) + 250,
+                  ),
+                );
+              },
+            ),
+            _buildDebugPanel(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugPanel(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        padding: EdgeInsets.all(8),
+        color: Colors.black54,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 16,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _reverseItemOrder = !_reverseItemOrder;
+                    });
+                  },
+                  icon: Icon(
+                    _reverseItemOrder ? Icons.move_up : Icons.move_down,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      if (_scrollDirection == Axis.vertical) {
+                        _scrollDirection = Axis.horizontal;
+                      } else {
+                        _scrollDirection = Axis.vertical;
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    _scrollDirection == Axis.vertical
+                        ? Icons.swap_vert
+                        : Icons.swap_horiz,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
