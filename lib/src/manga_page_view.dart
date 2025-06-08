@@ -33,6 +33,39 @@ class _MangaPageViewState extends State<MangaPageView>
 
   late final _containerController = _MangaPageViewContainerController();
 
+  bool get isScrollingVertically =>
+      widget.options.scrollDirection == Axis.vertical;
+  bool get isScrollingHorizontally =>
+      widget.options.scrollDirection == Axis.horizontal;
+
+  Rect get scrollableRegionOffset {
+    // TODO: Optimize
+
+    // Formula to calculate desirable offset range depending on zoom level
+    f(double v, double z) => (1 - 1 / z) * (v / 2);
+
+    final scrollPaddingX = f(viewportSize.width, _zoomLevel.value);
+    final scrollPaddingY = f(viewportSize.height, _zoomLevel.value);
+
+    final scrollableRegion = Rect.fromLTRB(
+      -scrollPaddingX,
+      -scrollPaddingY,
+      containerSize.width - viewportSize.width + scrollPaddingX,
+      containerSize.height - viewportSize.height + scrollPaddingY,
+    );
+
+    return scrollableRegion;
+  }
+
+  // Similar to clamp but
+  double _limitBound(double value, double limitA, double limitB) {
+    if (limitA <= limitB) {
+      return value.clamp(limitA, limitB);
+    } else {
+      return 0;
+    }
+  }
+
   @override
   void dispose() {
     _flingAnimationX.dispose();
@@ -96,6 +129,24 @@ class _MangaPageViewState extends State<MangaPageView>
         _offset.value.dx - (details.focalPointDelta.dx / _zoomLevel.value);
     var newY =
         _offset.value.dy - (details.focalPointDelta.dy / _zoomLevel.value);
+
+    // Limit scrolling to the container's bounds if required
+    if (isScrollingVertically && !widget.options.crossAxisOverscroll ||
+        isScrollingHorizontally && !widget.options.mainAxisOverscroll) {
+      newX = _limitBound(
+        newX,
+        scrollableRegionOffset.left,
+        scrollableRegionOffset.right,
+      );
+    }
+    if (isScrollingHorizontally && !widget.options.crossAxisOverscroll ||
+        isScrollingVertically && !widget.options.mainAxisOverscroll) {
+      newY = _limitBound(
+        newY,
+        scrollableRegionOffset.top,
+        scrollableRegionOffset.bottom,
+      );
+    }
 
     _offset.value = Offset(newX, newY);
   }
@@ -189,18 +240,7 @@ class _MangaPageViewState extends State<MangaPageView>
         ..animateWith(simulation);
     }
 
-    // Formula to calculate desirable offset range depending on zoom level
-    f(double v, double z) => (1 - 1 / z) * (v / 2);
-
-    final scrollPaddingX = f(viewportSize.width, _zoomLevel.value);
-    final scrollPaddingY = f(viewportSize.height, _zoomLevel.value);
-
-    final scrollableRegion = Rect.fromLTRB(
-      -scrollPaddingX,
-      -scrollPaddingY,
-      containerSize.width - viewportSize.width + scrollPaddingX,
-      containerSize.height - viewportSize.height + scrollPaddingY,
-    );
+    final scrollableRegion = scrollableRegionOffset;
 
     settleOnAxis(
       currentOffset: _offset.value.dx,
@@ -208,7 +248,18 @@ class _MangaPageViewState extends State<MangaPageView>
       minOffset: scrollableRegion.left,
       maxOffset: scrollableRegion.right,
       flingAnimation: _flingAnimationX,
-      update: (val) => _offset.value = Offset(val, _offset.value.dy),
+      update: (val) {
+        var newX = val;
+        if (isScrollingVertically && !widget.options.crossAxisOverscroll ||
+            isScrollingHorizontally && !widget.options.mainAxisOverscroll) {
+          newX = _limitBound(
+            newX,
+            scrollableRegion.left,
+            scrollableRegion.right,
+          );
+        }
+        return _offset.value = Offset(newX, _offset.value.dy);
+      },
     );
     settleOnAxis(
       currentOffset: _offset.value.dy,
@@ -216,7 +267,18 @@ class _MangaPageViewState extends State<MangaPageView>
       minOffset: scrollableRegion.top,
       maxOffset: scrollableRegion.bottom,
       flingAnimation: _flingAnimationY,
-      update: (val) => _offset.value = Offset(_offset.value.dx, val),
+      update: (val) {
+        var newY = val;
+        if (isScrollingHorizontally && !widget.options.crossAxisOverscroll ||
+            isScrollingVertically && !widget.options.mainAxisOverscroll) {
+          newY = _limitBound(
+            newY,
+            scrollableRegion.top,
+            scrollableRegion.bottom,
+          );
+        }
+        return _offset.value = Offset(_offset.value.dx, newY);
+      },
     );
   }
 
