@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
+
+import 'manga_page_container.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView.builder({
@@ -20,18 +21,33 @@ class MangaPageView extends StatefulWidget {
 
 class _MangaPageViewState extends State<MangaPageView>
     with TickerProviderStateMixin {
+  final _pageContainerKey = GlobalKey();
+
   late final _flingAnimationX = AnimationController.unbounded(vsync: this);
   late final _flingAnimationY = AnimationController.unbounded(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
 
-  late var _offset = ValueNotifier(Offset.zero);
+  late var _scrollOffset = ValueNotifier(Offset.zero);
   late var _zoomLevel = ValueNotifier(1.0);
 
   bool _zoomDragMode = false;
   double? _zoomLevelOnTouch;
   Offset? _lastTouchPoint;
 
-  late final _containerController = _MangaPageViewContainerController();
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _flingAnimationX.dispose();
+    _flingAnimationY.dispose();
+    _zoomAnimation.dispose();
+    _scrollOffset.dispose();
+    _zoomLevel.dispose();
+    super.dispose();
+  }
 
   bool get isScrollingVertically =>
       widget.options.scrollDirection == Axis.vertical;
@@ -67,16 +83,6 @@ class _MangaPageViewState extends State<MangaPageView>
   }
 
   @override
-  void dispose() {
-    _flingAnimationX.dispose();
-    _flingAnimationY.dispose();
-    _zoomAnimation.dispose();
-    _offset.dispose();
-    _zoomLevel.dispose();
-    super.dispose();
-  }
-
-  @override
   void didUpdateWidget(covariant MangaPageView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
@@ -87,14 +93,17 @@ class _MangaPageViewState extends State<MangaPageView>
       scrollDirectionChanged = true;
       _stopFlingAnimation();
       // Swap main & cross axis
-      _offset.value = Offset(_offset.value.dy, _offset.value.dx);
+      _scrollOffset.value = Offset(
+        _scrollOffset.value.dy,
+        _scrollOffset.value.dx,
+      );
     }
 
     if (widget.options.reverseItemOrder != oldWidget.options.reverseItemOrder) {
       itemOrderChanged = true;
       _stopFlingAnimation();
       // Flip axis
-      _offset.value = -_offset.value;
+      _scrollOffset.value = -_scrollOffset.value;
     }
 
     if (scrollDirectionChanged || itemOrderChanged) {
@@ -102,7 +111,8 @@ class _MangaPageViewState extends State<MangaPageView>
     }
   }
 
-  Size get containerSize => _containerController.containerSize.value;
+  Size get containerSize =>
+      (_pageContainerKey.currentContext!.findRenderObject() as RenderBox).size;
 
   Size get viewportSize => (context.findRenderObject() as RenderBox).size;
 
@@ -126,9 +136,11 @@ class _MangaPageViewState extends State<MangaPageView>
 
   void _handlePanDrag(ScaleUpdateDetails details) {
     var newX =
-        _offset.value.dx - (details.focalPointDelta.dx / _zoomLevel.value);
+        _scrollOffset.value.dx -
+        (details.focalPointDelta.dx / _zoomLevel.value);
     var newY =
-        _offset.value.dy - (details.focalPointDelta.dy / _zoomLevel.value);
+        _scrollOffset.value.dy -
+        (details.focalPointDelta.dy / _zoomLevel.value);
 
     // Limit scrolling to the container's bounds if required
     if (isScrollingVertically && !widget.options.crossAxisOverscroll ||
@@ -148,7 +160,7 @@ class _MangaPageViewState extends State<MangaPageView>
       );
     }
 
-    _offset.value = Offset(newX, newY);
+    _scrollOffset.value = Offset(newX, newY);
   }
 
   void _handleZoomDrag(ScaleUpdateDetails details) {
@@ -243,7 +255,7 @@ class _MangaPageViewState extends State<MangaPageView>
     final scrollableRegion = scrollableRegionOffset;
 
     settleOnAxis(
-      currentOffset: _offset.value.dx,
+      currentOffset: _scrollOffset.value.dx,
       velocity: -velocity.dx,
       minOffset: scrollableRegion.left,
       maxOffset: scrollableRegion.right,
@@ -258,11 +270,11 @@ class _MangaPageViewState extends State<MangaPageView>
             scrollableRegion.right,
           );
         }
-        return _offset.value = Offset(newX, _offset.value.dy);
+        return _scrollOffset.value = Offset(newX, _scrollOffset.value.dy);
       },
     );
     settleOnAxis(
-      currentOffset: _offset.value.dy,
+      currentOffset: _scrollOffset.value.dy,
       velocity: -velocity.dy,
       minOffset: scrollableRegion.top,
       maxOffset: scrollableRegion.bottom,
@@ -277,7 +289,7 @@ class _MangaPageViewState extends State<MangaPageView>
             scrollableRegion.bottom,
           );
         }
-        return _offset.value = Offset(_offset.value.dx, newY);
+        return _scrollOffset.value = Offset(_scrollOffset.value.dx, newY);
       },
     );
   }
@@ -323,9 +335,9 @@ class _MangaPageViewState extends State<MangaPageView>
           onScaleUpdate: (details) {
             if (_zoomDragMode) {
               _handleZoomDrag(details);
-            } else if (details.pointerCount == 2) {
+            } else if (details.pointerCount == 2 && details.scale != 1) {
               _handlePinch(details);
-            } else if (details.pointerCount == 1) {
+            } else {
               _handlePanDrag(details);
             }
           },
@@ -342,7 +354,7 @@ class _MangaPageViewState extends State<MangaPageView>
               clipBehavior: Clip.none,
               children: [
                 ValueListenableBuilder(
-                  valueListenable: _offset,
+                  valueListenable: _scrollOffset,
                   builder: (context, offset, child) {
                     final boundWidth =
                         widget.options.scrollDirection == Axis.vertical
@@ -387,8 +399,10 @@ class _MangaPageViewState extends State<MangaPageView>
                       }
                     }
                   },
-                  child: _MangaPageViewContainer(
-                    controller: _containerController,
+                  child: MangaPageContainer(
+                    key: _pageContainerKey,
+                    scrollOffset: _scrollOffset,
+                    viewportSize: constraints.biggest,
                     options: widget.options,
                     itemCount: widget.itemCount,
                     itemBuilder: widget.itemBuilder,
@@ -399,70 +413,6 @@ class _MangaPageViewState extends State<MangaPageView>
           ),
         );
       },
-    );
-  }
-}
-
-class _MangaPageViewContainerController {
-  final containerSize = ValueNotifier(Size.zero);
-}
-
-class _MangaPageViewContainer extends StatelessWidget {
-  const _MangaPageViewContainer({
-    super.key,
-    required this.controller,
-    required this.options,
-    required this.itemCount,
-    required this.itemBuilder,
-  });
-
-  final _MangaPageViewContainerController controller;
-  final MangaPageViewOptions options;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
-
-  void _onLayoutSizeChanged(BuildContext context, int pageIndex) {
-    final containerRenderBox = context.findRenderObject() as RenderBox;
-    controller.containerSize.value = containerRenderBox.size;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Flex(
-      direction: options.scrollDirection,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (options.reverseItemOrder)
-          for (int i = itemCount - 1; i >= 0; i--) _buildPage(context, i)
-        else
-          for (int i = 0; i < itemCount; i++) _buildPage(context, i),
-      ],
-    );
-  }
-
-  Widget _buildPage(BuildContext context, int index) {
-    return NotificationListener(
-      onNotification: (event) {
-        if (event is SizeChangedLayoutNotification) {
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            _onLayoutSizeChanged(context, index);
-          });
-          return true;
-        }
-        return false;
-      },
-      child: SizeChangedLayoutNotifier(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: options.maxItemSize.width,
-            maxHeight: options.maxItemSize.height,
-          ),
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: itemBuilder(context, index),
-          ),
-        ),
-      ),
     );
   }
 }

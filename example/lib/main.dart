@@ -17,8 +17,9 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  Axis _scrollDirection = Axis.vertical;
-  bool _reverseItemOrder = false;
+  Axis _scrollDirection = Axis.horizontal;
+  bool _reverseItemOrder = true;
+  bool _overscroll = true;
 
   @override
   Widget build(BuildContext context) {
@@ -26,31 +27,29 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
       title: 'Manga Pages Example',
       theme: ThemeData.dark(),
       home: Scaffold(
-        appBar: AppBar(title: const Text('Manga Pages')),
+        appBar: AppBar(title: const Text('Page Viewer')),
         body: Stack(
           children: [
             MangaPageView.builder(
               options: MangaPageViewOptions(
                 scrollDirection: _scrollDirection,
                 reverseItemOrder: _reverseItemOrder,
+                mainAxisOverscroll: _overscroll,
+                crossAxisOverscroll: _overscroll,
               ),
-              itemCount: 26 + 1,
+              itemCount: 26,
               itemBuilder: (context, index) {
-                if (index == 0) {
-                  return RandomPage(
-                    label: 'Strip',
-                    color: Colors.grey,
-                    width: 120,
-                    height: 1200,
-                  );
-                }
-                final letter = String.fromCharCode(64 + index);
+                final letter = String.fromCharCode(65 + index);
+                print('Loading page $letter');
                 return Buffered(
-                  child: RandomPage(
-                    label: 'Page $letter',
-                    color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                    width: _random.nextInt(750) + 250,
-                    height: _random.nextInt(750) + 250,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: RandomPage(
+                      label: 'Page $letter',
+                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                      width: _random.nextInt(750) + 250,
+                      height: _random.nextInt(750) + 250,
+                    ),
                   ),
                 );
               },
@@ -101,6 +100,16 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                         : Icons.swap_horiz,
                   ),
                 ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _overscroll = !_overscroll;
+                    });
+                  },
+                  icon: Icon(
+                    _overscroll ? Icons.swipe_vertical : Icons.crop_free,
+                  ),
+                ),
               ],
             ),
           ],
@@ -118,12 +127,16 @@ class Buffered extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.delayed(Duration(milliseconds: 500)),
+      future: Future.delayed(Duration(milliseconds: _random.nextInt(2000))),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return child;
         } else {
-          return Center(child: CircularProgressIndicator());
+          return SizedBox(
+            width: 300,
+            height: 300,
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
       },
     );
