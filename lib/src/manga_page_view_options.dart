@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class MangaPageViewOptions {
   final double minZoomLevel;
   final double maxZoomLevel;
+  final double initialZoomLevel;
   final List<double> presetZoomLevels;
   final PageViewDirection direction;
   final Size initialPageSize;
@@ -13,6 +14,7 @@ class MangaPageViewOptions {
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
     this.maxZoomLevel = 4.0,
+    this.initialZoomLevel = 1.0,
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
     this.direction = PageViewDirection.down,
     this.initialPageSize = const Size(300, 300),

@@ -103,6 +103,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   @override
   void initState() {
     super.initState();
+    _scrollInfo.zoomLevel.value = widget.options.initialZoomLevel;
   }
 
   @override

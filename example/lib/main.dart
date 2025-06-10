@@ -17,7 +17,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  PageViewDirection _scrollDirection = PageViewDirection.right;
+  PageViewDirection _scrollDirection = PageViewDirection.down;
   bool _overscroll = true;
 
   @override
@@ -119,7 +119,9 @@ class Buffered extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.delayed(Duration(milliseconds: _random.nextInt(2000))),
+      future: Future.delayed(
+        Duration(milliseconds: _random.nextInt(1000) + 1000),
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return child;

@@ -102,16 +102,16 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
 
     final nextVisiblePageIndex = switch (widget.options.direction) {
       PageViewDirection.down => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.bottom > offset.dy + viewportSize.height,
+        (bounds) => bounds.bottom > offset.dy + viewportSize.height / zoomLevel,
       ),
       PageViewDirection.up => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.top < offset.dy - viewportSize.height,
+        (bounds) => bounds.top < offset.dy - viewportSize.height / zoomLevel,
       ),
       PageViewDirection.right => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.right > offset.dx + viewportSize.width,
+        (bounds) => bounds.right > offset.dx + viewportSize.width / zoomLevel,
       ),
       PageViewDirection.left => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.left < offset.dx - viewportSize.width,
+        (bounds) => bounds.left < offset.dx - viewportSize.width / zoomLevel,
       ),
     };
 
@@ -144,6 +144,7 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
 
   Widget _buildPage(BuildContext context, int index) {
     return Builder(
+      key: ValueKey(index),
       builder: (context) {
         return NotificationListener(
           onNotification: (event) {
@@ -162,7 +163,6 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
                 maxHeight: widget.options.maxPageSize.height,
               ),
               child: CachedPage(
-                key: ValueKey(index),
                 builder: (context) => widget.itemBuilder(context, index),
                 visible:
                     index >= _loadedPageStartIndex &&
