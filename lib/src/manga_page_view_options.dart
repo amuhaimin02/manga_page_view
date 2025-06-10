@@ -4,8 +4,7 @@ class MangaPageViewOptions {
   final double minZoomLevel;
   final double maxZoomLevel;
   final List<double> presetZoomLevels;
-  final Axis scrollDirection;
-  final bool reverseItemOrder;
+  final PageViewDirection direction;
   final Size initialPageSize;
   final Size maxPageSize;
   final bool mainAxisOverscroll;
@@ -15,11 +14,21 @@ class MangaPageViewOptions {
     this.minZoomLevel = 0.25,
     this.maxZoomLevel = 4.0,
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
-    this.scrollDirection = Axis.vertical,
-    this.reverseItemOrder = false,
+    this.direction = PageViewDirection.down,
     this.initialPageSize = const Size(300, 300),
     this.maxPageSize = const Size(2400, 1600),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
   });
+}
+
+enum PageViewDirection {
+  up,
+  down,
+  left,
+  right;
+
+  bool get isVertical => this == up || this == down;
+  bool get isHorizontal => this == left || this == right;
+  bool get isReverse => this == up || this == left;
 }

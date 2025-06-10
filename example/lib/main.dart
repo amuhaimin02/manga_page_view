@@ -17,8 +17,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  Axis _scrollDirection = Axis.horizontal;
-  bool _reverseItemOrder = true;
+  PageViewDirection _scrollDirection = PageViewDirection.right;
   bool _overscroll = true;
 
   @override
@@ -30,10 +29,9 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
         appBar: AppBar(title: const Text('Page Viewer')),
         body: Stack(
           children: [
-            MangaPageView.builder(
+            MangaPageView(
               options: MangaPageViewOptions(
-                scrollDirection: _scrollDirection,
-                reverseItemOrder: _reverseItemOrder,
+                direction: _scrollDirection,
                 mainAxisOverscroll: _overscroll,
                 crossAxisOverscroll: _overscroll,
               ),
@@ -77,28 +75,22 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _reverseItemOrder = !_reverseItemOrder;
+                      _scrollDirection = switch (_scrollDirection) {
+                        PageViewDirection.right => PageViewDirection.down,
+                        PageViewDirection.down => PageViewDirection.left,
+                        PageViewDirection.left => PageViewDirection.up,
+                        PageViewDirection.up => PageViewDirection.right,
+                      };
                     });
                   },
-                  icon: Icon(
-                    _reverseItemOrder ? Icons.move_up : Icons.move_down,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      if (_scrollDirection == Axis.vertical) {
-                        _scrollDirection = Axis.horizontal;
-                      } else {
-                        _scrollDirection = Axis.vertical;
-                      }
-                    });
-                  },
-                  icon: Icon(
-                    _scrollDirection == Axis.vertical
-                        ? Icons.swap_vert
-                        : Icons.swap_horiz,
-                  ),
+                  icon: Icon(() {
+                    return switch (_scrollDirection) {
+                      PageViewDirection.right => Icons.arrow_forward,
+                      PageViewDirection.down => Icons.arrow_downward,
+                      PageViewDirection.left => Icons.arrow_back,
+                      PageViewDirection.up => Icons.arrow_upward,
+                    };
+                  }()),
                 ),
                 IconButton(
                   onPressed: () {
