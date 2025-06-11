@@ -178,7 +178,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     var newY =
         offset.dy + (direction == PageViewDirection.up ? deltaY : -deltaY);
 
-    _scrollInfo.offset.value = _limitOffsetWithinBounds(Offset(newX, newY));
+    _scrollInfo.offset.value = _limitOffsetWithinBounds(
+      Offset(newX, newY),
+      allowHorizontalOverscroll:
+          direction.isHorizontal && widget.options.mainAxisOverscroll ||
+          direction.isVertical && widget.options.crossAxisOverscroll,
+      allowVerticalOverscroll:
+          direction.isVertical && widget.options.mainAxisOverscroll ||
+          direction.isHorizontal && widget.options.crossAxisOverscroll,
+    );
   }
 
   void _handleZoomDrag(ScaleUpdateDetails details) {
@@ -262,7 +270,11 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _scrollInfo.offset.value = _limitOffsetWithinBounds(newOffset);
   }
 
-  Offset _limitOffsetWithinBounds(Offset offset) {
+  Offset _limitOffsetWithinBounds(
+    Offset offset, {
+    bool allowVerticalOverscroll = false,
+    bool allowHorizontalOverscroll = false,
+  }) {
     var (x, y) = (offset.dx, offset.dy);
 
     final scrollableRegion = _scrollInfo.scrollableRegion(
@@ -270,15 +282,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       widget.viewportSize,
     );
 
-    if (direction.isVertical && !widget.options.crossAxisOverscroll ||
-        direction.isHorizontal && !widget.options.mainAxisOverscroll) {
+    if (!allowHorizontalOverscroll) {
       x = _limitBound(x, scrollableRegion.left, scrollableRegion.right);
     }
-    if (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
-        direction.isVertical && !widget.options.mainAxisOverscroll) {
+    if (!allowVerticalOverscroll) {
       y = _limitBound(y, scrollableRegion.top, scrollableRegion.bottom);
     }
-    ;
 
     return Offset(x, y);
   }
@@ -295,6 +304,13 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       // In case of zooming out
       final isZoomingOut = maxOffset < minOffset;
 
+      onAnimationUpdate() {
+        update?.call(flingAnimation.value);
+        if (flingAnimation.isCompleted) {
+          flingAnimation.removeListener(onAnimationUpdate);
+        }
+      }
+
       final simulation = BouncingScrollSimulation(
         position: currentOffset,
         velocity: -velocity,
@@ -309,9 +325,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       );
 
       flingAnimation
-        ..addListener(() {
-          update?.call(flingAnimation.value);
-        })
+        ..addListener(onAnimationUpdate)
         ..animateWith(simulation);
     }
 
@@ -368,15 +382,19 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     final animation = zoomTween.animate(
       CurvedAnimation(parent: _zoomAnimation, curve: Easing.standard),
     );
+
+    onAnimationUpdate() {
+      _scrollInfo.zoomLevel.value = animation.value;
+      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+      if (_zoomAnimation.isCompleted) {
+        _settlePageOffset();
+        _zoomAnimation.removeListener(onAnimationUpdate);
+      }
+    }
+
     _zoomAnimation
       ..drive(zoomTween)
-      ..addListener(() {
-        _scrollInfo.zoomLevel.value = animation.value;
-        _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
-        if (_zoomAnimation.status == AnimationStatus.completed) {
-          _settlePageOffset();
-        }
-      })
+      ..addListener(onAnimationUpdate)
       ..duration = Duration(milliseconds: 200)
       ..forward(from: 0);
   }
