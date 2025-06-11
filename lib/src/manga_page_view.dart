@@ -5,27 +5,52 @@ import 'package:manga_page_view/manga_page_view.dart';
 
 import 'manga_page_container.dart';
 
-class MangaPageView extends StatelessWidget {
+class MangaPageViewController {
+  MangaPageViewController();
+
+  final _pageIndexChangeRequest = ValueNotifier<int?>(null);
+
+  void jumpToPage(int index) {
+    _pageIndexChangeRequest.value = index;
+  }
+
+  void dispose() {
+    _pageIndexChangeRequest.dispose();
+  }
+}
+
+class MangaPageView extends StatefulWidget {
   const MangaPageView({
     super.key,
     this.options = const MangaPageViewOptions(),
+    required this.controller,
     required this.itemCount,
     required this.itemBuilder,
+    this.onPageChanged,
   });
 
+  final MangaPageViewController controller;
   final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
+  final Function(int index)? onPageChanged;
 
+  @override
+  State<MangaPageView> createState() => _MangaPageViewState();
+}
+
+class _MangaPageViewState extends State<MangaPageView> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return MangaPageContinuousView(
-          options: options,
-          itemCount: itemCount,
-          itemBuilder: itemBuilder,
+          controller: widget.controller,
+          options: widget.options,
+          itemCount: widget.itemCount,
+          itemBuilder: widget.itemBuilder,
           viewportSize: constraints.biggest,
+          onPageChanged: widget.onPageChanged,
         );
       },
     );
@@ -72,16 +97,20 @@ class ScrollInfo {
 class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
     super.key,
+    required this.controller,
     required this.options,
     required this.itemCount,
     required this.itemBuilder,
     required this.viewportSize,
+    this.onPageChanged,
   });
 
+  final MangaPageViewController controller;
   final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final Size viewportSize;
+  final Function(int index)? onPageChanged;
 
   @override
   State<MangaPageContinuousView> createState() =>
@@ -90,36 +119,49 @@ class MangaPageContinuousView extends StatefulWidget {
 
 class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     with TickerProviderStateMixin {
-  final _pageContainerKey = GlobalKey();
+  final _pageContainerKey = GlobalKey<MangaPageContainerState>();
 
-  late final _flingAnimationX = AnimationController.unbounded(vsync: this);
-  late final _flingAnimationY = AnimationController.unbounded(vsync: this);
+  late final _flingXAnimation = AnimationController.unbounded(vsync: this);
+  late final _flingYAnimation = AnimationController.unbounded(vsync: this);
+  late final _offsetAnimation = AnimationController(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
 
   late final _scrollInfo = ScrollInfo();
 
-  bool _zoomDragMode = false;
+  bool _isZoomDragging = false;
   double? _zoomLevelOnTouch;
   Offset? _lastTouchPoint;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
+    _scrollInfo.offset.addListener(_onScrollOffsetChanged);
+    widget.controller._pageIndexChangeRequest.addListener(
+      _onPageIndexChangeRequest,
+    );
+
     _scrollInfo.zoomLevel.value = widget.options.initialZoomLevel;
   }
 
   @override
   void dispose() {
-    _flingAnimationX.dispose();
-    _flingAnimationY.dispose();
+    _scrollInfo.offset.removeListener(_onScrollOffsetChanged);
+    widget.controller._pageIndexChangeRequest.removeListener(
+      _onPageIndexChangeRequest,
+    );
+
+    _flingXAnimation.dispose();
+    _flingYAnimation.dispose();
     _zoomAnimation.dispose();
     _scrollInfo.dispose();
     super.dispose();
   }
 
+  MangaPageContainerState get containerState => _pageContainerKey.currentState!;
+
   Offset get offset => _scrollInfo.offset.value;
   double get zoomLevel => _scrollInfo.zoomLevel.value;
-
   PageViewDirection get direction => widget.options.direction;
 
   @override
@@ -152,6 +194,33 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
+  void _onPageIndexChangeRequest() {
+    final targetPage = widget.controller._pageIndexChangeRequest.value;
+
+    if (targetPage != null && !_offsetAnimation.isAnimating) {
+      final targetOffset = containerState.pageIndexToOffset(targetPage);
+      Future.microtask(() => widget.onPageChanged?.call(targetPage));
+      _animateOffsetChange(
+        targetOffset: targetOffset,
+        onEnd: () => widget.controller._pageIndexChangeRequest.value = null,
+      );
+    }
+  }
+
+  void _onScrollOffsetChanged() {
+    if (widget.controller._pageIndexChangeRequest.value != null) {
+      return;
+    }
+    final showingPage = containerState
+        .offsetToPageIndex(offset * zoomLevel)
+        .clamp(0, widget.itemCount);
+
+    if (showingPage != _currentPage) {
+      _currentPage = showingPage;
+      Future.microtask(() => widget.onPageChanged?.call(showingPage));
+    }
+  }
+
   void _handleTouch() {
     _stopFlingAnimation();
 
@@ -159,8 +228,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   void _stopFlingAnimation() {
-    _flingAnimationX.stop();
-    _flingAnimationY.stop();
+    _flingXAnimation.stop();
+    _flingYAnimation.stop();
   }
 
   void _handleStartDrag(ScaleStartDetails details) {
@@ -222,7 +291,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
     if (details.pointerCount == 0) {
       _zoomLevelOnTouch = null;
-      _zoomDragMode = false;
+      _isZoomDragging = false;
       _lastTouchPoint = null;
     }
   }
@@ -341,7 +410,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
           : velocity.dx,
       minOffset: scrollableRegion.left,
       maxOffset: scrollableRegion.right,
-      flingAnimation: _flingAnimationX,
+      flingAnimation: _flingXAnimation,
       update: (val) {
         var newX = val;
         if (direction.isVertical && !widget.options.crossAxisOverscroll ||
@@ -360,7 +429,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       velocity: direction == PageViewDirection.up ? -velocity.dy : velocity.dy,
       minOffset: scrollableRegion.top,
       maxOffset: scrollableRegion.bottom,
-      flingAnimation: _flingAnimationY,
+      flingAnimation: _flingYAnimation,
       update: (val) {
         var newY = val;
         if (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
@@ -388,11 +457,44 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
       if (_zoomAnimation.isCompleted) {
         _settlePageOffset();
-        _zoomAnimation.removeListener(onAnimationUpdate);
+        _zoomAnimation
+          ..removeListener(onAnimationUpdate)
+          ..reset();
       }
     }
 
     _zoomAnimation
+      ..drive(zoomTween)
+      ..addListener(onAnimationUpdate)
+      ..duration = Duration(milliseconds: 200)
+      ..forward(from: 0);
+  }
+
+  void _animateOffsetChange({
+    required Offset targetOffset,
+    VoidCallback? onEnd,
+  }) {
+    final currentOffset = offset;
+    final zoomTween = Tween<Offset>(
+      begin: currentOffset,
+      end: _limitOffsetWithinBounds(targetOffset),
+    );
+    final animation = zoomTween.animate(
+      CurvedAnimation(parent: _offsetAnimation, curve: Easing.standard),
+    );
+
+    onAnimationUpdate() {
+      _scrollInfo.offset.value = animation.value;
+      if (_offsetAnimation.isCompleted) {
+        _settlePageOffset();
+        onEnd?.call();
+        _offsetAnimation
+          ..removeListener(onAnimationUpdate)
+          ..reset();
+      }
+    }
+
+    _offsetAnimation
       ..drive(zoomTween)
       ..addListener(onAnimationUpdate)
       ..duration = Duration(milliseconds: 200)
@@ -420,15 +522,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
                 _handleStartDrag(details);
               },
               onDoubleTapDown: (details) {
-                _zoomDragMode = true;
+                _isZoomDragging = true;
               },
               onDoubleTap: () {
                 _handleZoomDoubleTap();
-                _zoomDragMode = false;
+                _isZoomDragging = false;
                 _lastTouchPoint = null;
               },
               onScaleUpdate: (details) {
-                if (_zoomDragMode) {
+                if (_isZoomDragging) {
                   _handleZoomDrag(details);
                 } else if (details.pointerCount == 2 && details.scale != 1) {
                   _handlePinch(details);

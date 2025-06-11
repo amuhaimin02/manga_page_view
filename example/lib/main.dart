@@ -19,6 +19,14 @@ class MangaPagesExampleApp extends StatefulWidget {
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   PageViewDirection _scrollDirection = PageViewDirection.down;
   bool _overscroll = true;
+  late final _controller = MangaPageViewController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +34,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
       title: 'Manga Pages Example',
       theme: ThemeData.dark(),
       home: Scaffold(
-        appBar: AppBar(title: const Text('Page Viewer')),
         body: Stack(
           children: [
             MangaPageView(
+              controller: _controller,
               options: MangaPageViewOptions(
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overscroll,
@@ -51,6 +59,11 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   ),
                 );
               },
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
             ),
             _buildDebugPanel(context),
           ],
@@ -68,6 +81,16 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Slider(
+              value: _currentPage.toDouble(),
+              max: 25,
+              min: 0,
+              divisions: 25,
+              label: '${_currentPage + 1}',
+              onChanged: (value) {
+                _controller.jumpToPage(value.toInt());
+              },
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 16,

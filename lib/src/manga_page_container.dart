@@ -24,31 +24,31 @@ class MangaPageContainer extends StatefulWidget {
   final IndexedWidgetBuilder itemBuilder;
 
   @override
-  State<MangaPageContainer> createState() => _MangaPageContainerState();
+  State<MangaPageContainer> createState() => MangaPageContainerState();
 }
 
-class _MangaPageContainerState extends State<MangaPageContainer> {
+class MangaPageContainerState extends State<MangaPageContainer> {
+  Offset get offset => widget.scrollInfo.offset.value;
+  double get zoomLevel => widget.scrollInfo.zoomLevel.value;
+  PageViewDirection get direction => widget.options.direction;
+
   int _loadedPageStartIndex = 0;
   int _loadedPageEndIndex = 0;
   late List<Size> _loadedPageSize;
   late List<Rect> _loadedPageBounds;
 
-  Offset get offset => widget.scrollInfo.offset.value;
-  double get zoomLevel => widget.scrollInfo.zoomLevel.value;
-
   @override
   void initState() {
     super.initState();
-
     widget.scrollInfo.addListener(_updatePageVisibility);
-
-    _loadedPageSize = List.filled(
-      widget.itemCount,
-      widget.options.initialPageSize,
-    );
-    _loadedPageBounds = List.filled(widget.itemCount, Rect.zero);
-
-    SchedulerBinding.instance.addPostFrameCallback((_) => _refreshPageBounds());
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _loadedPageSize = List.filled(
+        widget.itemCount,
+        widget.options.initialPageSize,
+      );
+      _loadedPageBounds = List.filled(widget.itemCount, Rect.zero);
+      _refreshPageBounds();
+    });
   }
 
   @override
@@ -63,6 +63,32 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
     if (widget.options.direction != oldWidget.options.direction) {
       _refreshPageBounds();
     }
+  }
+
+  int offsetToPageIndex(Offset offset) {
+    return switch (widget.options.direction) {
+      PageViewDirection.down => _loadedPageBounds.indexWhere(
+        (bounds) => bounds.bottom > offset.dy / zoomLevel,
+      ),
+      PageViewDirection.up => _loadedPageBounds.indexWhere(
+        (bounds) => bounds.top < -offset.dy / zoomLevel,
+      ),
+      PageViewDirection.right => _loadedPageBounds.indexWhere(
+        (bounds) => bounds.right > offset.dx / zoomLevel,
+      ),
+      PageViewDirection.left => _loadedPageBounds.indexWhere(
+        (bounds) => bounds.left < -offset.dx / zoomLevel,
+      ),
+    };
+  }
+
+  Offset pageIndexToOffset(int index) {
+    return switch (direction) {
+      PageViewDirection.down => Offset(0, _loadedPageBounds[index].top),
+      PageViewDirection.up => Offset(0, -_loadedPageBounds[index].bottom),
+      PageViewDirection.right => Offset(_loadedPageBounds[index].left, 0),
+      PageViewDirection.left => Offset(-_loadedPageBounds[index].right, 0),
+    };
   }
 
   void _onPageSizeChanged(BuildContext context, int pageIndex) {
@@ -102,20 +128,9 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
   void _updatePageVisibility() {
     final viewportSize = widget.viewportSize;
 
-    final nextVisiblePageIndex = switch (widget.options.direction) {
-      PageViewDirection.down => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.bottom > offset.dy + viewportSize.height / zoomLevel,
-      ),
-      PageViewDirection.up => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.top < offset.dy - viewportSize.height / zoomLevel,
-      ),
-      PageViewDirection.right => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.right > offset.dx + viewportSize.width / zoomLevel,
-      ),
-      PageViewDirection.left => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.left < offset.dx - viewportSize.width / zoomLevel,
-      ),
-    };
+    final nextVisiblePageIndex = offsetToPageIndex(
+      offset.translate(viewportSize.width, viewportSize.height),
+    );
 
     if (nextVisiblePageIndex > _loadedPageEndIndex) {
       setState(() {
@@ -131,16 +146,10 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
 
   Widget _buildContainer(BuildContext context) {
     return SizedBox(
-      width: widget.options.direction.isVertical
-          ? widget.viewportSize.width
-          : null,
-      height: widget.options.direction.isHorizontal
-          ? widget.viewportSize.height
-          : null,
+      width: direction.isVertical ? widget.viewportSize.width : null,
+      height: direction.isHorizontal ? widget.viewportSize.height : null,
       child: Flex(
-        direction: widget.options.direction.isVertical
-            ? Axis.vertical
-            : Axis.horizontal,
+        direction: direction.isVertical ? Axis.vertical : Axis.horizontal,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

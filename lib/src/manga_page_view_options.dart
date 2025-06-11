@@ -22,7 +22,7 @@ class MangaPageViewOptions {
     this.maxPageSize = const Size(2400, 1600),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
-    this.precacheOverhead = 3,
+    this.precacheOverhead = 0,
   });
 }
 
