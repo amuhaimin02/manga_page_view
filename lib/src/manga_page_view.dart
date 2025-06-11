@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 import 'manga_page_container.dart';
@@ -234,6 +236,32 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _animateZoomChange(targetLevel: nextZoomLevel);
   }
 
+  void _handleMouseWheel(PointerScrollEvent event) {
+    final scrollDelta = event.scrollDelta;
+
+    // TODO: Handle macOS convention
+    if (HardwareKeyboard.instance.isControlPressed) {
+      final scrollAmount = -scrollDelta.dy * 0.002;
+      _scrollInfo.zoomLevel.value = (zoomLevel + scrollAmount).clamp(
+        widget.options.minZoomLevel,
+        widget.options.maxZoomLevel,
+      );
+      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+      return;
+    }
+
+    // Handle offset movement
+    final newOffset = switch (HardwareKeyboard.instance.isShiftPressed) {
+      true => offset.translate(
+        scrollDelta.dy,
+        0,
+      ), // Control left-right movement
+      false => offset + scrollDelta,
+    };
+    _stopFlingAnimation();
+    _scrollInfo.offset.value = _limitOffsetWithinBounds(newOffset);
+  }
+
   Offset _limitOffsetWithinBounds(Offset offset) {
     var (x, y) = (offset.dx, offset.dy);
 
@@ -358,75 +386,83 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     return Stack(
       children: [
         Positioned.fill(
-          child: GestureDetector(
+          child: Listener(
             behavior: HitTestBehavior.translucent,
-            onTapDown: (details) {
-              _handleTouch();
-            },
-            onScaleStart: (details) {
-              _handleStartDrag(details);
-            },
-            onDoubleTapDown: (details) {
-              _zoomDragMode = true;
-            },
-            onDoubleTap: () {
-              _handleZoomDoubleTap();
-              _zoomDragMode = false;
-              _lastTouchPoint = null;
-            },
-            onScaleUpdate: (details) {
-              if (_zoomDragMode) {
-                _handleZoomDrag(details);
-              } else if (details.pointerCount == 2 && details.scale != 1) {
-                _handlePinch(details);
-              } else {
-                _handlePanDrag(details);
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent) {
+                _handleMouseWheel(event);
               }
             },
-            onScaleEnd: (details) {
-              _handleLift(details);
-              _handleFling(details);
-            },
-            child: ValueListenableBuilder(
-              valueListenable: _scrollInfo.zoomLevel,
-              builder: (context, zoomLevel, child) {
-                return Transform.scale(scale: zoomLevel, child: child);
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (details) {
+                _handleTouch();
+              },
+              onScaleStart: (details) {
+                _handleStartDrag(details);
+              },
+              onDoubleTapDown: (details) {
+                _zoomDragMode = true;
+              },
+              onDoubleTap: () {
+                _handleZoomDoubleTap();
+                _zoomDragMode = false;
+                _lastTouchPoint = null;
+              },
+              onScaleUpdate: (details) {
+                if (_zoomDragMode) {
+                  _handleZoomDrag(details);
+                } else if (details.pointerCount == 2 && details.scale != 1) {
+                  _handlePinch(details);
+                } else {
+                  _handlePanDrag(details);
+                }
+              },
+              onScaleEnd: (details) {
+                _handleLift(details);
+                _handleFling(details);
               },
               child: ValueListenableBuilder(
-                valueListenable: _scrollInfo.offset,
-                builder: (context, offset, child) {
-                  final alignment = switch (direction) {
-                    PageViewDirection.up => Alignment.bottomLeft,
-                    PageViewDirection.left => Alignment.topRight,
-                    PageViewDirection.down => Alignment.topLeft,
-                    PageViewDirection.right => Alignment.topLeft,
-                  };
-
-                  Offset resultOffset = switch (direction) {
-                    PageViewDirection.up => Offset(offset.dx, -offset.dy),
-                    PageViewDirection.left => Offset(-offset.dx, offset.dy),
-                    PageViewDirection.down => offset,
-                    PageViewDirection.right => offset,
-                  };
-
-                  return Transform.translate(
-                    offset: -resultOffset,
-
-                    child: OverflowBox(
-                      maxWidth: double.infinity,
-                      maxHeight: double.infinity,
-                      alignment: alignment,
-                      child: child,
-                    ),
-                  );
+                valueListenable: _scrollInfo.zoomLevel,
+                builder: (context, zoomLevel, child) {
+                  return Transform.scale(scale: zoomLevel, child: child);
                 },
-                child: MangaPageContainer(
-                  key: _pageContainerKey,
-                  scrollInfo: _scrollInfo,
-                  viewportSize: widget.viewportSize,
-                  options: widget.options,
-                  itemCount: widget.itemCount,
-                  itemBuilder: widget.itemBuilder,
+                child: ValueListenableBuilder(
+                  valueListenable: _scrollInfo.offset,
+                  builder: (context, offset, child) {
+                    final alignment = switch (direction) {
+                      PageViewDirection.up => Alignment.bottomLeft,
+                      PageViewDirection.left => Alignment.topRight,
+                      PageViewDirection.down => Alignment.topLeft,
+                      PageViewDirection.right => Alignment.topLeft,
+                    };
+
+                    Offset resultOffset = switch (direction) {
+                      PageViewDirection.up => Offset(offset.dx, -offset.dy),
+                      PageViewDirection.left => Offset(-offset.dx, offset.dy),
+                      PageViewDirection.down => offset,
+                      PageViewDirection.right => offset,
+                    };
+
+                    return Transform.translate(
+                      offset: -resultOffset,
+
+                      child: OverflowBox(
+                        maxWidth: double.infinity,
+                        maxHeight: double.infinity,
+                        alignment: alignment,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: MangaPageContainer(
+                    key: _pageContainerKey,
+                    scrollInfo: _scrollInfo,
+                    viewportSize: widget.viewportSize,
+                    options: widget.options,
+                    itemCount: widget.itemCount,
+                    itemBuilder: widget.itemBuilder,
+                  ),
                 ),
               ),
             ),
