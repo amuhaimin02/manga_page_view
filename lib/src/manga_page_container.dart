@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/src/cached_page.dart';
@@ -146,6 +148,15 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
     return Builder(
       key: ValueKey(index),
       builder: (context) {
+        final cacheRangeEnd = min(
+          _loadedPageEndIndex + widget.options.precacheOverhead,
+          widget.itemCount - 1,
+        );
+        final cacheRangeStart = max(0, 0);
+
+        final isPageVisible =
+            index >= cacheRangeStart && index <= cacheRangeEnd;
+
         return NotificationListener(
           onNotification: (event) {
             if (event is SizeChangedLayoutNotification) {
@@ -164,9 +175,7 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
               ),
               child: CachedPage(
                 builder: (context) => widget.itemBuilder(context, index),
-                visible:
-                    index >= _loadedPageStartIndex &&
-                    index <= _loadedPageEndIndex,
+                visible: isPageVisible,
                 initialSize: widget.options.initialPageSize,
               ),
             ),

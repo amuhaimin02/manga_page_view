@@ -10,6 +10,7 @@ class MangaPageViewOptions {
   final Size maxPageSize;
   final bool mainAxisOverscroll;
   final bool crossAxisOverscroll;
+  final int precacheOverhead;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
@@ -21,6 +22,7 @@ class MangaPageViewOptions {
     this.maxPageSize = const Size(2400, 1600),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
+    this.precacheOverhead = 3,
   });
 }
 
