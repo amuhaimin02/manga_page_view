@@ -130,17 +130,27 @@ class _MangaPageContainerState extends State<MangaPageContainer> {
   }
 
   Widget _buildContainer(BuildContext context) {
-    return Flex(
-      direction: widget.options.direction.isVertical
-          ? Axis.vertical
-          : Axis.horizontal,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (widget.options.direction.isReverse)
-          for (int i = widget.itemCount - 1; i >= 0; i--) _buildPage(context, i)
-        else
-          for (int i = 0; i < widget.itemCount; i++) _buildPage(context, i),
-      ],
+    return SizedBox(
+      width: widget.options.direction.isVertical
+          ? widget.viewportSize.width
+          : null,
+      height: widget.options.direction.isHorizontal
+          ? widget.viewportSize.height
+          : null,
+      child: Flex(
+        direction: widget.options.direction.isVertical
+            ? Axis.vertical
+            : Axis.horizontal,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.options.direction.isReverse)
+            for (int i = widget.itemCount - 1; i >= 0; i--)
+              _buildPage(context, i)
+          else
+            for (int i = 0; i < widget.itemCount; i++) _buildPage(context, i),
+        ],
+      ),
     );
   }
 

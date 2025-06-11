@@ -120,15 +120,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
   PageViewDirection get direction => widget.options.direction;
 
-  // Similar to clamp but
-  double _limitBound(double value, double limitA, double limitB) {
-    if (limitA <= limitB) {
-      return value.clamp(limitA, limitB);
-    } else {
-      return 0;
-    }
-  }
-
   @override
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -140,8 +131,24 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  Size get containerSize =>
-      (_pageContainerKey.currentContext!.findRenderObject() as RenderBox).size;
+  // Similar to clamp but
+  double _limitBound(double value, double limitA, double limitB) {
+    if (limitA <= limitB) {
+      return value.clamp(limitA, limitB);
+    } else {
+      return 0;
+    }
+  }
+
+  Size _getContainerSize() {
+    final containerRenderBox =
+        _pageContainerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (containerRenderBox != null && containerRenderBox.hasSize) {
+      return containerRenderBox.size;
+    } else {
+      return Size.zero;
+    }
+  }
 
   void _handleTouch() {
     _stopFlingAnimation();
@@ -162,25 +169,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   void _handlePanDrag(ScaleUpdateDetails details) {
-    var newX = offset.dx - (details.focalPointDelta.dx / zoomLevel);
-    var newY = offset.dy - (details.focalPointDelta.dy / zoomLevel);
+    final deltaX = details.focalPointDelta.dx / zoomLevel;
+    final deltaY = details.focalPointDelta.dy / zoomLevel;
+    var newX =
+        offset.dx + (direction == PageViewDirection.left ? deltaX : -deltaX);
+    var newY =
+        offset.dy + (direction == PageViewDirection.up ? deltaY : -deltaY);
 
-    final scrollableRegion = _scrollInfo.scrollableRegion(
-      containerSize,
-      widget.viewportSize,
-    );
-
-    // Limit scrolling to the container's bounds if required
-    if (direction.isVertical && !widget.options.crossAxisOverscroll ||
-        direction.isHorizontal && !widget.options.mainAxisOverscroll) {
-      newX = _limitBound(newX, scrollableRegion.left, scrollableRegion.right);
-    }
-    if (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
-        direction.isVertical && !widget.options.mainAxisOverscroll) {
-      newY = _limitBound(newY, scrollableRegion.top, scrollableRegion.bottom);
-    }
-
-    _scrollInfo.offset.value = Offset(newX, newY);
+    _scrollInfo.offset.value = _limitOffsetWithinBounds(Offset(newX, newY));
   }
 
   void _handleZoomDrag(ScaleUpdateDetails details) {
@@ -193,6 +189,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       widget.options.minZoomLevel,
       widget.options.maxZoomLevel,
     );
+    _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
   }
 
   void _handleFling(ScaleEndDetails details) {
@@ -206,6 +203,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
 
     _scrollInfo.zoomLevel.value = newZoom;
+    _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
   }
 
   void _handleLift(ScaleEndDetails details) {
@@ -236,6 +234,27 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _animateZoomChange(targetLevel: nextZoomLevel);
   }
 
+  Offset _limitOffsetWithinBounds(Offset offset) {
+    var (x, y) = (offset.dx, offset.dy);
+
+    final scrollableRegion = _scrollInfo.scrollableRegion(
+      _getContainerSize(),
+      widget.viewportSize,
+    );
+
+    if (direction.isVertical && !widget.options.crossAxisOverscroll ||
+        direction.isHorizontal && !widget.options.mainAxisOverscroll) {
+      x = _limitBound(x, scrollableRegion.left, scrollableRegion.right);
+    }
+    if (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
+        direction.isVertical && !widget.options.mainAxisOverscroll) {
+      y = _limitBound(y, scrollableRegion.top, scrollableRegion.bottom);
+    }
+    ;
+
+    return Offset(x, y);
+  }
+
   void _settlePageOffset({Offset velocity = Offset.zero}) {
     void settleOnAxis({
       required double currentOffset,
@@ -245,14 +264,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       required AnimationController flingAnimation,
       Function(double offset)? update,
     }) {
-      final reverseOrderFactor = direction.isReverse ? -1 : 1;
-
       // In case of zooming out
       final isZoomingOut = maxOffset < minOffset;
 
       final simulation = BouncingScrollSimulation(
-        position: currentOffset * reverseOrderFactor,
-        velocity: velocity * reverseOrderFactor,
+        position: currentOffset,
+        velocity: -velocity,
         leadingExtent: !isZoomingOut ? minOffset : 0,
         trailingExtent: !isZoomingOut ? maxOffset : 0,
         spring: SpringDescription.withDampingRatio(
@@ -265,19 +282,21 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
       flingAnimation
         ..addListener(() {
-          update?.call(flingAnimation.value * reverseOrderFactor);
+          update?.call(flingAnimation.value);
         })
         ..animateWith(simulation);
     }
 
     final scrollableRegion = _scrollInfo.scrollableRegion(
-      containerSize,
+      _getContainerSize(),
       widget.viewportSize,
     );
 
     settleOnAxis(
       currentOffset: offset.dx,
-      velocity: -velocity.dx,
+      velocity: direction == PageViewDirection.left
+          ? -velocity.dx
+          : velocity.dx,
       minOffset: scrollableRegion.left,
       maxOffset: scrollableRegion.right,
       flingAnimation: _flingAnimationX,
@@ -296,7 +315,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
     settleOnAxis(
       currentOffset: offset.dy,
-      velocity: -velocity.dy,
+      velocity: direction == PageViewDirection.up ? -velocity.dy : velocity.dy,
       minOffset: scrollableRegion.top,
       maxOffset: scrollableRegion.bottom,
       flingAnimation: _flingAnimationY,
@@ -325,6 +344,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       ..drive(zoomTween)
       ..addListener(() {
         _scrollInfo.zoomLevel.value = animation.value;
+        _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
         if (_zoomAnimation.status == AnimationStatus.completed) {
           _settlePageOffset();
         }
@@ -335,103 +355,112 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapDown: (details) {
-        _handleTouch();
-      },
-      onScaleStart: (details) {
-        _handleStartDrag(details);
-      },
-      onDoubleTapDown: (details) {
-        _zoomDragMode = true;
-      },
-      onDoubleTap: () {
-        _handleZoomDoubleTap();
-        _zoomDragMode = false;
-        _lastTouchPoint = null;
-      },
-      onScaleUpdate: (details) {
-        if (_zoomDragMode) {
-          _handleZoomDrag(details);
-        } else if (details.pointerCount == 2 && details.scale != 1) {
-          _handlePinch(details);
-        } else {
-          _handlePanDrag(details);
-        }
-      },
-      onScaleEnd: (details) {
-        _handleLift(details);
-        _handleFling(details);
-      },
-      child: ValueListenableBuilder(
-        valueListenable: _scrollInfo.zoomLevel,
-        builder: (context, zoomLevel, child) {
-          return Transform.scale(scale: zoomLevel, child: child);
-        },
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            ValueListenableBuilder(
-              valueListenable: _scrollInfo.offset,
-              builder: (context, offset, child) {
-                final boundWidth = direction.isVertical
-                    ? widget.viewportSize.width
-                    : null;
-                final boundHeight = direction.isHorizontal
-                    ? widget.viewportSize.height
-                    : null;
-
-                if (!direction.isReverse) {
-                  // Normal top-down or left-to-right layout
-                  return Positioned(
-                    left: -offset.dx,
-                    top: -offset.dy,
-
-                    width: boundWidth,
-                    height: boundHeight,
-                    child: child!,
-                  );
-                } else {
-                  if (widget.options.direction == PageViewDirection.left) {
-                    // Right-to-left layout
-                    return Positioned(
-                      right: offset.dx,
-                      top: -offset.dy,
-
-                      width: boundWidth,
-                      height: boundHeight,
-                      child: child!,
-                    );
-                  } else if (widget.options.direction == PageViewDirection.up) {
-                    // Bottom-up layout
-                    return Positioned(
-                      left: -offset.dx,
-                      bottom: offset.dy,
-
-                      width: boundWidth,
-                      height: boundHeight,
-                      child: child!,
-                    );
-                  } else {
-                    throw AssertionError(
-                      'Invalid direction: ${widget.options.direction}',
-                    );
-                  }
-                }
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTapDown: (details) {
+              _handleTouch();
+            },
+            onScaleStart: (details) {
+              _handleStartDrag(details);
+            },
+            onDoubleTapDown: (details) {
+              _zoomDragMode = true;
+            },
+            onDoubleTap: () {
+              _handleZoomDoubleTap();
+              _zoomDragMode = false;
+              _lastTouchPoint = null;
+            },
+            onScaleUpdate: (details) {
+              if (_zoomDragMode) {
+                _handleZoomDrag(details);
+              } else if (details.pointerCount == 2 && details.scale != 1) {
+                _handlePinch(details);
+              } else {
+                _handlePanDrag(details);
+              }
+            },
+            onScaleEnd: (details) {
+              _handleLift(details);
+              _handleFling(details);
+            },
+            child: ValueListenableBuilder(
+              valueListenable: _scrollInfo.zoomLevel,
+              builder: (context, zoomLevel, child) {
+                return Transform.scale(scale: zoomLevel, child: child);
               },
-              child: MangaPageContainer(
-                key: _pageContainerKey,
-                scrollInfo: _scrollInfo,
-                viewportSize: widget.viewportSize,
-                options: widget.options,
-                itemCount: widget.itemCount,
-                itemBuilder: widget.itemBuilder,
+              child: ValueListenableBuilder(
+                valueListenable: _scrollInfo.offset,
+                builder: (context, offset, child) {
+                  final alignment = switch (direction) {
+                    PageViewDirection.up => Alignment.bottomLeft,
+                    PageViewDirection.left => Alignment.topRight,
+                    PageViewDirection.down => Alignment.topLeft,
+                    PageViewDirection.right => Alignment.topLeft,
+                  };
+
+                  Offset resultOffset = switch (direction) {
+                    PageViewDirection.up => Offset(offset.dx, -offset.dy),
+                    PageViewDirection.left => Offset(-offset.dx, offset.dy),
+                    PageViewDirection.down => offset,
+                    PageViewDirection.right => offset,
+                  };
+
+                  return Transform.translate(
+                    offset: -resultOffset,
+
+                    child: OverflowBox(
+                      maxWidth: double.infinity,
+                      maxHeight: double.infinity,
+                      alignment: alignment,
+                      child: child,
+                    ),
+                  );
+                },
+                child: MangaPageContainer(
+                  key: _pageContainerKey,
+                  scrollInfo: _scrollInfo,
+                  viewportSize: widget.viewportSize,
+                  options: widget.options,
+                  itemCount: widget.itemCount,
+                  itemBuilder: widget.itemBuilder,
+                ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ValueListenableBuilder(
+              valueListenable: _scrollInfo.zoomLevel,
+              builder: (context, value, child) {
+                return ValueListenableBuilder(
+                  valueListenable: _scrollInfo.offset,
+                  builder: (context, value, child) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Offset: ${_scrollInfo.offset.value.dx.toStringAsFixed(2)}, ${_scrollInfo.offset.value.dy.toStringAsFixed(2)}',
+                        ),
+                        Text(
+                          'Zoom: ${_scrollInfo.zoomLevel.value.toStringAsFixed(3)}',
+                        ),
+                        Text('Container size: ${_getContainerSize()}'),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
