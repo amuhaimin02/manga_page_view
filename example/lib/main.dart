@@ -22,6 +22,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   PageViewGravity _scrollGravity = PageViewGravity.start;
   late final _controller = MangaPageViewController();
   int _currentPage = 0;
+  MangaPageViewScrollProgress? _currentProgress;
 
   @override
   void dispose() {
@@ -33,7 +34,12 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Manga Pages Example',
-      theme: ThemeData.dark(),
+      theme: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+      ),
       home: Scaffold(
         body: Stack(
           children: [
@@ -62,9 +68,14 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   ),
                 );
               },
-              onPageChanged: (index) {
+              onPageChange: (index) {
                 setState(() {
                   _currentPage = index;
+                });
+              },
+              onProgressChange: (progress) {
+                setState(() {
+                  _currentProgress = progress;
                 });
               },
             ),
@@ -92,6 +103,13 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               label: '${_currentPage + 1}',
               onChanged: (value) {
                 _controller.jumpToPage(value.toInt());
+              },
+            ),
+            Slider(
+              value: _currentProgress?.fraction ?? 0,
+              // max: _currentProgress?.totalPixels ?? 0,
+              onChanged: (value) {
+                _controller.jumpToFraction(value);
               },
             ),
             Row(

@@ -9,7 +9,7 @@ import 'package:meta/meta.dart';
 import '../manga_page_view.dart';
 import 'widgets/cached_page.dart';
 
-class ScrollInfo {
+class _ScrollInfo {
   final offset = ValueNotifier(Offset.zero);
   final zoomLevel = ValueNotifier(1.0);
 
@@ -52,7 +52,8 @@ class MangaPageContinuousView extends StatefulWidget {
     required this.itemCount,
     required this.itemBuilder,
     required this.viewportSize,
-    this.onPageChanged,
+    this.onPageChange,
+    this.onProgressChange,
   });
 
   final MangaPageViewController controller;
@@ -60,7 +61,8 @@ class MangaPageContinuousView extends StatefulWidget {
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final Size viewportSize;
-  final Function(int index)? onPageChanged;
+  final Function(int index)? onPageChange;
+  final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
   @override
   State<MangaPageContinuousView> createState() =>
@@ -76,7 +78,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   late final _offsetAnimation = AnimationController(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
 
-  late final _scrollInfo = ScrollInfo();
+  late final _scrollInfo = _ScrollInfo();
 
   bool _isZoomDragging = false;
   double? _zoomLevelOnTouch;
@@ -93,6 +95,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     widget.controller.pageIndexChangeRequest.addListener(
       _onPageIndexChangeRequest,
     );
+    widget.controller.fractionChangeRequest.addListener(
+      _onFractionChangeRequest,
+    );
+    widget.controller.offsetChangeRequest.addListener(_onOffsetChangeRequest);
 
     _scrollInfo.zoomLevel.value = widget.options.initialZoomLevel;
 
@@ -106,6 +112,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     widget.controller.pageIndexChangeRequest.removeListener(
       _onPageIndexChangeRequest,
     );
+    widget.controller.fractionChangeRequest.removeListener(
+      _onFractionChangeRequest,
+    );
+    widget.controller.offsetChangeRequest.removeListener(
+      _onOffsetChangeRequest,
+    );
 
     _flingXAnimation.dispose();
     _flingYAnimation.dispose();
@@ -114,6 +126,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     _offsetAnimation.removeListener(_onAnimateOffsetUpdate);
     _zoomAnimation.removeListener(_onAnimateZoomUpdate);
+
     super.dispose();
   }
 
@@ -140,6 +153,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         _scrollInfo.offset.value = Offset(offset.dy, offset.dx);
       }
 
+      _sendScrollProgress();
+
       Future.delayed(
         Duration(milliseconds: 100),
         () => _settlePageOffset(forceAllowOverscroll: true),
@@ -156,16 +171,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  Size _calculateContainerSize() {
-    final containerRenderBox =
-        _pageContainerKey.currentContext?.findRenderObject() as RenderBox?;
-    if (containerRenderBox != null && containerRenderBox.hasSize) {
-      return containerRenderBox.size;
-    } else {
-      return Size.zero;
-    }
-  }
-
   void _onPageIndexChangeRequest() {
     final targetPage = widget.controller.pageIndexChangeRequest.value;
 
@@ -175,7 +180,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         widget.options.scrollGravity,
       );
 
-      Future.microtask(() => widget.onPageChanged?.call(targetPage));
+      Future.microtask(() => widget.onPageChange?.call(targetPage));
       _animateOffsetChange(
         targetOffset: targetOffset,
         onEnd: () => widget.controller.pageIndexChangeRequest.value = null,
@@ -183,7 +188,45 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
+  void _onFractionChangeRequest() {
+    final targetValue = widget.controller.fractionChangeRequest.value;
+
+    if (targetValue != null) {
+      final scrollableRegion = _calculateScrollableRegion();
+
+      _stopFlingAnimation();
+      _scrollInfo.offset.value = direction.isVertical
+          ? Offset(
+              offset.dx,
+              targetValue * scrollableRegion.height + scrollableRegion.top,
+            )
+          : Offset(
+              (targetValue * scrollableRegion.width + scrollableRegion.left),
+              offset.dy,
+            );
+      widget.controller.offsetChangeRequest.value = null;
+    }
+  }
+
+  void _onOffsetChangeRequest() {
+    final targetValue = widget.controller.offsetChangeRequest.value;
+
+    if (targetValue != null) {
+      final scrollableRegion = _calculateScrollableRegion();
+
+      _stopFlingAnimation();
+      _scrollInfo.offset.value = direction.isVertical
+          ? Offset(offset.dx, targetValue + scrollableRegion.top)
+          : Offset(targetValue + scrollableRegion.left, offset.dy);
+      widget.controller.offsetChangeRequest.value = null;
+    }
+  }
+
   void _onScrollOffsetChanged() {
+    if (widget.onProgressChange != null) {
+      _sendScrollProgress();
+    }
+
     if (_offsetAnimation.isAnimating) {
       return;
     }
@@ -196,7 +239,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     if (showingPage != _currentPage) {
       _currentPage = showingPage;
-      Future.microtask(() => widget.onPageChanged?.call(showingPage));
+      Future.microtask(() => widget.onPageChange?.call(showingPage));
     }
   }
 
@@ -319,7 +362,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   Rect _calculateScrollableRegion() {
-    final containerSize = _calculateContainerSize();
+    final containerSize = containerState.manager.containerSize;
     var rect = Rect.fromLTWH(
       0,
       0,
@@ -329,10 +372,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     if (widget.options.centerPageOnEdge) {
       final viewportSize = widget.viewportSize;
-      final containerState = _pageContainerKey.currentState!;
-      final firstPageSize = containerState.getPageBounds(0).size;
-      final lastPageSize = containerState
-          .getPageBounds(widget.itemCount - 1)
+      final firstPageSize = containerState.manager.getBounds(0).size;
+      final lastPageSize = containerState.manager
+          .getBounds(widget.itemCount - 1)
           .size;
 
       if (direction.isVertical) {
@@ -488,6 +530,28 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         _scrollInfo.offset.value = Offset(offset.dx, newY);
       },
     );
+  }
+
+  void _sendScrollProgress() {
+    Future.microtask(() {
+      final scrollableRegion = _calculateScrollableRegion();
+      final currentPixels = direction.isVertical
+          ? offset.dy - scrollableRegion.top
+          : offset.dx - scrollableRegion.left;
+      final totalPixels = direction.isVertical
+          ? scrollableRegion.height
+          : scrollableRegion.width;
+
+      widget.onProgressChange?.call(
+        MangaPageViewScrollProgress(
+          currentPage: _currentPage,
+          totalPages: widget.itemCount,
+          currentPixels: currentPixels.clamp(0, totalPixels),
+          totalPixels: totalPixels,
+          fraction: (currentPixels / totalPixels).clamp(0, 1),
+        ),
+      );
+    });
   }
 
   void _animateZoomChange({required double targetLevel}) {
@@ -652,7 +716,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
                         Text(
                           'Zoom: ${_scrollInfo.zoomLevel.value.toStringAsFixed(3)}',
                         ),
-                        Text('Container size: ${_calculateContainerSize()}'),
+                        Text(
+                          'Container size: ${containerState.manager.containerSize}',
+                        ),
                       ],
                     );
                   },
@@ -677,7 +743,7 @@ class MangaPageContainer extends StatefulWidget {
     required this.itemBuilder,
   });
 
-  final ScrollInfo scrollInfo;
+  final _ScrollInfo scrollInfo;
   final Size viewportSize;
   final MangaPageViewOptions options;
   final int itemCount;
@@ -692,28 +758,25 @@ class MangaPageContainerState extends State<MangaPageContainer> {
   double get zoomLevel => widget.scrollInfo.zoomLevel.value;
   PageViewDirection get direction => widget.options.direction;
 
-  int _loadedPageStartIndex = 0;
   int _loadedPageEndIndex = 0;
-  late List<Size> _loadedPageSize;
-  late List<Rect> _loadedPageBounds;
+  final manager = _MangaPageContainerRegionManager();
 
   @override
   void initState() {
     super.initState();
     widget.scrollInfo.addListener(_updatePageVisibility);
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _loadedPageSize = List.filled(
-        widget.itemCount,
-        widget.options.initialPageSize,
-      );
-      _loadedPageBounds = List.filled(widget.itemCount, Rect.zero);
-      _refreshPageBounds();
-    });
+    manager.addListener(_onContainerSizeUpdate);
+    manager.setup(
+      widget.itemCount,
+      widget.options.initialPageSize,
+      widget.options.direction,
+    );
   }
 
   @override
   void dispose() {
     widget.scrollInfo.removeListener(_updatePageVisibility);
+    manager.removeListener(_onContainerSizeUpdate);
     super.dispose();
   }
 
@@ -721,12 +784,12 @@ class MangaPageContainerState extends State<MangaPageContainer> {
   void didUpdateWidget(covariant MangaPageContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.options.direction != oldWidget.options.direction) {
-      _refreshPageBounds();
+      manager.reorient(widget.options.direction);
     }
   }
 
-  Rect getPageBounds(int pageIndex) {
-    return _loadedPageBounds[pageIndex];
+  void _onContainerSizeUpdate() {
+    _updatePageVisibility();
   }
 
   int offsetToPageIndex(Offset offset, PageViewGravity gravity) {
@@ -774,7 +837,7 @@ class MangaPageContainerState extends State<MangaPageContainer> {
 
     int foundPageIndex = -1;
 
-    for (Rect pageBounds in _loadedPageBounds.map(transform)) {
+    for (Rect pageBounds in manager.allBounds.map(transform)) {
       if (isBoundInRange(pageBounds)) {
         break;
       }
@@ -785,7 +848,7 @@ class MangaPageContainerState extends State<MangaPageContainer> {
 
   Offset pageIndexToOffset(int index, PageViewGravity gravity) {
     final pageBounds = widget.scrollInfo.transformZoom(
-      _loadedPageBounds[index],
+      manager.getBounds(index),
       widget.viewportSize,
     );
     final viewportSize = widget.viewportSize;
@@ -830,35 +893,7 @@ class MangaPageContainerState extends State<MangaPageContainer> {
   void _onPageSizeChanged(BuildContext context, int pageIndex) {
     final pageRenderBox = context.findRenderObject() as RenderBox;
     final pageSize = pageRenderBox.size;
-    _loadedPageSize[pageIndex] = pageSize;
-    _refreshPageBounds();
-  }
-
-  void _refreshPageBounds() {
-    Offset nextPoint = Offset.zero;
-    for (int i = 0; i < widget.itemCount; i++) {
-      final pageSize = _loadedPageSize[i];
-
-      nextPoint = switch (widget.options.direction) {
-        PageViewDirection.up => nextPoint.translate(0, -pageSize.height),
-        PageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
-        PageViewDirection.down => nextPoint,
-        PageViewDirection.right => nextPoint,
-      };
-
-      final pageBounds = nextPoint & pageSize;
-
-      _loadedPageBounds[i] = pageBounds;
-
-      nextPoint = switch (widget.options.direction) {
-        PageViewDirection.up => pageBounds.topLeft,
-        PageViewDirection.left => pageBounds.topLeft,
-        PageViewDirection.down => pageBounds.bottomLeft,
-        PageViewDirection.right => pageBounds.topRight,
-      };
-    }
-
-    _updatePageVisibility();
+    manager.updatePage(pageIndex, pageSize);
   }
 
   void _updatePageVisibility() {
@@ -939,5 +974,68 @@ class MangaPageContainerState extends State<MangaPageContainer> {
         );
       },
     );
+  }
+}
+
+class _MangaPageContainerRegionManager extends ChangeNotifier {
+  int _pageCount = 0;
+  PageViewDirection _direction = PageViewDirection.down;
+
+  List<Rect> _pageBounds = [];
+  Size _containerSize = Size.zero;
+
+  void setup(int totalPages, Size initialSize, PageViewDirection direction) {
+    _pageCount = totalPages;
+    _direction = direction;
+    _pageBounds = List.filled(totalPages, Offset.zero & initialSize);
+    _recalculate();
+  }
+
+  Rect getBounds(int pageIndex) {
+    return _pageBounds[pageIndex];
+  }
+
+  void updatePage(int pageIndex, Size pageSize) {
+    _pageBounds[pageIndex] = Offset.zero & pageSize;
+    _recalculate();
+  }
+
+  void reorient(PageViewDirection newDirection) {
+    _direction = newDirection;
+    _recalculate();
+  }
+
+  Size get containerSize => _containerSize;
+
+  Iterable<Rect> get allBounds => _pageBounds;
+
+  void _recalculate() {
+    Offset nextPoint = Offset.zero;
+    for (int i = 0; i < _pageCount; i++) {
+      final pageSize = _pageBounds[i].size;
+
+      nextPoint = switch (_direction) {
+        PageViewDirection.up => nextPoint.translate(0, -pageSize.height),
+        PageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
+        PageViewDirection.down => nextPoint,
+        PageViewDirection.right => nextPoint,
+      };
+
+      final pageBounds = nextPoint & pageSize;
+
+      _pageBounds[i] = pageBounds;
+
+      nextPoint = switch (_direction) {
+        PageViewDirection.up => pageBounds.topLeft,
+        PageViewDirection.left => pageBounds.topLeft,
+        PageViewDirection.down => pageBounds.bottomLeft,
+        PageViewDirection.right => pageBounds.topRight,
+      };
+    }
+
+    final overallBounds = _pageBounds.first.expandToInclude(_pageBounds.last);
+    _containerSize = overallBounds.size;
+
+    notifyListeners();
   }
 }

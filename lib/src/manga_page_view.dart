@@ -3,21 +3,6 @@ import 'package:manga_page_view/manga_page_view.dart';
 import 'package:meta/meta.dart';
 import 'manga_page_continuous_view.dart';
 
-class MangaPageViewController {
-  MangaPageViewController();
-
-  @internal
-  final pageIndexChangeRequest = ValueNotifier<int?>(null);
-
-  void jumpToPage(int index) {
-    pageIndexChangeRequest.value = index;
-  }
-
-  void dispose() {
-    pageIndexChangeRequest.dispose();
-  }
-}
-
 class MangaPageView extends StatefulWidget {
   const MangaPageView({
     super.key,
@@ -25,14 +10,16 @@ class MangaPageView extends StatefulWidget {
     required this.controller,
     required this.itemCount,
     required this.itemBuilder,
-    this.onPageChanged,
+    this.onPageChange,
+    this.onProgressChange,
   });
 
   final MangaPageViewController controller;
   final MangaPageViewOptions options;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
-  final Function(int index)? onPageChanged;
+  final Function(int index)? onPageChange;
+  final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
   @override
   State<MangaPageView> createState() => _MangaPageViewState();
@@ -49,9 +36,53 @@ class _MangaPageViewState extends State<MangaPageView> {
           itemCount: widget.itemCount,
           itemBuilder: widget.itemBuilder,
           viewportSize: constraints.biggest,
-          onPageChanged: widget.onPageChanged,
+          onPageChange: widget.onPageChange,
+          onProgressChange: widget.onProgressChange,
         );
       },
     );
   }
+}
+
+class MangaPageViewController {
+  MangaPageViewController();
+
+  @internal
+  final pageIndexChangeRequest = ValueNotifier<int?>(null);
+  @internal
+  final fractionChangeRequest = ValueNotifier<double?>(null);
+  @internal
+  final offsetChangeRequest = ValueNotifier<double?>(null);
+
+  void jumpToPage(int index) {
+    pageIndexChangeRequest.value = index;
+  }
+
+  void jumpToFraction(double fraction) {
+    fractionChangeRequest.value = fraction;
+  }
+
+  void jumpToOffset(double offset) {
+    offsetChangeRequest.value = offset;
+  }
+
+  void dispose() {
+    pageIndexChangeRequest.dispose();
+  }
+}
+
+class MangaPageViewScrollProgress {
+  final int currentPage;
+  final int totalPages;
+  final double currentPixels;
+  final double totalPixels;
+  final double fraction;
+
+  MangaPageViewScrollProgress({
+    required this.currentPage,
+    required this.totalPages,
+    required this.currentPixels,
+    required this.totalPixels,
+    required this.fraction,
+  });
 }
