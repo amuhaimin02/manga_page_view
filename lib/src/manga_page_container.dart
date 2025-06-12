@@ -66,28 +66,35 @@ class MangaPageContainerState extends State<MangaPageContainer> {
   }
 
   int offsetToPageIndex(Offset offset) {
+    Rect transform(Rect bounds) {
+      return widget.scrollInfo.transformZoom(bounds, widget.viewportSize);
+    }
+
+    final bounds = _loadedPageBounds.map(transform).toList();
+
     return switch (widget.options.direction) {
-      PageViewDirection.down => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.bottom > offset.dy / zoomLevel,
-      ),
-      PageViewDirection.up => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.top < -offset.dy / zoomLevel,
-      ),
-      PageViewDirection.right => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.right > offset.dx / zoomLevel,
-      ),
-      PageViewDirection.left => _loadedPageBounds.indexWhere(
-        (bounds) => bounds.left < -offset.dx / zoomLevel,
-      ),
+      PageViewDirection.down =>
+        bounds.indexWhere((b) => b.top > offset.dy / zoomLevel) - 1,
+      PageViewDirection.up =>
+        bounds.indexWhere((b) => b.bottom < -offset.dy / zoomLevel) - 1,
+      PageViewDirection.right =>
+        bounds.indexWhere((b) => b.left > offset.dx / zoomLevel) - 1,
+      PageViewDirection.left =>
+        bounds.indexWhere((b) => b.right < -offset.dx / zoomLevel) - 1,
     };
   }
 
   Offset pageIndexToOffset(int index) {
+    final pageBounds = widget.scrollInfo.transformZoom(
+      _loadedPageBounds[index],
+      widget.viewportSize,
+    );
+
     return switch (direction) {
-      PageViewDirection.down => Offset(0, _loadedPageBounds[index].top),
-      PageViewDirection.up => Offset(0, -_loadedPageBounds[index].bottom),
-      PageViewDirection.right => Offset(_loadedPageBounds[index].left, 0),
-      PageViewDirection.left => Offset(-_loadedPageBounds[index].right, 0),
+      PageViewDirection.down => Offset(0, pageBounds.top),
+      PageViewDirection.up => Offset(0, -pageBounds.bottom),
+      PageViewDirection.right => Offset(pageBounds.left, 0),
+      PageViewDirection.left => Offset(-pageBounds.right, 0),
     };
   }
 

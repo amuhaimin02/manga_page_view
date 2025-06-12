@@ -76,21 +76,31 @@ class ScrollInfo {
     zoomLevel.removeListener(listener);
   }
 
-  Rect scrollableRegion(Size containerSize, Size viewportSize) {
+  Rect transformZoom(Rect bounds, Size viewportSize) {
     // Formula to calculate desirable offset range depending on zoom level
     f(double v, double z) => (1 - 1 / z) * (v / 2);
 
-    final scrollPaddingX = f(viewportSize.width, zoomLevel.value);
-    final scrollPaddingY = f(viewportSize.height, zoomLevel.value);
+    final paddingX = f(viewportSize.width, zoomLevel.value);
+    final paddingY = f(viewportSize.height, zoomLevel.value);
 
-    final scrollableRegion = Rect.fromLTRB(
-      -scrollPaddingX,
-      -scrollPaddingY,
-      containerSize.width - viewportSize.width + scrollPaddingX,
-      containerSize.height - viewportSize.height + scrollPaddingY,
+    return Rect.fromLTRB(
+      bounds.left - paddingX,
+      bounds.top - paddingY,
+      bounds.right + paddingX,
+      bounds.bottom + paddingY,
     );
+  }
 
-    return scrollableRegion;
+  Rect scrollableRegion(Size containerSize, Size viewportSize) {
+    return transformZoom(
+      Rect.fromLTWH(
+        0,
+        0,
+        containerSize.width - viewportSize.width,
+        containerSize.height - viewportSize.height,
+      ),
+      viewportSize,
+    );
   }
 }
 
@@ -208,6 +218,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     if (targetPage != null) {
       final targetOffset = containerState.pageIndexToOffset(targetPage);
+
       Future.microtask(() => widget.onPageChanged?.call(targetPage));
       _animateOffsetChange(
         targetOffset: targetOffset,
