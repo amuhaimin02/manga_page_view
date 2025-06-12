@@ -140,7 +140,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         _scrollInfo.offset.value = Offset(offset.dy, offset.dx);
       }
 
-      Future.delayed(Duration(milliseconds: 100), () => _settlePageOffset());
+      Future.delayed(
+        Duration(milliseconds: 100),
+        () => _settlePageOffset(forceAllowOverscroll: true),
+      );
     }
   }
 
@@ -401,7 +404,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     return Offset(x, y);
   }
 
-  void _settlePageOffset({Offset velocity = Offset.zero}) {
+  void _settlePageOffset({
+    Offset velocity = Offset.zero,
+    bool forceAllowOverscroll = false,
+  }) {
     void settleOnAxis({
       required double currentOffset,
       required double minOffset,
@@ -450,8 +456,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       flingAnimation: _flingXAnimation,
       update: (val) {
         var newX = val;
-        if (direction.isVertical && !widget.options.crossAxisOverscroll ||
-            direction.isHorizontal && !widget.options.mainAxisOverscroll) {
+        if (!forceAllowOverscroll &&
+            (direction.isVertical && !widget.options.crossAxisOverscroll ||
+                direction.isHorizontal && !widget.options.mainAxisOverscroll)) {
           newX = _limitBound(
             newX,
             scrollableRegion.left,
@@ -469,8 +476,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       flingAnimation: _flingYAnimation,
       update: (val) {
         var newY = val;
-        if (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
-            direction.isVertical && !widget.options.mainAxisOverscroll) {
+        if (!forceAllowOverscroll &&
+            (direction.isHorizontal && !widget.options.crossAxisOverscroll ||
+                direction.isVertical && !widget.options.mainAxisOverscroll)) {
           newY = _limitBound(
             newY,
             scrollableRegion.top,
