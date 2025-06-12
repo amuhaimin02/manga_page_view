@@ -11,6 +11,7 @@ class MangaPageViewOptions {
   final bool mainAxisOverscroll;
   final bool crossAxisOverscroll;
   final int precacheOverhead;
+  final PageViewGravity scrollGravity;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
@@ -23,6 +24,7 @@ class MangaPageViewOptions {
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
     this.precacheOverhead = 0,
+    this.scrollGravity = PageViewGravity.center,
   });
 }
 
@@ -35,4 +37,18 @@ enum PageViewDirection {
   bool get isVertical => this == up || this == down;
   bool get isHorizontal => this == left || this == right;
   bool get isReverse => this == up || this == left;
+}
+
+enum PageViewGravity {
+  start,
+  center,
+  end;
+
+  T select<T>({required T start, required T center, required T end}) {
+    return switch (this) {
+      PageViewGravity.start => start,
+      PageViewGravity.center => center,
+      PageViewGravity.end => end,
+    };
+  }
 }

@@ -65,36 +65,101 @@ class MangaPageContainerState extends State<MangaPageContainer> {
     }
   }
 
-  int offsetToPageIndex(Offset offset) {
+  int offsetToPageIndex(Offset offset, PageViewGravity gravity) {
     Rect transform(Rect bounds) {
       return widget.scrollInfo.transformZoom(bounds, widget.viewportSize);
     }
 
-    final bounds = _loadedPageBounds.map(transform).toList();
+    final viewportSize = widget.viewportSize;
+    final viewportCenter = viewportSize.center(Offset.zero);
 
-    return switch (widget.options.direction) {
+    final isBoundInRange = switch (widget.options.direction) {
       PageViewDirection.down =>
-        bounds.indexWhere((b) => b.top > offset.dy / zoomLevel) - 1,
+        (Rect b) =>
+            gravity.select(
+              start: b.top,
+              center: b.center.dy - viewportCenter.dy,
+              end: b.bottom - viewportSize.height,
+            ) >
+            offset.dy / zoomLevel,
       PageViewDirection.up =>
-        bounds.indexWhere((b) => b.bottom < -offset.dy / zoomLevel) - 1,
+        (Rect b) =>
+            gravity.select(
+              start: -b.bottom,
+              center: -b.center.dy - viewportCenter.dy,
+              end: -b.top - viewportSize.height,
+            ) >
+            offset.dy / zoomLevel,
       PageViewDirection.right =>
-        bounds.indexWhere((b) => b.left > offset.dx / zoomLevel) - 1,
+        (Rect b) =>
+            gravity.select(
+              start: b.left,
+              center: b.center.dx - viewportCenter.dx,
+              end: b.right - viewportSize.width,
+            ) >
+            offset.dx / zoomLevel,
       PageViewDirection.left =>
-        bounds.indexWhere((b) => b.right < -offset.dx / zoomLevel) - 1,
+        (Rect b) =>
+            gravity.select(
+              start: -b.right,
+              center: -b.center.dx - viewportCenter.dx,
+              end: -b.left - viewportSize.width,
+            ) >
+            offset.dx / zoomLevel,
     };
+
+    int foundPageIndex = -1;
+
+    for (Rect pageBounds in _loadedPageBounds.map(transform)) {
+      if (isBoundInRange(pageBounds)) {
+        break;
+      }
+      foundPageIndex += 1;
+    }
+    return foundPageIndex;
   }
 
-  Offset pageIndexToOffset(int index) {
+  Offset pageIndexToOffset(int index, PageViewGravity gravity) {
     final pageBounds = widget.scrollInfo.transformZoom(
       _loadedPageBounds[index],
       widget.viewportSize,
     );
+    final viewportSize = widget.viewportSize;
+    final viewportCenter = viewportSize.center(Offset.zero);
 
     return switch (direction) {
-      PageViewDirection.down => Offset(0, pageBounds.top),
-      PageViewDirection.up => Offset(0, -pageBounds.bottom),
-      PageViewDirection.right => Offset(pageBounds.left, 0),
-      PageViewDirection.left => Offset(-pageBounds.right, 0),
+      PageViewDirection.down => Offset(
+        0,
+        gravity.select(
+          start: pageBounds.top,
+          center: pageBounds.center.dy - viewportCenter.dy,
+          end: pageBounds.bottom - viewportSize.height,
+        ),
+      ),
+      PageViewDirection.up => Offset(
+        0,
+        gravity.select(
+          start: -pageBounds.bottom,
+          center: -pageBounds.center.dy - viewportCenter.dy,
+          end: -pageBounds.top - viewportSize.height,
+        ),
+      ),
+      PageViewDirection.right => Offset(
+        gravity.select(
+          start: pageBounds.left,
+          center: pageBounds.center.dx - viewportCenter.dx,
+          end: pageBounds.right - viewportSize.width,
+        ),
+        0,
+      ),
+      PageViewDirection.left => Offset(
+        gravity.select(
+          start: -pageBounds.right,
+          center: -pageBounds.center.dx - viewportCenter.dx,
+          end: -pageBounds.left - viewportSize.width,
+        ),
+        0,
+      ),
     };
   }
 
@@ -136,7 +201,8 @@ class MangaPageContainerState extends State<MangaPageContainer> {
     final viewportSize = widget.viewportSize;
 
     final nextVisiblePageIndex = offsetToPageIndex(
-      offset.translate(viewportSize.width, viewportSize.height),
+      (offset * zoomLevel).translate(viewportSize.width, viewportSize.height),
+      PageViewGravity.start,
     );
 
     if (nextVisiblePageIndex > _loadedPageEndIndex) {

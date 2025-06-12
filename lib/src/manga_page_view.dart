@@ -217,7 +217,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     final targetPage = widget.controller._pageIndexChangeRequest.value;
 
     if (targetPage != null) {
-      final targetOffset = containerState.pageIndexToOffset(targetPage);
+      final targetOffset = containerState.pageIndexToOffset(
+        targetPage,
+        widget.options.scrollGravity,
+      );
 
       Future.microtask(() => widget.onPageChanged?.call(targetPage));
       _animateOffsetChange(
@@ -235,7 +238,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       return;
     }
     final showingPage = containerState
-        .offsetToPageIndex(offset * zoomLevel)
+        .offsetToPageIndex(offset * zoomLevel, widget.options.scrollGravity)
         .clamp(0, widget.itemCount);
 
     if (showingPage != _currentPage) {

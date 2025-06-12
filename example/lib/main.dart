@@ -19,6 +19,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   PageViewDirection _scrollDirection = PageViewDirection.down;
   bool _overscroll = true;
+  PageViewGravity _scrollGravity = PageViewGravity.start;
   late final _controller = MangaPageViewController();
   int _currentPage = 0;
 
@@ -42,6 +43,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overscroll,
                 crossAxisOverscroll: _overscroll,
+                scrollGravity: _scrollGravity,
               ),
               itemCount: 26,
               itemBuilder: (context, index) {
@@ -124,6 +126,24 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   icon: Icon(
                     _overscroll ? Icons.swipe_vertical : Icons.crop_free,
                   ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _scrollGravity = switch (_scrollGravity) {
+                        PageViewGravity.start => PageViewGravity.center,
+                        PageViewGravity.center => PageViewGravity.end,
+                        PageViewGravity.end => PageViewGravity.start,
+                      };
+                    });
+                  },
+                  icon: Icon(() {
+                    return switch (_scrollGravity) {
+                      PageViewGravity.start => Icons.align_vertical_top,
+                      PageViewGravity.center => Icons.align_vertical_center,
+                      PageViewGravity.end => Icons.align_vertical_bottom,
+                    };
+                  }()),
                 ),
               ],
             ),
