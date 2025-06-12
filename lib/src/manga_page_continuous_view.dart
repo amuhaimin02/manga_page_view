@@ -127,9 +127,19 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.options.direction != oldWidget.options.direction) {
+    if (widget.options.direction != oldWidget.options.direction ||
+        widget.options.scrollGravity != oldWidget.options.scrollGravity ||
+        widget.options.centerPageOnEdge != oldWidget.options.centerPageOnEdge) {
       _stopFlingAnimation();
-      _scrollInfo.offset.value = Offset.zero;
+
+      if (widget.options.direction.isHorizontal &&
+              oldWidget.options.direction.isVertical ||
+          widget.options.direction.isVertical &&
+              oldWidget.options.direction.isHorizontal) {
+        // Flip offset on axis change
+        _scrollInfo.offset.value = Offset(offset.dy, offset.dx);
+      }
+
       Future.delayed(Duration(milliseconds: 100), () => _settlePageOffset());
     }
   }
