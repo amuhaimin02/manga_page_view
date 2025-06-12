@@ -145,12 +145,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         widget.options.centerPageOnEdge != oldWidget.options.centerPageOnEdge) {
       _stopFlingAnimation();
 
-      if (widget.options.direction.isHorizontal &&
-              oldWidget.options.direction.isVertical ||
-          widget.options.direction.isVertical &&
-              oldWidget.options.direction.isHorizontal) {
-        // Flip offset on axis change
-        _scrollInfo.offset.value = Offset(offset.dy, offset.dx);
+      if (widget.options.direction != oldWidget.options.direction) {
+        // Direction has changed. Retain current page index
+        Future.microtask(() {
+          _scrollInfo.offset.value = containerState.pageIndexToOffset(
+            _currentPage,
+            widget.options.scrollGravity,
+          );
+        });
       }
 
       _sendScrollProgress();
