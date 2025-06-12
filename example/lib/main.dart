@@ -44,6 +44,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 mainAxisOverscroll: _overscroll,
                 crossAxisOverscroll: _overscroll,
                 scrollGravity: _scrollGravity,
+                centerPageOnEdge: _scrollGravity == PageViewGravity.center,
               ),
               itemCount: 26,
               itemBuilder: (context, index) {

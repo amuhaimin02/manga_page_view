@@ -90,18 +90,6 @@ class ScrollInfo {
       bounds.bottom + paddingY,
     );
   }
-
-  Rect scrollableRegion(Size containerSize, Size viewportSize) {
-    return transformZoom(
-      Rect.fromLTWH(
-        0,
-        0,
-        containerSize.width - viewportSize.width,
-        containerSize.height - viewportSize.height,
-      ),
-      viewportSize,
-    );
-  }
 }
 
 class MangaPageContinuousView extends StatefulWidget {
@@ -203,7 +191,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  Size _getContainerSize() {
+  Size _calculateContainerSize() {
     final containerRenderBox =
         _pageContainerKey.currentContext?.findRenderObject() as RenderBox?;
     if (containerRenderBox != null && containerRenderBox.hasSize) {
@@ -365,6 +353,73 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _scrollInfo.offset.value = _limitOffsetWithinBounds(newOffset);
   }
 
+  Rect _calculateScrollableRegion() {
+    final containerSize = _calculateContainerSize();
+    var rect = Rect.fromLTWH(
+      0,
+      0,
+      containerSize.width - widget.viewportSize.width,
+      containerSize.height - widget.viewportSize.height,
+    );
+
+    if (widget.options.centerPageOnEdge) {
+      final viewportSize = widget.viewportSize;
+      final containerState = _pageContainerKey.currentState!;
+      final firstPageSize = containerState.getPageBounds(0).size;
+      final lastPageSize = containerState
+          .getPageBounds(widget.itemCount - 1)
+          .size;
+
+      if (direction.isVertical) {
+        final topPadding =
+            (viewportSize.height / zoomLevel - firstPageSize.height) / 2;
+        final bottomPadding =
+            (viewportSize.height / zoomLevel - lastPageSize.height) / 2;
+
+        if (topPadding > 0) {
+          rect = Rect.fromLTRB(
+            rect.left,
+            rect.top - topPadding,
+            rect.right,
+            rect.bottom,
+          );
+        }
+        if (bottomPadding > 0) {
+          rect = Rect.fromLTRB(
+            rect.left,
+            rect.top,
+            rect.right,
+            rect.bottom + bottomPadding,
+          );
+        }
+      } else if (direction.isHorizontal) {
+        final leftPadding =
+            (viewportSize.width / zoomLevel - firstPageSize.width) / 2;
+        final rightPadding =
+            (viewportSize.width / zoomLevel - lastPageSize.width) / 2;
+
+        if (leftPadding > 0) {
+          rect = Rect.fromLTRB(
+            rect.left - leftPadding,
+            rect.top,
+            rect.right,
+            rect.bottom,
+          );
+        }
+        if (rightPadding > 0) {
+          rect = Rect.fromLTRB(
+            rect.left,
+            rect.top,
+            rect.right + rightPadding,
+            rect.bottom,
+          );
+        }
+      }
+    }
+
+    return _scrollInfo.transformZoom(rect, widget.viewportSize);
+  }
+
   Offset _limitOffsetWithinBounds(
     Offset offset, {
     bool allowVerticalOverscroll = false,
@@ -372,10 +427,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }) {
     var (x, y) = (offset.dx, offset.dy);
 
-    final scrollableRegion = _scrollInfo.scrollableRegion(
-      _getContainerSize(),
-      widget.viewportSize,
-    );
+    final scrollableRegion = _calculateScrollableRegion();
 
     if (!allowHorizontalOverscroll) {
       x = _limitBound(x, scrollableRegion.left, scrollableRegion.right);
@@ -424,10 +476,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         ..animateWith(simulation);
     }
 
-    final scrollableRegion = _scrollInfo.scrollableRegion(
-      _getContainerSize(),
-      widget.viewportSize,
-    );
+    final scrollableRegion = _calculateScrollableRegion();
 
     settleOnAxis(
       currentOffset: offset.dx,
@@ -633,7 +682,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
                         Text(
                           'Zoom: ${_scrollInfo.zoomLevel.value.toStringAsFixed(3)}',
                         ),
-                        Text('Container size: ${_getContainerSize()}'),
+                        Text('Container size: ${_calculateContainerSize()}'),
                       ],
                     );
                   },

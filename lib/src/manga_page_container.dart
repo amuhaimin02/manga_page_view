@@ -65,6 +65,10 @@ class MangaPageContainerState extends State<MangaPageContainer> {
     }
   }
 
+  Rect getPageBounds(int pageIndex) {
+    return _loadedPageBounds[pageIndex];
+  }
+
   int offsetToPageIndex(Offset offset, PageViewGravity gravity) {
     Rect transform(Rect bounds) {
       return widget.scrollInfo.transformZoom(bounds, widget.viewportSize);
