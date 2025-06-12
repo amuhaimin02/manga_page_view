@@ -133,6 +133,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   Offset? _lastTouchPoint;
   int _currentPage = 0;
 
+  VoidCallback? _offsetAnimationUpdateListener;
+  VoidCallback? _zoomAnimationUpdateListener;
+
   @override
   void initState() {
     super.initState();
@@ -142,6 +145,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
 
     _scrollInfo.zoomLevel.value = widget.options.initialZoomLevel;
+
+    _offsetAnimation.addListener(_onAnimateOffsetUpdate);
+    _zoomAnimation.addListener(_onAnimateZoomUpdate);
   }
 
   @override
@@ -155,6 +161,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _flingYAnimation.dispose();
     _zoomAnimation.dispose();
     _scrollInfo.dispose();
+
+    _offsetAnimation.removeListener(_onAnimateOffsetUpdate);
+    _zoomAnimation.removeListener(_onAnimateZoomUpdate);
     super.dispose();
   }
 
@@ -197,7 +206,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   void _onPageIndexChangeRequest() {
     final targetPage = widget.controller._pageIndexChangeRequest.value;
 
-    if (targetPage != null && !_offsetAnimation.isAnimating) {
+    if (targetPage != null) {
       final targetOffset = containerState.pageIndexToOffset(targetPage);
       Future.microtask(() => widget.onPageChanged?.call(targetPage));
       _animateOffsetChange(
@@ -208,6 +217,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   void _onScrollOffsetChanged() {
+    if (_offsetAnimation.isAnimating) {
+      return;
+    }
     if (widget.controller._pageIndexChangeRequest.value != null) {
       return;
     }
@@ -452,20 +464,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       CurvedAnimation(parent: _zoomAnimation, curve: Easing.standard),
     );
 
-    onAnimationUpdate() {
+    _zoomAnimationUpdateListener = () {
       _scrollInfo.zoomLevel.value = animation.value;
       _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
       if (_zoomAnimation.isCompleted) {
         _settlePageOffset();
-        _zoomAnimation
-          ..removeListener(onAnimationUpdate)
-          ..reset();
       }
-    }
+    };
 
     _zoomAnimation
       ..drive(zoomTween)
-      ..addListener(onAnimationUpdate)
       ..duration = Duration(milliseconds: 200)
       ..forward(from: 0);
   }
@@ -483,22 +491,26 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       CurvedAnimation(parent: _offsetAnimation, curve: Easing.standard),
     );
 
-    onAnimationUpdate() {
+    _offsetAnimationUpdateListener = () {
       _scrollInfo.offset.value = animation.value;
       if (_offsetAnimation.isCompleted) {
         _settlePageOffset();
         onEnd?.call();
-        _offsetAnimation
-          ..removeListener(onAnimationUpdate)
-          ..reset();
       }
-    }
+    };
 
     _offsetAnimation
       ..drive(zoomTween)
-      ..addListener(onAnimationUpdate)
       ..duration = Duration(milliseconds: 200)
       ..forward(from: 0);
+  }
+
+  void _onAnimateOffsetUpdate() {
+    _offsetAnimationUpdateListener?.call();
+  }
+
+  void _onAnimateZoomUpdate() {
+    _zoomAnimationUpdateListener?.call();
   }
 
   @override
