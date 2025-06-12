@@ -283,27 +283,48 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   void _handleZoomDrag(ScaleUpdateDetails details) {
-    // Drag up or down to change zoom level
-    // Only Y positions will be considered
-
     final difference = details.localFocalPoint.dy - _lastTouchPoint!.dy;
+    final zoomSensitivity = 1.005;
 
-    _scrollInfo.zoomLevel.value = (_zoomLevelOnTouch! + difference / 100).clamp(
-      widget.options.minZoomLevel,
-      widget.options.maxZoomLevel,
-    );
+    // Compute proposed zoom level
+    double newZoom = _zoomLevelOnTouch! * pow(zoomSensitivity, difference);
+
+    if (!widget.options.zoomOvershoot) {
+      // Hard clamp if overshoot disabled
+      newZoom = newZoom.clamp(
+        widget.options.minZoomLevel,
+        widget.options.maxZoomLevel,
+      );
+    } else if (newZoom < widget.options.minZoomLevel) {
+      // Apply resistance below minZoomLevel
+      double t =
+          (widget.options.minZoomLevel - newZoom) / widget.options.minZoomLevel;
+      t = t.clamp(0.0, 1.0);
+      double resistance = 1 - pow(t, 2).toDouble();
+
+      // Recalculate zoom with resistance
+      newZoom =
+          _zoomLevelOnTouch! * pow(zoomSensitivity, difference * resistance);
+    }
+
+    _scrollInfo.zoomLevel.value = newZoom;
     _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
   }
 
   void _handleFling(ScaleEndDetails details) {
     _settlePageOffset(velocity: details.velocity.pixelsPerSecond / zoomLevel);
+    _settleZoom();
   }
 
   void _handlePinch(ScaleUpdateDetails details) {
-    final newZoom = (_zoomLevelOnTouch! * details.scale).clamp(
-      widget.options.minZoomLevel,
-      widget.options.maxZoomLevel,
-    );
+    double newZoom = _zoomLevelOnTouch! * details.scale;
+
+    if (!widget.options.zoomOvershoot) {
+      newZoom = newZoom.clamp(
+        widget.options.minZoomLevel,
+        widget.options.maxZoomLevel,
+      );
+    }
 
     _scrollInfo.zoomLevel.value = newZoom;
     _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
@@ -448,6 +469,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     return Offset(x, y);
   }
 
+  void _settleZoom() {
+    final settledZoomLevel = zoomLevel.clamp(
+      widget.options.minZoomLevel,
+      widget.options.maxZoomLevel,
+    );
+    _animateZoomChange(targetLevel: settledZoomLevel, handleOffset: false);
+  }
+
   void _settlePageOffset({
     Offset velocity = Offset.zero,
     bool forceAllowOverscroll = false,
@@ -556,7 +585,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     });
   }
 
-  void _animateZoomChange({required double targetLevel}) {
+  void _animateZoomChange({
+    required double targetLevel,
+    bool handleOffset = true,
+  }) {
     final currentLevel = zoomLevel;
     final zoomTween = Tween<double>(begin: currentLevel, end: targetLevel);
     final animation = zoomTween.animate(
@@ -565,9 +597,11 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     _zoomAnimationUpdateListener = () {
       _scrollInfo.zoomLevel.value = animation.value;
-      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
-      if (_zoomAnimation.isCompleted) {
-        _settlePageOffset();
+      if (handleOffset) {
+        _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+        if (_zoomAnimation.isCompleted) {
+          _settlePageOffset();
+        }
       }
     };
 

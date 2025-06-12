@@ -18,11 +18,14 @@ class MangaPagesExampleApp extends StatefulWidget {
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   PageViewDirection _scrollDirection = PageViewDirection.down;
-  bool _overscroll = true;
+  bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.start;
+
   late final _controller = MangaPageViewController();
-  int _currentPage = 0;
-  MangaPageViewScrollProgress? _currentProgress;
+
+  final _currentPage = ValueNotifier(0);
+  final totalPages = 26;
+  final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
 
   @override
   void dispose() {
@@ -47,12 +50,13 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               controller: _controller,
               options: MangaPageViewOptions(
                 direction: _scrollDirection,
-                mainAxisOverscroll: _overscroll,
-                crossAxisOverscroll: _overscroll,
+                mainAxisOverscroll: _overshoot,
+                crossAxisOverscroll: _overshoot,
+                zoomOvershoot: _overshoot,
                 scrollGravity: _scrollGravity,
                 centerPageOnEdge: _scrollGravity == PageViewGravity.center,
               ),
-              itemCount: 26,
+              itemCount: totalPages,
               itemBuilder: (context, index) {
                 final letter = String.fromCharCode(65 + index);
                 print('Loading page $letter');
@@ -69,14 +73,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 );
               },
               onPageChange: (index) {
-                setState(() {
-                  _currentPage = index;
-                });
+                _currentPage.value = index;
               },
               onProgressChange: (progress) {
-                setState(() {
-                  _currentProgress = progress;
-                });
+                _currentProgress.value = progress;
               },
             ),
             _buildDebugPanel(context),
@@ -90,26 +90,62 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        padding: EdgeInsets.all(8),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         color: Colors.black54,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Slider(
-              value: _currentPage.toDouble(),
-              max: 25,
-              min: 0,
-              divisions: 25,
-              label: '${_currentPage + 1}',
-              onChanged: (value) {
-                _controller.jumpToPage(value.toInt());
+            ValueListenableBuilder(
+              valueListenable: _currentPage,
+              builder: (context, currentPage, child) {
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      child: Text(
+                        '$currentPage / $totalPages',
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: currentPage.toDouble(),
+                        max: totalPages - 1,
+                        min: 0,
+                        divisions: totalPages - 1,
+                        label: '${currentPage + 1}',
+                        onChanged: (value) {
+                          _controller.jumpToPage(value.toInt());
+                        },
+                      ),
+                    ),
+                  ],
+                );
               },
             ),
-            Slider(
-              value: _currentProgress?.fraction ?? 0,
-              // max: _currentProgress?.totalPixels ?? 0,
-              onChanged: (value) {
-                _controller.jumpToFraction(value);
+            ValueListenableBuilder(
+              valueListenable: _currentProgress,
+              builder: (context, progress, child) {
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      child: Text(
+                        '${((progress?.fraction ?? 0) * 100).toStringAsFixed(1)} %',
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: progress?.fraction ?? 0,
+                        // max: _currentProgress?.totalPixels ?? 0,
+                        onChanged: (value) {
+                          _controller.jumpToFraction(value);
+                        },
+                      ),
+                    ),
+                  ],
+                );
               },
             ),
             Row(
@@ -139,11 +175,11 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _overscroll = !_overscroll;
+                      _overshoot = !_overshoot;
                     });
                   },
                   icon: Icon(
-                    _overscroll ? Icons.swipe_vertical : Icons.crop_free,
+                    _overshoot ? Icons.swipe_vertical : Icons.crop_free,
                   ),
                 ),
                 IconButton(

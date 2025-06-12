@@ -10,6 +10,7 @@ class MangaPageViewOptions {
   final Size maxPageSize;
   final bool mainAxisOverscroll;
   final bool crossAxisOverscroll;
+  final bool zoomOvershoot;
   final int precacheOverhead;
   final PageViewGravity scrollGravity;
   final bool centerPageOnEdge;
@@ -24,6 +25,7 @@ class MangaPageViewOptions {
     this.maxPageSize = const Size(2400, 1600),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
+    this.zoomOvershoot = true,
     this.precacheOverhead = 0,
     this.scrollGravity = PageViewGravity.center,
     this.centerPageOnEdge = true,
