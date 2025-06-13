@@ -805,6 +805,7 @@ class MangaPageContainerState extends State<MangaPageContainer> {
     manager.setup(
       widget.itemCount,
       widget.options.initialPageSize,
+      widget.options.spacing,
       widget.options.direction,
     );
   }
@@ -960,6 +961,7 @@ class MangaPageContainerState extends State<MangaPageContainer> {
         direction: direction.isVertical ? Axis.vertical : Axis.horizontal,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: widget.options.spacing,
         children: [
           if (widget.options.direction.isReverse)
             for (int i = widget.itemCount - 1; i >= 0; i--)
@@ -1019,9 +1021,16 @@ class _MangaPageContainerRegionManager extends ChangeNotifier {
 
   List<Rect> _pageBounds = [];
   Size _containerSize = Size.zero;
+  double _spacing = 0;
 
-  void setup(int totalPages, Size initialSize, PageViewDirection direction) {
+  void setup(
+    int totalPages,
+    Size initialSize,
+    double spacing,
+    PageViewDirection direction,
+  ) {
     _pageCount = totalPages;
+    _spacing = spacing;
     _direction = direction;
     _pageBounds = List.filled(totalPages, Offset.zero & initialSize);
     _recalculate();
@@ -1062,10 +1071,10 @@ class _MangaPageContainerRegionManager extends ChangeNotifier {
       _pageBounds[i] = pageBounds;
 
       nextPoint = switch (_direction) {
-        PageViewDirection.up => pageBounds.topLeft,
-        PageViewDirection.left => pageBounds.topLeft,
-        PageViewDirection.down => pageBounds.bottomLeft,
-        PageViewDirection.right => pageBounds.topRight,
+        PageViewDirection.up => pageBounds.topLeft.translate(0, -_spacing),
+        PageViewDirection.left => pageBounds.topLeft.translate(-_spacing, 0),
+        PageViewDirection.down => pageBounds.bottomLeft.translate(0, _spacing),
+        PageViewDirection.right => pageBounds.topRight.translate(_spacing, 0),
       };
     }
 

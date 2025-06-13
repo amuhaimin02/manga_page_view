@@ -55,6 +55,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 zoomOvershoot: _overshoot,
                 scrollGravity: _scrollGravity,
                 centerPageOnEdge: _scrollGravity == PageViewGravity.center,
+                spacing: 60.0,
               ),
               itemCount: totalPages,
               itemBuilder: (context, index) {
@@ -103,7 +104,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     SizedBox(
                       width: 60,
                       child: Text(
-                        '$currentPage / $totalPages',
+                        '${currentPage + 1} / $totalPages',
                         textAlign: TextAlign.end,
                       ),
                     ),

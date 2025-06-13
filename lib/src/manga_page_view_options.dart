@@ -5,6 +5,7 @@ class MangaPageViewOptions {
   final double maxZoomLevel;
   final double initialZoomLevel;
   final List<double> presetZoomLevels;
+  final double spacing;
   final PageViewDirection direction;
   final Size initialPageSize;
   final Size maxPageSize;
@@ -20,6 +21,7 @@ class MangaPageViewOptions {
     this.maxZoomLevel = 4.0,
     this.initialZoomLevel = 1.0,
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
+    this.spacing = 0.0,
     this.direction = PageViewDirection.down,
     this.initialPageSize = const Size(300, 300),
     this.maxPageSize = const Size(2400, 1600),
