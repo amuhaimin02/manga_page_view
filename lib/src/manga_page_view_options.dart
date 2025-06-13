@@ -16,6 +16,7 @@ class MangaPageViewOptions {
   final PageViewGravity scrollGravity;
   final bool centerPageOnEdge;
   final bool snapToPage;
+  final bool zoomOnFocalPoint;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
@@ -33,6 +34,7 @@ class MangaPageViewOptions {
     this.scrollGravity = PageViewGravity.center,
     this.centerPageOnEdge = true,
     this.snapToPage = true,
+    this.zoomOnFocalPoint = true,
   });
 }
 

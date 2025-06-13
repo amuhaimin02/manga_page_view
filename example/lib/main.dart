@@ -52,6 +52,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
+                maxZoomLevel: 10,
                 zoomOvershoot: _overshoot,
                 scrollGravity: _scrollGravity,
                 centerPageOnEdge: _scrollGravity == PageViewGravity.center,

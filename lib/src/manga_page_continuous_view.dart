@@ -82,7 +82,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
   bool _isZoomDragging = false;
   double? _zoomLevelOnTouch;
-  Offset? _lastTouchPoint;
+  Offset? _startTouchPoint;
   int _currentPage = 0;
 
   VoidCallback? _offsetAnimationUpdateListener;
@@ -259,7 +259,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   void _handleStartDrag(ScaleStartDetails details) {
     _stopFlingAnimation();
 
-    _lastTouchPoint = details.localFocalPoint;
+    _startTouchPoint = details.localFocalPoint;
     _zoomLevelOnTouch = zoomLevel;
   }
 
@@ -303,8 +303,28 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
+  Offset _calculateOffsetAfterZoom(
+    Offset focalPoint,
+    double initialZoom,
+    double finalZoom,
+  ) {
+    final viewportCenter = widget.viewportSize.center(Offset.zero);
+    final focalPointFromCenter = focalPoint - viewportCenter;
+
+    final zoomDifference = finalZoom - initialZoom;
+
+    final moveOffset =
+        Offset(
+          focalPointFromCenter.dx * zoomDifference,
+          focalPointFromCenter.dy * zoomDifference,
+        ) /
+        initialZoom;
+    return _limitOffsetWithinBounds(offset + moveOffset / finalZoom);
+  }
+
   void _handleZoomDrag(ScaleUpdateDetails details) {
-    final difference = details.localFocalPoint.dy - _lastTouchPoint!.dy;
+    final difference = details.localFocalPoint.dy - _startTouchPoint!.dy;
+    final currentZoom = zoomLevel;
 
     // Compute proposed zoom level
     final zoomSensitivity = 1.005;
@@ -322,7 +342,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
 
     _scrollInfo.zoomLevel.value = newZoom;
-    _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+
+    if (widget.options.zoomOnFocalPoint) {
+      _scrollInfo.offset.value = _calculateOffsetAfterZoom(
+        _startTouchPoint!,
+        currentZoom,
+        newZoom,
+      );
+    } else {
+      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+    }
   }
 
   void _handleFling(ScaleEndDetails details) {
@@ -331,6 +360,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   }
 
   void _handlePinch(ScaleUpdateDetails details) {
+    final currentZoom = zoomLevel;
     double newZoom = _zoomLevelOnTouch! * details.scale;
 
     if (!widget.options.zoomOvershoot) {
@@ -343,7 +373,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
 
     _scrollInfo.zoomLevel.value = newZoom;
-    _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+
+    if (widget.options.zoomOnFocalPoint) {
+      _scrollInfo.offset.value = _calculateOffsetAfterZoom(
+        details.localFocalPoint,
+        currentZoom,
+        newZoom,
+      );
+    } else {
+      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+    }
   }
 
   void _handleLift(ScaleEndDetails details) {
@@ -353,7 +392,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     if (details.pointerCount == 0) {
       _zoomLevelOnTouch = null;
       _isZoomDragging = false;
-      _lastTouchPoint = null;
+      _startTouchPoint = null;
     }
   }
 
@@ -362,7 +401,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     if (presetZoomLevels.isEmpty) {
       // Default behavior if no preset levels are defined
-      _animateZoomChange(targetLevel: 1.0);
+      _animateZoomChange(targetLevel: 1.0, focalPoint: _startTouchPoint);
       return;
     }
 
@@ -371,20 +410,35 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
       orElse: () => presetZoomLevels.first,
     );
 
-    _animateZoomChange(targetLevel: nextZoomLevel);
+    _animateZoomChange(
+      targetLevel: nextZoomLevel,
+      focalPoint: _startTouchPoint,
+    );
   }
 
   void _handleMouseWheel(PointerScrollEvent event) {
     final scrollDelta = event.scrollDelta;
+    final cursorPosition = event.localPosition;
 
     // TODO: Handle macOS convention
     if (HardwareKeyboard.instance.isControlPressed) {
+      final currentZoom = zoomLevel;
       final scrollAmount = -scrollDelta.dy * 0.002;
-      _scrollInfo.zoomLevel.value = (zoomLevel + scrollAmount).clamp(
+      final newZoom = (zoomLevel + scrollAmount);
+      _scrollInfo.zoomLevel.value = newZoom.clamp(
         widget.options.minZoomLevel,
         widget.options.maxZoomLevel,
       );
-      _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+
+      if (widget.options.zoomOnFocalPoint) {
+        _scrollInfo.offset.value = _calculateOffsetAfterZoom(
+          cursorPosition,
+          currentZoom,
+          newZoom,
+        );
+      } else {
+        _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+      }
       return;
     }
 
@@ -604,6 +658,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
   void _animateZoomChange({
     required double targetLevel,
     bool handleOffset = true,
+    Offset? focalPoint = null,
   }) {
     final currentLevel = zoomLevel;
     final zoomTween = Tween<double>(begin: currentLevel, end: targetLevel);
@@ -612,9 +667,19 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
 
     _zoomAnimationUpdateListener = () {
-      _scrollInfo.zoomLevel.value = animation.value;
+      final currentZoom = zoomLevel;
+      final newZoom = animation.value;
+      _scrollInfo.zoomLevel.value = newZoom;
       if (handleOffset) {
-        _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+        if (focalPoint != null && widget.options.zoomOnFocalPoint) {
+          _scrollInfo.offset.value = _calculateOffsetAfterZoom(
+            focalPoint,
+            currentZoom,
+            newZoom,
+          );
+        } else {
+          _scrollInfo.offset.value = _limitOffsetWithinBounds(offset);
+        }
         if (_zoomAnimation.isCompleted) {
           _settlePageOffset();
         }
@@ -684,11 +749,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
               },
               onDoubleTapDown: (details) {
                 _isZoomDragging = true;
+                _startTouchPoint = details.localPosition;
               },
               onDoubleTap: () {
                 _handleZoomDoubleTap();
                 _isZoomDragging = false;
-                _lastTouchPoint = null;
+                _startTouchPoint = null;
               },
               onScaleUpdate: (details) {
                 if (_isZoomDragging) {
