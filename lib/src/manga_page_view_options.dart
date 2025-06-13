@@ -15,6 +15,7 @@ class MangaPageViewOptions {
   final int precacheOverhead;
   final PageViewGravity scrollGravity;
   final bool centerPageOnEdge;
+  final bool snapToPage;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.25,
@@ -31,6 +32,7 @@ class MangaPageViewOptions {
     this.precacheOverhead = 0,
     this.scrollGravity = PageViewGravity.center,
     this.centerPageOnEdge = true,
+    this.snapToPage = true,
   });
 }
 

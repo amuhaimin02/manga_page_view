@@ -282,11 +282,32 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
   }
 
+  double _resistZoomOvershoot(double currentZoom) {
+    final minZoom = widget.options.minZoomLevel;
+    final maxZoom = widget.options.maxZoomLevel;
+
+    if (currentZoom > maxZoom) {
+      final excess = currentZoom - maxZoom;
+      final resistanceFactor = 1 / maxZoom;
+      final resisted =
+          maxZoom + (1 - exp(-excess * resistanceFactor)) / resistanceFactor;
+      return resisted;
+    } else if (currentZoom < minZoom) {
+      final excess = minZoom - currentZoom;
+      final resistanceFactor = 1 / minZoom;
+      final resisted =
+          minZoom - (1 - exp(-excess * resistanceFactor)) / resistanceFactor;
+      return resisted;
+    } else {
+      return currentZoom;
+    }
+  }
+
   void _handleZoomDrag(ScaleUpdateDetails details) {
     final difference = details.localFocalPoint.dy - _lastTouchPoint!.dy;
-    final zoomSensitivity = 1.005;
 
     // Compute proposed zoom level
+    final zoomSensitivity = 1.005;
     double newZoom = _zoomLevelOnTouch! * pow(zoomSensitivity, difference);
 
     if (!widget.options.zoomOvershoot) {
@@ -295,16 +316,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         widget.options.minZoomLevel,
         widget.options.maxZoomLevel,
       );
-    } else if (newZoom < widget.options.minZoomLevel) {
-      // Apply resistance below minZoomLevel
-      double t =
-          (widget.options.minZoomLevel - newZoom) / widget.options.minZoomLevel;
-      t = t.clamp(0.0, 1.0);
-      double resistance = 1 - pow(t, 2).toDouble();
-
-      // Recalculate zoom with resistance
-      newZoom =
-          _zoomLevelOnTouch! * pow(zoomSensitivity, difference * resistance);
+    } else {
+      // Apply resistance on overshoot
+      newZoom = _resistZoomOvershoot(newZoom);
     }
 
     _scrollInfo.zoomLevel.value = newZoom;
@@ -324,6 +338,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         widget.options.minZoomLevel,
         widget.options.maxZoomLevel,
       );
+    } else {
+      newZoom = _resistZoomOvershoot(newZoom);
     }
 
     _scrollInfo.zoomLevel.value = newZoom;
