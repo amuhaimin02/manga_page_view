@@ -80,13 +80,24 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
   late final _scrollInfo = _ScrollInfo();
 
-  bool _isZoomDragging = false;
-  double? _zoomLevelOnTouch;
-  Offset? _startTouchPoint;
   int _currentPage = 0;
 
   VoidCallback? _offsetAnimationUpdateListener;
   VoidCallback? _zoomAnimationUpdateListener;
+
+  final _activePointers = <int, VelocityTracker>{};
+  final _activePositions = <int, Offset>{};
+  Duration? _lastTouchTimeStamp = null;
+  bool _isDoubleTap = false;
+  bool _isZoomDragging = false;
+  Offset? _startTouchPoint;
+  double? _lastPinchDistance;
+  double? _lastScaleRatio;
+  static const _trackpadDeviceId = 99;
+
+  Duration _sinceLastTouch(Duration current) => _lastTouchTimeStamp != null
+      ? current - _lastTouchTimeStamp!
+      : Duration(hours: 24);
 
   @override
   void initState() {
@@ -245,10 +256,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  void _handleTouch() {
+  void _handleTouch(Offset position) {
     _stopFlingAnimation();
 
-    _zoomLevelOnTouch = zoomLevel;
+    _startTouchPoint = position;
   }
 
   void _stopFlingAnimation() {
@@ -256,16 +267,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     _flingYAnimation.stop();
   }
 
-  void _handleStartDrag(ScaleStartDetails details) {
-    _stopFlingAnimation();
-
-    _startTouchPoint = details.localFocalPoint;
-    _zoomLevelOnTouch = zoomLevel;
-  }
-
-  void _handlePanDrag(ScaleUpdateDetails details) {
-    final deltaX = details.focalPointDelta.dx / zoomLevel;
-    final deltaY = details.focalPointDelta.dy / zoomLevel;
+  void _handlePanDrag(Offset delta) {
+    final deltaX = delta.dx / zoomLevel;
+    final deltaY = delta.dy / zoomLevel;
     var newX =
         offset.dx + (direction == PageViewDirection.left ? deltaX : -deltaX);
     var newY =
@@ -319,16 +323,23 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
           focalPointFromCenter.dy * zoomDifference,
         ) /
         initialZoom;
-    return _limitOffsetWithinBounds(offset + moveOffset / finalZoom);
+    return _limitOffsetWithinBounds(
+      offset + moveOffset / finalZoom,
+      allowHorizontalOverscroll:
+          direction.isHorizontal && widget.options.mainAxisOverscroll ||
+          direction.isVertical && widget.options.crossAxisOverscroll,
+      allowVerticalOverscroll:
+          direction.isVertical && widget.options.mainAxisOverscroll ||
+          direction.isHorizontal && widget.options.crossAxisOverscroll,
+    );
   }
 
-  void _handleZoomDrag(ScaleUpdateDetails details) {
-    final difference = details.localFocalPoint.dy - _startTouchPoint!.dy;
+  void _handleZoomDrag(Offset delta) {
     final currentZoom = zoomLevel;
 
     // Compute proposed zoom level
     final zoomSensitivity = 1.005;
-    double newZoom = _zoomLevelOnTouch! * pow(zoomSensitivity, difference);
+    double newZoom = currentZoom * pow(zoomSensitivity, delta.dy);
 
     if (!widget.options.zoomOvershoot) {
       // Hard clamp if overshoot disabled
@@ -354,14 +365,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  void _handleFling(ScaleEndDetails details) {
-    _settlePageOffset(velocity: details.velocity.pixelsPerSecond / zoomLevel);
+  void _handleFling(Velocity velocity) {
+    _settlePageOffset(velocity: velocity.pixelsPerSecond / zoomLevel);
     _settleZoom();
   }
 
-  void _handlePinch(ScaleUpdateDetails details) {
+  void _handlePinch(Offset focalPoint, double scaleRatioChange) {
     final currentZoom = zoomLevel;
-    double newZoom = _zoomLevelOnTouch! * details.scale;
+    double newZoom = currentZoom * scaleRatioChange;
 
     if (!widget.options.zoomOvershoot) {
       newZoom = newZoom.clamp(
@@ -376,7 +387,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     if (widget.options.zoomOnFocalPoint) {
       _scrollInfo.offset.value = _calculateOffsetAfterZoom(
-        details.localFocalPoint,
+        focalPoint,
         currentZoom,
         newZoom,
       );
@@ -385,14 +396,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     }
   }
 
-  void _handleLift(ScaleEndDetails details) {
-    if (details.pointerCount == 1) {
-      _zoomLevelOnTouch = zoomLevel;
-    }
-    if (details.pointerCount == 0) {
-      _zoomLevelOnTouch = null;
+  void _handleLift() {
+    if (_activePointers.isEmpty) {
       _isZoomDragging = false;
       _startTouchPoint = null;
+      _lastPinchDistance = null;
+      _lastScaleRatio = null;
     }
   }
 
@@ -416,14 +425,11 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
     );
   }
 
-  void _handleMouseWheel(PointerScrollEvent event) {
-    final scrollDelta = event.scrollDelta;
-    final cursorPosition = event.localPosition;
-
+  void _handleMouseWheel(Offset focalPoint, Offset delta) {
     // TODO: Handle macOS convention
     if (HardwareKeyboard.instance.isControlPressed) {
       final currentZoom = zoomLevel;
-      final scrollAmount = -scrollDelta.dy * 0.002;
+      final scrollAmount = -delta.dy * 0.002;
       final newZoom = (zoomLevel + scrollAmount);
       _scrollInfo.zoomLevel.value = newZoom.clamp(
         widget.options.minZoomLevel,
@@ -432,7 +438,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
       if (widget.options.zoomOnFocalPoint) {
         _scrollInfo.offset.value = _calculateOffsetAfterZoom(
-          cursorPosition,
+          focalPoint,
           currentZoom,
           newZoom,
         );
@@ -444,11 +450,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
 
     // Handle offset movement
     final newOffset = switch (HardwareKeyboard.instance.isShiftPressed) {
-      true => offset.translate(
-        scrollDelta.dy,
-        0,
-      ), // Control left-right movement
-      false => offset + scrollDelta,
+      true => offset.translate(delta.dy, 0), // Control left-right movement
+      false => offset + delta,
     };
     _stopFlingAnimation();
     _scrollInfo.offset.value = _limitOffsetWithinBounds(newOffset);
@@ -734,82 +737,163 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView>
         Positioned.fill(
           child: Listener(
             behavior: HitTestBehavior.translucent,
-            onPointerSignal: (event) {
-              if (event is PointerScrollEvent) {
-                _handleMouseWheel(event);
+            onPointerDown: (event) {
+              _activePointers[event.device] = VelocityTracker.withKind(
+                event.kind,
+              )..addPosition(event.timeStamp, event.position);
+              ;
+              _activePositions[event.device] = event.position;
+
+              _handleTouch(event.localPosition);
+
+              if (event.device == 0 &&
+                  _sinceLastTouch(event.timeStamp) <
+                      Duration(milliseconds: 300)) {
+                _isDoubleTap = true;
+                _isZoomDragging = true;
+              }
+
+              // Primary touch
+              if (event.device == 0) {
+                _lastTouchTimeStamp = event.timeStamp;
               }
             },
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTapDown: (details) {
-                _handleTouch();
-              },
-              onScaleStart: (details) {
-                _handleStartDrag(details);
-              },
-              onDoubleTapDown: (details) {
-                _isZoomDragging = true;
-                _startTouchPoint = details.localPosition;
-              },
-              onDoubleTap: () {
-                _handleZoomDoubleTap();
-                _isZoomDragging = false;
-                _startTouchPoint = null;
-              },
-              onScaleUpdate: (details) {
-                if (_isZoomDragging) {
-                  _handleZoomDrag(details);
-                } else if (details.pointerCount == 2 && details.scale != 1) {
-                  _handlePinch(details);
+            onPointerUp: (event) {
+              final tracker = _activePointers[event.device]!;
+              _activePointers.remove(event.device);
+              _activePositions.remove(event.device);
+
+              _handleLift();
+
+              if (_activePointers.isEmpty) {
+                if (_isDoubleTap &&
+                    event.device == 0 &&
+                    _sinceLastTouch(event.timeStamp) <
+                        Duration(milliseconds: 300)) {
+                  if (_isDoubleTap) {
+                    _handleZoomDoubleTap();
+                  }
                 } else {
-                  _handlePanDrag(details);
+                  final magnitude = tracker
+                      .getVelocity()
+                      .pixelsPerSecond
+                      .distance;
+                  if (magnitude > 0 ||
+                      _sinceLastTouch(event.timeStamp) >
+                          Duration(milliseconds: 300)) {
+                    _handleFling(tracker.getVelocity());
+                  }
                 }
-              },
-              onScaleEnd: (details) {
-                _handleLift(details);
-                _handleFling(details);
+                _isDoubleTap = false;
+              }
+            },
+            onPointerMove: (event) {
+              _activePointers[event.device]!.addPosition(
+                event.timeStamp,
+                event.position,
+              );
+              _activePositions[event.device] = event.position;
+              if (_isDoubleTap) {
+                _isDoubleTap = false;
+              }
+
+              if (_isZoomDragging) {
+                _handleZoomDrag(event.localDelta);
+                return;
+              }
+
+              if (_activePointers.containsKey(0) &&
+                  _activePointers.containsKey(1)) {
+                final (firstPoint, secondPoint) = (
+                  _activePositions[0]!,
+                  _activePositions[1]!,
+                );
+                final focalPoint = (firstPoint + secondPoint) / 2;
+                final distance = (firstPoint - secondPoint).distance;
+
+                final distanceRatio = _lastPinchDistance != null
+                    ? distance / _lastPinchDistance!
+                    : 1.0;
+
+                _lastPinchDistance = distance;
+
+                _handlePinch(focalPoint, distanceRatio);
+              }
+
+              _handlePanDrag(event.localDelta);
+            },
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent) {
+                _handleMouseWheel(event.localPosition, event.scrollDelta);
+              }
+            },
+            onPointerPanZoomStart: (event) {
+              _activePointers[_trackpadDeviceId] = VelocityTracker.withKind(
+                event.kind,
+              );
+              _handleTouch(event.localPosition);
+            },
+            onPointerPanZoomUpdate: (event) {
+              if (event.scale != 1) {
+                final scaleRatio = _lastScaleRatio != null
+                    ? event.scale / _lastScaleRatio!
+                    : 1.0;
+                _handlePinch(event.localPosition, scaleRatio);
+                _lastScaleRatio = event.scale;
+              }
+
+              _activePointers[_trackpadDeviceId]!.addPosition(
+                event.timeStamp,
+                event.localPan,
+              );
+              _handlePanDrag(event.localPanDelta);
+            },
+            onPointerPanZoomEnd: (event) {
+              final tracker = _activePointers[_trackpadDeviceId]!;
+              _activePointers.remove(_trackpadDeviceId);
+              _handleLift();
+              _handleFling(tracker.getVelocity());
+            },
+            child: ValueListenableBuilder(
+              valueListenable: _scrollInfo.zoomLevel,
+              builder: (context, zoomLevel, child) {
+                return Transform.scale(scale: zoomLevel, child: child);
               },
               child: ValueListenableBuilder(
-                valueListenable: _scrollInfo.zoomLevel,
-                builder: (context, zoomLevel, child) {
-                  return Transform.scale(scale: zoomLevel, child: child);
+                valueListenable: _scrollInfo.offset,
+                builder: (context, offset, child) {
+                  final alignment = switch (direction) {
+                    PageViewDirection.up => Alignment.bottomLeft,
+                    PageViewDirection.left => Alignment.topRight,
+                    PageViewDirection.down => Alignment.topLeft,
+                    PageViewDirection.right => Alignment.topLeft,
+                  };
+
+                  Offset resultOffset = switch (direction) {
+                    PageViewDirection.up => Offset(offset.dx, -offset.dy),
+                    PageViewDirection.left => Offset(-offset.dx, offset.dy),
+                    PageViewDirection.down => offset,
+                    PageViewDirection.right => offset,
+                  };
+
+                  return Transform.translate(
+                    offset: -resultOffset,
+
+                    child: OverflowBox(
+                      maxWidth: double.infinity,
+                      maxHeight: double.infinity,
+                      alignment: alignment,
+                      child: child,
+                    ),
+                  );
                 },
-                child: ValueListenableBuilder(
-                  valueListenable: _scrollInfo.offset,
-                  builder: (context, offset, child) {
-                    final alignment = switch (direction) {
-                      PageViewDirection.up => Alignment.bottomLeft,
-                      PageViewDirection.left => Alignment.topRight,
-                      PageViewDirection.down => Alignment.topLeft,
-                      PageViewDirection.right => Alignment.topLeft,
-                    };
-
-                    Offset resultOffset = switch (direction) {
-                      PageViewDirection.up => Offset(offset.dx, -offset.dy),
-                      PageViewDirection.left => Offset(-offset.dx, offset.dy),
-                      PageViewDirection.down => offset,
-                      PageViewDirection.right => offset,
-                    };
-
-                    return Transform.translate(
-                      offset: -resultOffset,
-
-                      child: OverflowBox(
-                        maxWidth: double.infinity,
-                        maxHeight: double.infinity,
-                        alignment: alignment,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: MangaPageContainer(
-                    key: _pageContainerKey,
-                    scrollInfo: _scrollInfo,
-                    viewportSize: widget.viewportSize,
-                    options: widget.options,
-                    itemCount: widget.itemCount,
-                    itemBuilder: widget.itemBuilder,
-                  ),
+                child: MangaPageContainer(
+                  key: _pageContainerKey,
+                  scrollInfo: _scrollInfo,
+                  viewportSize: widget.viewportSize,
+                  options: widget.options,
+                  itemCount: widget.itemCount,
+                  itemBuilder: widget.itemBuilder,
                 ),
               ),
             ),
