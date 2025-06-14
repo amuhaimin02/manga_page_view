@@ -70,7 +70,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    _updateStripPadding();
+    if (widget.options.padPageToCenter != oldWidget.options.padPageToCenter) {
+      _updateStripPadding();
+      _panelState.forceSettle();
+    }
   }
 
   void _onPageChangeRequest() {
@@ -171,8 +174,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _pageUpdateThrottler.call(() {
       _stripState.glance(viewRegion);
       _updatePageIndex(viewRegion);
+      _updateStripPadding();
     });
-    _updateStripPadding();
 
     final fraction = _offsetToFraction(info.offset);
 

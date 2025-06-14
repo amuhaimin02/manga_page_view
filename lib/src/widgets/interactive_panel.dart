@@ -94,7 +94,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     super.initState();
     _offset.addListener(_sendScrollInfo);
     _zoomLevel.addListener(_sendScrollInfo);
-    widget.scrollPadding.addListener(_onScrollPaddingChange);
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _zoomLevel.value = widget.initialZoomLevel;
@@ -107,7 +106,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _scrollRegionChange.removeListener(_updateScrollableRegion);
     _offset.removeListener(_sendScrollInfo);
     _zoomLevel.removeListener(_sendScrollInfo);
-    widget.scrollPadding.removeListener(_onScrollPaddingChange);
 
     _offset.dispose();
     _zoomLevel.dispose();
@@ -158,6 +156,12 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void animateToOffset(Offset offset, VoidCallback onEnd) {
     _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
+  }
+
+  void forceSettle() {
+    _updateScrollableRegion();
+    _settlePageOffset();
+    _settleZoom();
   }
 
   void _sendScrollInfo() {
@@ -590,11 +594,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _onAnimateZoomUpdate() {
     _zoomAnimationUpdateListener?.call();
-  }
-
-  void _onScrollPaddingChange() {
-    _updateScrollableRegion();
-    _settlePageOffset();
   }
 
   @override
