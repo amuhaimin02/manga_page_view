@@ -14,6 +14,7 @@ class MangaPageStrip extends StatefulWidget {
     required this.spacing,
     required this.initialPageSize,
     required this.maxPageSize,
+    required this.precacheOverhead,
   });
 
   final Size viewportSize; // TODO: Remove?
@@ -21,6 +22,7 @@ class MangaPageStrip extends StatefulWidget {
   final double spacing;
   final Size initialPageSize;
   final Size maxPageSize;
+  final int precacheOverhead;
 
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
@@ -95,22 +97,30 @@ class MangaPageStripState extends State<MangaPageStrip> {
   void glance(Rect viewRegion) {
     List<int>? pageToLoad;
     for (int i = widget.itemCount - 1; i >= 0; i--) {
-      if (_pageLoaded[i]) {
-        continue;
-      }
-
       final pageBounds = _pageBounds[i];
       if (pageBounds.overlaps(viewRegion)) {
-        (pageToLoad ??= [])..add(i);
+        if (pageToLoad == null) {
+          pageToLoad = [];
+
+          // Preload in advance if application
+          if (widget.precacheOverhead > 0) {
+            for (int p = 1; p <= widget.precacheOverhead; p++) {
+              final nextPageLoad = i + p;
+              if (nextPageLoad >= 0 && nextPageLoad < widget.itemCount) {
+                _pageLoaded[nextPageLoad] = true;
+              }
+            }
+          }
+        }
+        pageToLoad.add(i);
       }
     }
 
     if (pageToLoad != null) {
-      setState(() {
-        for (final pageIndex in pageToLoad!) {
-          _pageLoaded[pageIndex] = true;
-        }
-      });
+      for (final pageIndex in pageToLoad) {
+        _pageLoaded[pageIndex] = true;
+      }
+      setState(() {});
     }
   }
 

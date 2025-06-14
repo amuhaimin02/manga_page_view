@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import '../../utils.dart';
 
 import '../manga_page_view.dart';
 import 'widgets/interactive_panel.dart';
@@ -43,6 +44,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   MangaPageInteractivePanelState get _panelState =>
       _interactionPanelKey.currentState!;
   MangaPageStripState get _stripState => _stripContainerKey.currentState!;
+
+  late final _pageUpdateThrottler = Throttler(Duration(milliseconds: 100));
 
   @override
   void initState() {
@@ -158,9 +161,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       widget.viewportSize,
     );
 
-    _stripState.glance(viewRegion);
-
-    _updatePageIndex(viewRegion);
+    _pageUpdateThrottler.call(() {
+      _stripState.glance(viewRegion);
+      _updatePageIndex(viewRegion);
+    });
 
     widget.onProgressChange?.call(
       MangaPageViewScrollProgress(
@@ -171,7 +175,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     );
   }
 
-  // TODO: Limit call frequency
   void _updatePageIndex(Rect viewRegion) {
     final bounds = _stripState.pageBounds;
     final gravity = widget.options.scrollGravity;
@@ -339,6 +342,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         spacing: widget.options.spacing,
         initialPageSize: widget.options.initialPageSize,
         maxPageSize: widget.options.maxPageSize,
+        precacheOverhead: widget.options.precacheOverhead,
         itemCount: widget.itemCount,
         itemBuilder: widget.itemBuilder,
       ),
