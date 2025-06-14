@@ -184,7 +184,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
+    _viewport.value = widget.viewportSize;
     SchedulerBinding.instance.addPostFrameCallback((_) => _sendScrollInfo());
   }
 
@@ -193,7 +193,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     super.didUpdateWidget(oldWidget);
 
     _viewport.value = widget.viewportSize;
-    _updateChildSize();
     _updateScrollableRegion();
 
     Future.microtask(_sendScrollInfo);
