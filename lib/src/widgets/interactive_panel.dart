@@ -73,8 +73,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   bool _isDoubleTap = false;
   bool _isZoomDragging = false;
   Offset? _startTouchPoint;
-  double? _lastPinchDistance;
-  double? _lastScaleRatio;
+  double? _startPinchDistance;
+  double? _startZoomLevel;
   static const _trackpadDeviceId = 99;
 
   late final _offset = ValueNotifier(Offset.zero);
@@ -164,13 +164,13 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     if (limitA <= limitB) {
       return value.clamp(limitA, limitB);
     } else {
-      return 0;
+      return value.clamp(limitB, limitA);
     }
   }
 
-  void _handleTouch(Offset position) {
+  void _handleTouch() {
     _stopFlingAnimation();
-    _startTouchPoint = position;
+    _startZoomLevel = _zoomLevel.value;
   }
 
   void _stopFlingAnimation() {
@@ -237,12 +237,13 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     );
   }
 
-  void _handleZoomDrag(Offset delta) {
+  void _handleZoomDrag(Offset position) {
     final currentZoom = _zoomLevel.value;
+    final difference = position.dy - _startTouchPoint!.dy;
 
     // Compute proposed zoom level
     final zoomSensitivity = 1.005;
-    double newZoom = currentZoom * math.pow(zoomSensitivity, delta.dy);
+    double newZoom = _startZoomLevel! * math.pow(zoomSensitivity, difference);
 
     if (!widget.zoomOvershoot) {
       // Hard clamp if overshoot disabled
@@ -270,9 +271,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _settleZoom();
   }
 
-  void _handlePinch(Offset focalPoint, double scaleRatioChange) {
+  void _handlePinch(Offset focalPoint, double scale) {
     final currentZoom = _zoomLevel.value;
-    double newZoom = currentZoom * scaleRatioChange;
+    double newZoom = _startZoomLevel! * scale;
 
     if (!widget.zoomOvershoot) {
       newZoom = newZoom.clamp(widget.minZoomLevel, widget.maxZoomLevel);
@@ -297,8 +298,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     if (_activePointers.isEmpty) {
       _isZoomDragging = false;
       _startTouchPoint = null;
-      _lastPinchDistance = null;
-      _lastScaleRatio = null;
+      _startPinchDistance = null;
+      _startZoomLevel = null;
     }
   }
 
@@ -653,7 +654,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         ;
         _activePositions[event.device] = event.position;
 
-        _handleTouch(event.localPosition);
+        _handleTouch();
 
         if (event.device == 0 &&
             _sinceLastTouch(event.timeStamp) < Duration(milliseconds: 300)) {
@@ -661,15 +662,26 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
           _isZoomDragging = true;
         }
 
-        // Primary touch
         if (event.device == 0) {
+          // Primary touch
           _lastTouchTimeStamp = event.timeStamp;
+          _startTouchPoint = event.localPosition;
+        } else if (event.device == 1) {
+          // Secondary touch
+          _startPinchDistance =
+              (_startTouchPoint! - event.localPosition).distance;
         }
       },
       onPointerUp: (event) {
         final tracker = _activePointers[event.device]!;
         _activePointers.remove(event.device);
         _activePositions.remove(event.device);
+
+        // Second touch released
+        if (event.device == 1) {
+          // Record zoom level in case of user wants to pinch again
+          _startZoomLevel = _zoomLevel.value;
+        }
 
         if (_activePointers.isEmpty) {
           if (_isDoubleTap &&
@@ -702,7 +714,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         }
 
         if (_isZoomDragging) {
-          _handleZoomDrag(event.localDelta);
+          _handleZoomDrag(event.localPosition);
           return;
         }
 
@@ -714,11 +726,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
           final focalPoint = (firstPoint + secondPoint) / 2;
           final distance = (firstPoint - secondPoint).distance;
 
-          final distanceRatio = _lastPinchDistance != null
-              ? distance / _lastPinchDistance!
+          final distanceRatio = _startPinchDistance != null
+              ? distance / _startPinchDistance!
               : 1.0;
-
-          _lastPinchDistance = distance;
 
           _handlePinch(focalPoint, distanceRatio);
         }
@@ -734,15 +744,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         _activePointers[_trackpadDeviceId] = VelocityTracker.withKind(
           event.kind,
         );
-        _handleTouch(event.localPosition);
+        _handleTouch();
       },
       onPointerPanZoomUpdate: (event) {
         if (event.scale != 1) {
-          final scaleRatio = _lastScaleRatio != null
-              ? event.scale / _lastScaleRatio!
-              : 1.0;
-          _handlePinch(event.localPosition, scaleRatio);
-          _lastScaleRatio = event.scale;
+          _handlePinch(event.localPosition, event.scale);
         }
 
         _activePointers[_trackpadDeviceId]!.addPosition(

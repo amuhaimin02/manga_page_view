@@ -93,26 +93,58 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   }
 
   double _offsetToFraction(Offset offset) {
-    final current = switch (widget.options.direction) {
-      PageViewDirection.up => offset.dy,
-      PageViewDirection.down => offset.dy,
-      PageViewDirection.left => offset.dx,
-      PageViewDirection.right => offset.dx,
-    };
-    final min = _scrollBoundMin;
-    final max = _scrollBoundMax;
+    final double current;
+    final double min;
+    final double max;
+
+    switch (widget.options.direction) {
+      case PageViewDirection.up:
+        current = offset.dy;
+        min = _scrollBoundMax;
+        max = _scrollBoundMin;
+        break;
+      case PageViewDirection.down:
+        current = offset.dy;
+        min = _scrollBoundMin;
+        max = _scrollBoundMax;
+        break;
+      case PageViewDirection.left:
+        current = offset.dx;
+        min = _scrollBoundMax;
+        max = _scrollBoundMin;
+        break;
+      case PageViewDirection.right:
+        current = offset.dx;
+        min = _scrollBoundMin;
+        max = _scrollBoundMax;
+        break;
+    }
     return ((current - min) / (max - min)).clamp(0, 1);
   }
 
   Offset _fractionToOffset(double fraction) {
-    final min = _scrollBoundMin;
-    final max = _scrollBoundMax;
-    final target = min + (max - min) * fraction;
+    final double target;
+    final double min;
+    final double max;
+
+    switch (widget.options.direction) {
+      case PageViewDirection.up:
+      case PageViewDirection.left:
+        min = _scrollBoundMax;
+        max = _scrollBoundMin;
+        break;
+      case PageViewDirection.down:
+      case PageViewDirection.right:
+        min = _scrollBoundMin;
+        max = _scrollBoundMax;
+        break;
+    }
+    target = min + (max - min) * fraction;
 
     return switch (widget.options.direction) {
-      PageViewDirection.up => Offset(_currentOffset.dx, target),
+      PageViewDirection.up ||
       PageViewDirection.down => Offset(_currentOffset.dx, target),
-      PageViewDirection.left => Offset(target, _currentOffset.dy),
+      PageViewDirection.left ||
       PageViewDirection.right => Offset(target, _currentOffset.dy),
     };
   }
