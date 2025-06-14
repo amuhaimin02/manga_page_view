@@ -74,15 +74,11 @@ class MangaPageViewController {
 class MangaPageViewScrollProgress {
   final int currentPage;
   final int totalPages;
-  final double currentPixels;
-  final double totalPixels;
   final double fraction;
 
   MangaPageViewScrollProgress({
     required this.currentPage,
     required this.totalPages,
-    required this.currentPixels,
-    required this.totalPixels,
     required this.fraction,
   });
 }

@@ -128,18 +128,19 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
             ValueListenableBuilder(
               valueListenable: _currentProgress,
               builder: (context, progress, child) {
+                final fraction = progress != null ? progress.fraction : 0.0;
                 return Row(
                   children: [
                     SizedBox(
                       width: 60,
                       child: Text(
-                        '${((progress?.fraction ?? 0) * 100).toStringAsFixed(1)} %',
+                        '${(fraction * 100).toStringAsFixed(1)} %',
                         textAlign: TextAlign.end,
                       ),
                     ),
                     Expanded(
                       child: Slider(
-                        value: progress?.fraction ?? 0,
+                        value: fraction,
                         // max: _currentProgress?.totalPixels ?? 0,
                         onChanged: (value) {
                           _controller.jumpToFraction(value);
