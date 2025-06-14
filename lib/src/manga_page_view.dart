@@ -48,14 +48,14 @@ class MangaPageViewController {
   MangaPageViewController();
 
   @internal
-  final pageIndexChangeRequest = ValueNotifier<int?>(null);
+  final pageChangeRequest = ValueNotifier<int?>(null);
   @internal
   final fractionChangeRequest = ValueNotifier<double?>(null);
   @internal
   final offsetChangeRequest = ValueNotifier<double?>(null);
 
   void jumpToPage(int index) {
-    pageIndexChangeRequest.value = index;
+    pageChangeRequest.value = index;
   }
 
   void jumpToFraction(double fraction) {
@@ -67,7 +67,7 @@ class MangaPageViewController {
   }
 
   void dispose() {
-    pageIndexChangeRequest.dispose();
+    pageChangeRequest.dispose();
   }
 }
 

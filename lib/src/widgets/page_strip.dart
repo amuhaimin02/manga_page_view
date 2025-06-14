@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../manga_page_view.dart';
@@ -25,10 +26,96 @@ class MangaPageStrip extends StatefulWidget {
   final IndexedWidgetBuilder itemBuilder;
 
   @override
-  State<MangaPageStrip> createState() => _MangaPageStripState();
+  State<MangaPageStrip> createState() => MangaPageStripState();
 }
 
-class _MangaPageStripState extends State<MangaPageStrip> {
+class MangaPageStripState extends State<MangaPageStrip> {
+  late List<bool> _pageLoaded;
+  late List<Rect> _pageBounds;
+  late Size _containerSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageLoaded = List.filled(widget.itemCount, false);
+    _pageBounds = List.filled(
+      widget.itemCount,
+      Offset.zero & widget.initialPageSize,
+    );
+    _updatePageBounds();
+  }
+
+  @override
+  void didUpdateWidget(covariant MangaPageStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.direction != oldWidget.direction &&
+        widget.spacing != oldWidget.spacing) {
+      _updatePageBounds();
+    }
+  }
+
+  void _onPageSizeChanged(BuildContext context, int index) {
+    final pageSize = (context.findRenderObject() as RenderBox).size;
+    _pageBounds[index] = Offset.zero & pageSize;
+    _updatePageBounds();
+  }
+
+  void _updatePageBounds() {
+    final pageCount = widget.itemCount;
+    Offset nextPoint = Offset.zero;
+    for (int i = 0; i < pageCount; i++) {
+      final pageSize = _pageBounds[i].size;
+
+      nextPoint = switch (widget.direction) {
+        PageViewDirection.up => nextPoint.translate(0, -pageSize.height),
+        PageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
+        PageViewDirection.down => nextPoint,
+        PageViewDirection.right => nextPoint,
+      };
+
+      final pageBounds = nextPoint & pageSize;
+
+      _pageBounds[i] = pageBounds;
+
+      final spacing = widget.spacing;
+      nextPoint = switch (widget.direction) {
+        PageViewDirection.up => pageBounds.topLeft.translate(0, -spacing),
+        PageViewDirection.left => pageBounds.topLeft.translate(-spacing, 0),
+        PageViewDirection.down => pageBounds.bottomLeft.translate(0, spacing),
+        PageViewDirection.right => pageBounds.topRight.translate(spacing, 0),
+      };
+    }
+
+    final overallBounds = _pageBounds.first.expandToInclude(_pageBounds.last);
+    _containerSize = overallBounds.size;
+  }
+
+  void glance(Rect viewRegion) {
+    List<int>? pageToLoad;
+    for (int i = widget.itemCount - 1; i >= 0; i--) {
+      if (_pageLoaded[i]) {
+        continue;
+      }
+
+      final pageBounds = _pageBounds[i];
+      if (pageBounds.overlaps(viewRegion)) {
+        (pageToLoad ??= [])..add(i);
+      }
+    }
+
+    if (pageToLoad != null) {
+      setState(() {
+        for (final pageIndex in pageToLoad!) {
+          _pageLoaded[pageIndex] = true;
+        }
+      });
+    }
+  }
+
+  Rect getPageBounds(int pageIndex) {
+    return _pageBounds[pageIndex];
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -58,14 +145,13 @@ class _MangaPageStripState extends State<MangaPageStrip> {
       builder: (context) {
         return NotificationListener(
           onNotification: (event) {
+            if (event is SizeChangedLayoutNotification) {
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                _onPageSizeChanged(context, index);
+              });
+              return true;
+            }
             return false;
-            // if (event is SizeChangedLayoutNotification) {
-            //   SchedulerBinding.instance.addPostFrameCallback((_) {
-            //     _onPageSizeChanged(context, index);
-            //   });
-            //   return true;
-            // }
-            // return false;
           },
           child: SizeChangedLayoutNotifier(
             child: ConstrainedBox(
@@ -75,7 +161,7 @@ class _MangaPageStripState extends State<MangaPageStrip> {
               ),
               child: CachedPage(
                 builder: (context) => widget.itemBuilder(context, index),
-                visible: true,
+                visible: _pageLoaded[index],
                 initialSize: widget.initialPageSize,
               ),
             ),

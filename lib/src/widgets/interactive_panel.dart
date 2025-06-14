@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
@@ -96,8 +97,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void initState() {
     super.initState();
-    _offset.addListener(_onOffsetChanged);
-    _zoomLevel.addListener(_onZoomLevelChanged);
+    _offset.addListener(_sendScrollInfo);
+    _zoomLevel.addListener(_sendScrollInfo);
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _zoomLevel.value = widget.initialZoomLevel;
@@ -108,8 +109,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void dispose() {
     _scrollRegionChange.removeListener(_updateScrollableRegion);
-    _offset.removeListener(_onOffsetChanged);
-    _zoomLevel.removeListener(_onZoomLevelChanged);
+    _offset.removeListener(_sendScrollInfo);
+    _zoomLevel.removeListener(_sendScrollInfo);
     _offset.dispose();
     _zoomLevel.dispose();
     _viewport.dispose();
@@ -132,6 +133,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _viewport.value = widget.viewportSize;
     _updateChildSize();
 
+    SchedulerBinding.instance.addPostFrameCallback((_) => _sendScrollInfo());
+
     if (widget.alignment != oldWidget.alignment) {
       _stopFlingAnimation();
 
@@ -142,18 +145,16 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     }
   }
 
-  void jumpTo(Offset offset) {
+  void jumpToOffset(Offset offset) {
     _stopFlingAnimation();
-    _offset.value = offset;
+    _offset.value = _limitOffsetWithinBounds(offset);
   }
 
-  void _onOffsetChanged() {
-    widget.onInteract?.call(
-      ScrollInfo(_offset.value, _zoomLevel.value, _scrollableRegion),
-    );
+  void animateToOffset(Offset offset) {
+    _animateOffsetChange(targetOffset: offset);
   }
 
-  void _onZoomLevelChanged() {
+  void _sendScrollInfo() {
     widget.onInteract?.call(
       ScrollInfo(_offset.value, _zoomLevel.value, _scrollableRegion),
     );
@@ -357,17 +358,13 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _updateScrollableRegion() {
     Rect transformZoom(Rect bounds) {
-      // Formula to calculate desirable offset range depending on zoom level
-      f(double v, double z) => (1 - 1 / z) * (v / 2);
-
-      final paddingX = f(_viewport.value.width, _zoomLevel.value);
-      final paddingY = f(_viewport.value.height, _zoomLevel.value);
+      final padding = (_viewport.value / 2) * (1 - 1 / _zoomLevel.value);
 
       return Rect.fromLTRB(
-        bounds.left - paddingX,
-        bounds.top - paddingY,
-        bounds.right + paddingX,
-        bounds.bottom + paddingY,
+        bounds.left - padding.width,
+        bounds.top - padding.height,
+        bounds.right + padding.width,
+        bounds.bottom + padding.height,
       );
     }
 

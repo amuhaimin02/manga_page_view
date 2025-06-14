@@ -31,13 +31,21 @@ class MangaPageContinuousView extends StatefulWidget {
 
 class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   final _interactionPanelKey = GlobalKey<MangaPageInteractivePanelState>();
+  final _stripContainerKey = GlobalKey<MangaPageStripState>();
+
   double _scrollBoundMin = 0;
   double _scrollBoundMax = 0;
   Offset _currentOffset = Offset.zero;
+  double _currentZoomLevel = 1.0;
+
+  MangaPageInteractivePanelState get _panelState =>
+      _interactionPanelKey.currentState!;
+  MangaPageStripState get _stripState => _stripContainerKey.currentState!;
 
   @override
   void initState() {
     super.initState();
+    widget.controller.pageChangeRequest.addListener(_onPageChangeRequest);
     widget.controller.fractionChangeRequest.addListener(
       _onFractionChangeRequest,
     );
@@ -49,19 +57,67 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     widget.controller.fractionChangeRequest.removeListener(
       _onFractionChangeRequest,
     );
+    widget.controller.pageChangeRequest.removeListener(_onPageChangeRequest);
   }
 
-  MangaPageInteractivePanelState get _panelState =>
-      _interactionPanelKey.currentState!;
+  void _onPageChangeRequest() {
+    final pageIndex = widget.controller.pageChangeRequest.value;
+
+    if (pageIndex != null) {
+      final pageRect = _stripState.getPageBounds(pageIndex);
+      _panelState.animateToOffset(_getPageJumpOffset(pageRect));
+
+      widget.onPageChange?.call(pageIndex);
+      widget.controller.fractionChangeRequest.value = null;
+    }
+  }
 
   void _onFractionChangeRequest() {
     final fraction = widget.controller.fractionChangeRequest.value;
 
     if (fraction != null) {
       final targetOffset = _fractionToOffset(fraction);
-      _panelState.jumpTo(targetOffset);
+      _panelState.jumpToOffset(targetOffset);
       widget.controller.fractionChangeRequest.value = null;
     }
+  }
+
+  Offset _getPageJumpOffset(Rect pageBounds) {
+    final viewport = widget.viewportSize;
+    final padding = (viewport / 2) * (1 - 1 / _currentZoomLevel);
+
+    final bounds = Rect.fromLTRB(
+      pageBounds.left - padding.width,
+      pageBounds.top - padding.height,
+      pageBounds.right + padding.width,
+      pageBounds.bottom + padding.height,
+    );
+
+    final gravity = widget.options.scrollGravity;
+    final viewportCenter = viewport.center(Offset.zero);
+
+    return switch (widget.options.direction) {
+      PageViewDirection.down => gravity.select(
+        start: bounds.topCenter,
+        center: bounds.center.translate(0, -viewportCenter.dy),
+        end: bounds.bottomCenter.translate(0, -viewport.height),
+      ),
+      PageViewDirection.up => gravity.select(
+        start: bounds.bottomCenter,
+        center: bounds.center.translate(0, viewportCenter.dy),
+        end: bounds.topCenter.translate(0, viewport.height),
+      ),
+      PageViewDirection.right => gravity.select(
+        start: bounds.centerLeft,
+        center: bounds.center.translate(-viewportCenter.dx, 0),
+        end: bounds.centerRight.translate(-viewport.width, 0),
+      ),
+      PageViewDirection.left => gravity.select(
+        start: bounds.centerRight,
+        center: bounds.center.translate(viewportCenter.dx, 0),
+        end: bounds.centerLeft.translate(viewport.width, 0),
+      ),
+    };
   }
 
   void _handleInteraction(ScrollInfo info) {
@@ -82,6 +138,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     final fraction = _offsetToFraction(info.offset);
     _currentOffset = info.offset;
+    _currentZoomLevel = info.zoomLevel;
+
+    final visibleWindow = _computeVisibleWindow(
+      info.offset,
+      info.zoomLevel,
+      widget.viewportSize,
+    );
+
+    _stripState.glance(visibleWindow);
 
     widget.onProgressChange?.call(
       MangaPageViewScrollProgress(
@@ -149,6 +214,33 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
   }
 
+  Rect _computeVisibleWindow(
+    Offset offset,
+    double zoomLevel,
+    Size viewportSize,
+  ) {
+    final viewportCenter = viewportSize.center(Offset.zero);
+    final worldCenter = offset + viewportCenter;
+
+    final halfSizeInWorld = Offset(
+      viewportSize.width / zoomLevel / 2,
+      viewportSize.height / zoomLevel / 2,
+    );
+
+    final topLeft = worldCenter - halfSizeInWorld;
+    final size = viewportSize / zoomLevel;
+
+    final visibleRect = topLeft & size;
+
+    // Adjust window on left and up direction mode
+    return switch (widget.options.direction) {
+      PageViewDirection.up => visibleRect.translate(0, viewportSize.height),
+      PageViewDirection.down => visibleRect,
+      PageViewDirection.left => visibleRect.translate(-viewportSize.width, 0),
+      PageViewDirection.right => visibleRect,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return MangaPageInteractivePanel(
@@ -177,6 +269,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       },
       viewportSize: widget.viewportSize,
       child: MangaPageStrip(
+        key: _stripContainerKey,
         viewportSize: widget.viewportSize,
         direction: widget.options.direction,
         spacing: widget.options.spacing,
