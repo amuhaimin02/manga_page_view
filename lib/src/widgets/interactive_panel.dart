@@ -4,14 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
-enum PanelAlignment {
-  top,
-  bottom,
-  left,
-  right;
-
-  bool get isInverted => this == bottom || this == right;
-}
+enum PanelAlignment { top, bottom, left, right }
 
 class MangaPageInteractivePanel extends StatefulWidget {
   const MangaPageInteractivePanel({
@@ -27,6 +20,7 @@ class MangaPageInteractivePanel extends StatefulWidget {
     required this.alignment,
     required this.zoomOnFocalPoint,
     required this.zoomOvershoot,
+    required this.scrollPadding,
     this.onInteract,
   });
 
@@ -41,6 +35,7 @@ class MangaPageInteractivePanel extends StatefulWidget {
   final PanelAlignment alignment;
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
+  final ValueNotifier<EdgeInsets> scrollPadding;
   final Function(ScrollInfo info)? onInteract;
 
   @override
@@ -99,6 +94,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     super.initState();
     _offset.addListener(_sendScrollInfo);
     _zoomLevel.addListener(_sendScrollInfo);
+    widget.scrollPadding.addListener(_onScrollPaddingChange);
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _zoomLevel.value = widget.initialZoomLevel;
@@ -111,6 +107,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _scrollRegionChange.removeListener(_updateScrollableRegion);
     _offset.removeListener(_sendScrollInfo);
     _zoomLevel.removeListener(_sendScrollInfo);
+    widget.scrollPadding.removeListener(_onScrollPaddingChange);
+
     _offset.dispose();
     _zoomLevel.dispose();
     _viewport.dispose();
@@ -127,13 +125,21 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    SchedulerBinding.instance.addPostFrameCallback((_) => _sendScrollInfo());
+  }
+
+  @override
   void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     _viewport.value = widget.viewportSize;
     _updateChildSize();
+    _updateScrollableRegion();
 
-    SchedulerBinding.instance.addPostFrameCallback((_) => _sendScrollInfo());
+    Future.microtask(_sendScrollInfo);
 
     if (widget.alignment != oldWidget.alignment) {
       _stopFlingAnimation();
@@ -392,6 +398,15 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       top = 0;
       bottom = 0;
     }
+
+    // Apply padding≈
+    final padding = widget.scrollPadding.value;
+    top -= padding.top;
+    bottom += padding.bottom;
+    left -= padding.left;
+    right += padding.right;
+
+    // Inverse coordinate system for inverted directions
     if (widget.alignment == PanelAlignment.right) {
       left = -left;
       right = -right;
@@ -575,6 +590,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _onAnimateZoomUpdate() {
     _zoomAnimationUpdateListener?.call();
+  }
+
+  void _onScrollPaddingChange() {
+    _updateScrollableRegion();
+    _settlePageOffset();
   }
 
   @override

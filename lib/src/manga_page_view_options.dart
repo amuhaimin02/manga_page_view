@@ -14,7 +14,7 @@ class MangaPageViewOptions {
   final bool zoomOvershoot;
   final int precacheOverhead;
   final PageViewGravity scrollGravity;
-  final bool centerPageOnEdge;
+  final bool padPageToCenter;
   final bool zoomOnFocalPoint;
 
   const MangaPageViewOptions({
@@ -31,7 +31,7 @@ class MangaPageViewOptions {
     this.zoomOvershoot = true,
     this.precacheOverhead = 0,
     this.scrollGravity = PageViewGravity.center,
-    this.centerPageOnEdge = true,
+    this.padPageToCenter = true,
     this.zoomOnFocalPoint = true,
   });
 }

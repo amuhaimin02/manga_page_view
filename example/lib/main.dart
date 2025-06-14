@@ -56,7 +56,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 precacheOverhead: 3,
                 zoomOvershoot: _overshoot,
                 scrollGravity: _scrollGravity,
-                centerPageOnEdge: _scrollGravity == PageViewGravity.center,
+                padPageToCenter: _scrollGravity == PageViewGravity.center,
                 spacing: 60.0,
               ),
               itemCount: totalPages,
