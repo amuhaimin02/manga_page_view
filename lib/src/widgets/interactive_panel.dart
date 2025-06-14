@@ -51,6 +51,70 @@ class ScrollInfo {
   ScrollInfo(this.offset, this.zoomLevel, this.scrollableRegion);
 }
 
+class _DoubleTapDetector {
+  static const _durationThreshold = Duration(milliseconds: 300);
+  static const _distanceThreshold = 40.0;
+
+  _DoubleTapDetector();
+
+  Duration? _firstTapTimestamp;
+  Duration? _secondTapTimestamp;
+  Offset? _firstTapPosition;
+  Offset? _secondTapPosition;
+
+  void registerTap(Duration timestamp, Offset position) {
+    if (_firstTapTimestamp != null &&
+        timestamp - _firstTapTimestamp! > _durationThreshold) {
+      reset();
+    }
+    if (_secondTapTimestamp != null &&
+        timestamp - _secondTapTimestamp! > _durationThreshold) {
+      reset();
+    }
+
+    if (_firstTapTimestamp == null) {
+      _firstTapTimestamp = timestamp;
+      _firstTapPosition = position;
+    } else if (_secondTapTimestamp == null) {
+      _secondTapTimestamp = timestamp;
+      _secondTapPosition = position;
+    }
+  }
+
+  void registerUntap(Duration timestamp, Offset position) {
+    if (_firstTapTimestamp != null &&
+        timestamp - _firstTapTimestamp! > _durationThreshold) {
+      reset();
+    }
+  }
+
+  void reset() {
+    _firstTapTimestamp = null;
+    _secondTapTimestamp = null;
+    _firstTapPosition = null;
+    _secondTapPosition = null;
+  }
+
+  bool isTriggered(Duration timestamp) {
+    if (_firstTapTimestamp == null || _secondTapTimestamp == null) {
+      return false;
+    }
+
+    if (timestamp - _secondTapTimestamp! > _durationThreshold) {
+      return false;
+    }
+
+    final duration = _secondTapTimestamp! - _firstTapTimestamp!;
+    final distance = (_firstTapPosition! - _secondTapPosition!).distance;
+
+    return duration < _durationThreshold && distance < _distanceThreshold;
+  }
+
+  bool willTrigger(Duration timestamp) {
+    return _firstTapTimestamp != null && _secondTapTimestamp == null;
+  }
+}
+
 class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     with TickerProviderStateMixin {
   late final _childKey = GlobalKey();
@@ -65,8 +129,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   final _activePointers = <int, VelocityTracker>{};
   final _activePositions = <int, Offset>{};
-  Duration? _lastTouchTimeStamp = null;
-  bool _isDoubleTap = false;
+  final _doubleTapDetector = _DoubleTapDetector();
   bool _isZoomDragging = false;
   Offset? _startTouchPoint;
   double? _startPinchDistance;
@@ -84,10 +147,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _childSize,
   ]);
   Rect _scrollableRegion = Rect.zero;
-
-  Duration _sinceLastTouch(Duration current) => _lastTouchTimeStamp != null
-      ? current - _lastTouchTimeStamp!
-      : Duration(hours: 24);
 
   @override
   void initState() {
@@ -602,26 +661,24 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
         _activePointers[event.device] = VelocityTracker.withKind(event.kind)
-          ..addPosition(event.timeStamp, event.position);
+          ..addPosition(event.timeStamp, event.localPosition);
         ;
-        _activePositions[event.device] = event.position;
+        _activePositions[event.device] = event.localPosition;
 
         _handleTouch();
 
-        if (event.device == 0 &&
-            _sinceLastTouch(event.timeStamp) < Duration(milliseconds: 300)) {
-          _isDoubleTap = true;
-          _isZoomDragging = true;
-        }
-
         if (event.device == 0) {
           // Primary touch
-          _lastTouchTimeStamp = event.timeStamp;
+          _doubleTapDetector.registerTap(event.timeStamp, event.localPosition);
           _startTouchPoint = event.localPosition;
         } else if (event.device == 1) {
           // Secondary touch
           _startPinchDistance =
               (_startTouchPoint! - event.localPosition).distance;
+        }
+        if (event.device == 0 &&
+            _doubleTapDetector.isTriggered(event.timeStamp)) {
+          _isZoomDragging = true;
         }
       },
       onPointerUp: (event) {
@@ -629,41 +686,38 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         _activePointers.remove(event.device);
         _activePositions.remove(event.device);
 
-        // Second touch released
-        if (event.device == 1) {
+        if (event.device == 0) {
+          _doubleTapDetector.registerUntap(
+            event.timeStamp,
+            event.localPosition,
+          );
+        } else if (event.device == 1) {
+          // Second touch released
           // Record zoom level in case of user wants to pinch again
           _startZoomLevel = _zoomLevel.value;
         }
 
         if (_activePointers.isEmpty) {
-          if (_isDoubleTap &&
-              event.device == 0 &&
-              _sinceLastTouch(event.timeStamp) < Duration(milliseconds: 300)) {
-            if (_isDoubleTap) {
-              _handleZoomDoubleTap(_startTouchPoint!);
-            }
+          if (event.device == 0 &&
+              _doubleTapDetector.isTriggered(event.timeStamp)) {
+            _handleZoomDoubleTap(_startTouchPoint!);
           } else {
             final magnitude = tracker.getVelocity().pixelsPerSecond.distance;
             if (magnitude > 0 ||
-                _sinceLastTouch(event.timeStamp) >
-                    Duration(milliseconds: 300)) {
+                !_doubleTapDetector.willTrigger(event.timeStamp)) {
               _handleFling(tracker.getVelocity());
             }
           }
-
-          _isDoubleTap = false;
           _handleLift();
         }
       },
       onPointerMove: (event) {
         _activePointers[event.device]!.addPosition(
           event.timeStamp,
-          event.position,
+          event.localPosition,
         );
-        _activePositions[event.device] = event.position;
-        if (_isDoubleTap) {
-          _isDoubleTap = false;
-        }
+        _activePositions[event.device] = event.localPosition;
+        _doubleTapDetector.reset();
 
         if (_isZoomDragging) {
           _handleZoomDrag(event.localPosition);
