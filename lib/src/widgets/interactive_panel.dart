@@ -150,8 +150,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offset.value = _limitOffsetWithinBounds(offset);
   }
 
-  void animateToOffset(Offset offset) {
-    _animateOffsetChange(targetOffset: offset);
+  void animateToOffset(Offset offset, VoidCallback onEnd) {
+    _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
   }
 
   void _sendScrollInfo() {
@@ -401,70 +401,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     }
 
     _scrollableRegion = Rect.fromLTRB(left, top, right, bottom);
-
-    // final containerSize = containerState.manager.containerSize;
-    // var rect = Rect.fromLTWH(
-    //   0,
-    //   0,
-    //   containerSize.width - _viewport.width,
-    //   containerSize.height - _viewport.height,
-    // );
-    //
-    // if (widget.options.centerPageOnEdge) {
-    //   final viewportSize = _viewport;
-    //   final firstPageSize = containerState.manager.getBounds(0).size;
-    //   final lastPageSize = containerState.manager
-    //       .getBounds(widget.itemCount - 1)
-    //       .size;
-    //
-    //   if (direction.isVertical) {
-    //     final topPadding =
-    //         (viewportSize.height / zoomLevel - firstPageSize.height) / 2;
-    //     final bottomPadding =
-    //         (viewportSize.height / zoomLevel - lastPageSize.height) / 2;
-    //
-    //     if (topPadding > 0) {
-    //       rect = Rect.fromLTRB(
-    //         rect.left,
-    //         rect.top - topPadding,
-    //         rect.right,
-    //         rect.bottom,
-    //       );
-    //     }
-    //     if (bottomPadding > 0) {
-    //       rect = Rect.fromLTRB(
-    //         rect.left,
-    //         rect.top,
-    //         rect.right,
-    //         rect.bottom + bottomPadding,
-    //       );
-    //     }
-    //   } else if (direction.isHorizontal) {
-    //     final leftPadding =
-    //         (viewportSize.width / zoomLevel - firstPageSize.width) / 2;
-    //     final rightPadding =
-    //         (viewportSize.width / zoomLevel - lastPageSize.width) / 2;
-    //
-    //     if (leftPadding > 0) {
-    //       rect = Rect.fromLTRB(
-    //         rect.left - leftPadding,
-    //         rect.top,
-    //         rect.right,
-    //         rect.bottom,
-    //       );
-    //     }
-    //     if (rightPadding > 0) {
-    //       rect = Rect.fromLTRB(
-    //         rect.left,
-    //         rect.top,
-    //         rect.right + rightPadding,
-    //         rect.bottom,
-    //       );
-    //     }
-    //   }
-    // }
-
-    // return _scrollInfo.transformZoom(rect, _viewport);
   }
 
   Offset _limitOffsetWithinBounds(

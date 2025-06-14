@@ -36,7 +36,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   double _scrollBoundMin = 0;
   double _scrollBoundMax = 0;
   Offset _currentOffset = Offset.zero;
+  int _currentPage = 0;
   double _currentZoomLevel = 1.0;
+  bool _isChangingPage = false;
 
   MangaPageInteractivePanelState get _panelState =>
       _interactionPanelKey.currentState!;
@@ -64,12 +66,22 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final pageIndex = widget.controller.pageChangeRequest.value;
 
     if (pageIndex != null) {
-      final pageRect = _stripState.getPageBounds(pageIndex);
-      _panelState.animateToOffset(_getPageJumpOffset(pageRect));
+      final pageRect = _stripState.pageBounds[pageIndex];
+      _isChangingPage = true;
 
       widget.onPageChange?.call(pageIndex);
+      _currentPage = pageIndex;
+
+      _panelState.animateToOffset(
+        _getPageJumpOffset(pageRect),
+        _onPageChangeAnimationEnd,
+      );
       widget.controller.fractionChangeRequest.value = null;
     }
+  }
+
+  void _onPageChangeAnimationEnd() {
+    _isChangingPage = false;
   }
 
   void _onFractionChangeRequest() {
@@ -140,13 +152,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _currentOffset = info.offset;
     _currentZoomLevel = info.zoomLevel;
 
-    final visibleWindow = _computeVisibleWindow(
+    final viewRegion = _computeVisibleWindow(
       info.offset,
       info.zoomLevel,
       widget.viewportSize,
     );
 
-    _stripState.glance(visibleWindow);
+    _stripState.glance(viewRegion);
+
+    _updatePageIndex(viewRegion);
 
     widget.onProgressChange?.call(
       MangaPageViewScrollProgress(
@@ -155,6 +169,56 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         fraction: fraction,
       ),
     );
+  }
+
+  // TODO: Limit call frequency
+  void _updatePageIndex(Rect viewRegion) {
+    final bounds = _stripState.pageBounds;
+    final gravity = widget.options.scrollGravity;
+
+    final screenEdge = switch (widget.options.direction) {
+      PageViewDirection.down => gravity.select(
+        start: viewRegion.top,
+        center: viewRegion.center.dy,
+        end: viewRegion.bottom,
+      ),
+      PageViewDirection.up => gravity.select(
+        start: -viewRegion.bottom,
+        center: -viewRegion.center.dy,
+        end: -viewRegion.top,
+      ),
+      PageViewDirection.left => gravity.select(
+        start: -viewRegion.right,
+        center: -viewRegion.center.dx,
+        end: -viewRegion.left,
+      ),
+      PageViewDirection.right => gravity.select(
+        start: viewRegion.left,
+        center: viewRegion.center.dx,
+        end: viewRegion.right,
+      ),
+    };
+    final pageEdge = switch (widget.options.direction) {
+      PageViewDirection.down => (Rect b) => b.top,
+      PageViewDirection.up => (Rect b) => -b.bottom,
+      PageViewDirection.left => (Rect b) => -b.right,
+      PageViewDirection.right => (Rect b) => b.left,
+    };
+
+    int checkIndex = -1;
+    for (int i = 0; i < widget.itemCount; i++) {
+      if (pageEdge(bounds[i]) >= screenEdge) {
+        break;
+      }
+      checkIndex += 1;
+    }
+
+    final pageIndex = checkIndex.clamp(0, widget.itemCount - 1);
+
+    if (!_isChangingPage && _currentPage != pageIndex) {
+      widget.onPageChange?.call(pageIndex);
+      _currentPage = pageIndex;
+    }
   }
 
   double _offsetToFraction(Offset offset) {
