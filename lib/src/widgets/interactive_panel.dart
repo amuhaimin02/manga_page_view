@@ -136,13 +136,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(1.0);
   late final _viewport = ValueNotifier(Size.zero);
-  late final _childSize = ValueNotifier(Size.zero);
 
-  late final _scrollRegionChange = Listenable.merge([
-    _zoomLevel,
-    _viewport,
-    _childSize,
-  ]);
+  late final _scrollRegionChange = Listenable.merge([_zoomLevel, _viewport]);
 
   Rect _scrollableRegion = Rect.zero;
 
@@ -155,9 +150,17 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _zoomLevel.addListener(_sendScrollInfo);
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
-    _zoomLevel.value = widget.initialZoomLevel;
-
     _scrollRegionChange.addListener(_updateScrollableRegion);
+
+    _viewport.addListener(_settlePageOffset);
+
+    if (widget.initialZoomLevel != 1.0) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _zoomLevel.value = widget.initialZoomLevel;
+        _updateScrollableRegion();
+        _settlePageOffset();
+      });
+    }
   }
 
   @override
@@ -165,11 +168,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _scrollRegionChange.removeListener(_updateScrollableRegion);
     _offset.removeListener(_sendScrollInfo);
     _zoomLevel.removeListener(_sendScrollInfo);
+    _viewport.removeListener(_settlePageOffset);
 
     _offset.dispose();
     _zoomLevel.dispose();
     _viewport.dispose();
-    _childSize.dispose();
 
     _flingXAnimation.dispose();
     _flingYAnimation.dispose();
@@ -184,8 +187,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _viewport.value = widget.viewportSize;
-    SchedulerBinding.instance.addPostFrameCallback((_) => _sendScrollInfo());
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _viewport.value = widget.viewportSize;
+      _sendScrollInfo();
+    });
   }
 
   @override
@@ -193,8 +198,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     super.didUpdateWidget(oldWidget);
 
     _viewport.value = widget.viewportSize;
-
-    _updateChildSize();
 
     _updateScrollableRegion();
 
@@ -437,12 +440,15 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       );
     }
 
+    final childSize =
+        ((_childKey.currentContext!.findRenderObject() as RenderBox)).size;
+
     final rect = transformZoom(
       Rect.fromLTRB(
         0,
         0,
-        _childSize.value.width - _viewport.value.width,
-        _childSize.value.height - _viewport.value.height,
+        childSize.width - _viewport.value.width,
+        childSize.height - _viewport.value.height,
       ),
     );
 
@@ -569,11 +575,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         _offset.value = Offset(_offset.value.dx, newY);
       },
     );
-  }
-
-  void _updateChildSize() {
-    _childSize.value =
-        ((_childKey.currentContext!.findRenderObject() as RenderBox)).size;
   }
 
   void _animateZoomChange({
@@ -789,7 +790,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
           child: NotificationListener(
             onNotification: (event) {
               if (event is SizeChangedLayoutNotification) {
-                _updateChildSize();
+                _updateScrollableRegion();
                 return true;
               }
               return false;

@@ -17,7 +17,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  PageViewDirection _scrollDirection = PageViewDirection.down;
+  PageViewDirection _scrollDirection = PageViewDirection.left;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.start;
 
@@ -52,6 +52,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
+                initialZoomLevel: 0.5,
+                minZoomLevel: 0.5,
                 maxZoomLevel: 10,
                 precacheOverhead: 3,
                 zoomOvershoot: _overshoot,

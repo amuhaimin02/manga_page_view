@@ -15,6 +15,7 @@ class MangaPageStrip extends StatefulWidget {
     required this.initialPageSize,
     required this.maxPageSize,
     required this.precacheOverhead,
+    required this.onPageSizeChanged,
   });
 
   final Size viewportSize; // TODO: Remove?
@@ -23,9 +24,9 @@ class MangaPageStrip extends StatefulWidget {
   final Size initialPageSize;
   final Size maxPageSize;
   final int precacheOverhead;
-
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
+  final Function(int pageIndex) onPageSizeChanged;
 
   @override
   State<MangaPageStrip> createState() => MangaPageStripState();
@@ -62,6 +63,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
     final pageSize = (context.findRenderObject() as RenderBox).size;
     _pageBounds[index] = Offset.zero & pageSize;
     _updatePageBounds();
+    widget.onPageSizeChanged(index);
   }
 
   void _updatePageBounds() {

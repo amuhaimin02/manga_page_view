@@ -74,11 +74,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       final targetPage = _currentPage;
       _isChangingPage = true;
       Future.delayed(Duration(milliseconds: 50), () {
-        final pageRect = _stripState.pageBounds[targetPage];
-        _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
-        widget.onPageChange?.call(targetPage);
-        _currentPage = targetPage;
-        _isChangingPage = false;
+        _moveToPage(targetPage);
       });
     }
   }
@@ -87,16 +83,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final pageIndex = widget.controller.pageChangeRequest.value;
 
     if (pageIndex != null) {
-      final pageRect = _stripState.pageBounds[pageIndex];
-      _isChangingPage = true;
-
-      widget.onPageChange?.call(pageIndex);
-      _currentPage = pageIndex;
-
-      _panelState.animateToOffset(
-        _getPageJumpOffset(pageRect),
-        _onPageChangeAnimationEnd,
-      );
+      _animateToPage(pageIndex);
       widget.controller.fractionChangeRequest.value = null;
     }
   }
@@ -153,6 +140,27 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
   }
 
+  void _moveToPage(int pageIndex) {
+    final pageRect = _stripState.pageBounds[pageIndex];
+    _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
+    widget.onPageChange?.call(pageIndex);
+    _currentPage = pageIndex;
+    _isChangingPage = false;
+  }
+
+  void _animateToPage(int pageIndex) {
+    final pageRect = _stripState.pageBounds[pageIndex];
+    _isChangingPage = true;
+
+    widget.onPageChange?.call(pageIndex);
+    _currentPage = pageIndex;
+
+    _panelState.animateToOffset(
+      _getPageJumpOffset(pageRect),
+      _onPageChangeAnimationEnd,
+    );
+  }
+
   void _handleScroll(ScrollInfo info) {
     final scrollableRegion = _panelState.scrollableRegion;
     switch (widget.options.direction) {
@@ -196,6 +204,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         fraction: fraction,
       ),
     );
+  }
+
+  void _onPageSizeChanged(int pageIndex) {
+    // print('Page index change: $pageIndex');
+    // if (pageIndex <= _currentPage) {
+    //   print('Reorient: $_currentPage');
+    //   _moveToPage(_currentPage);
+    // }
   }
 
   void _updatePageIndex(Rect viewRegion) {
@@ -371,6 +387,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         precacheOverhead: widget.options.precacheOverhead,
         itemCount: widget.itemCount,
         itemBuilder: widget.itemBuilder,
+        onPageSizeChanged: _onPageSizeChanged,
       ),
       onScroll: _handleScroll,
     );
