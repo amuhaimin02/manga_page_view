@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../manga_page_view.dart';
@@ -40,7 +41,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   int _currentPage = 0;
   double _currentZoomLevel = 1.0;
   bool _isChangingPage = false;
-  late final _stripPadding = ValueNotifier(EdgeInsets.zero);
 
   MangaPageInteractivePanelState get _panelState =>
       _interactionPanelKey.currentState!;
@@ -70,8 +70,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.options.padPageToCenter != oldWidget.options.padPageToCenter) {
-      _updateStripPadding();
+    if (widget.options.direction != oldWidget.options.direction) {
       _panelState.forceSettle();
     }
   }
@@ -119,7 +118,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       pageBounds.bottom + padding.height,
     );
 
-    final gravity = widget.options.scrollGravity;
+    final gravity = widget.options.pageJumpGravity;
     final viewportCenter = viewport.center(Offset.zero);
 
     return switch (widget.options.direction) {
@@ -146,20 +145,21 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
   }
 
-  void _handleInteraction(ScrollInfo info) {
+  void _handleScroll(ScrollInfo info) {
+    final scrollableRegion = _panelState.scrollableRegion;
     switch (widget.options.direction) {
       case PageViewDirection.up:
-        _scrollBoundMin = info.scrollableRegion.bottom;
-        _scrollBoundMax = info.scrollableRegion.top;
+        _scrollBoundMin = scrollableRegion.bottom;
+        _scrollBoundMax = scrollableRegion.top;
       case PageViewDirection.down:
-        _scrollBoundMin = info.scrollableRegion.top;
-        _scrollBoundMax = info.scrollableRegion.bottom;
+        _scrollBoundMin = scrollableRegion.top;
+        _scrollBoundMax = scrollableRegion.bottom;
       case PageViewDirection.left:
-        _scrollBoundMin = info.scrollableRegion.right;
-        _scrollBoundMax = info.scrollableRegion.left;
+        _scrollBoundMin = scrollableRegion.right;
+        _scrollBoundMax = scrollableRegion.left;
       case PageViewDirection.right:
-        _scrollBoundMin = info.scrollableRegion.left;
-        _scrollBoundMax = info.scrollableRegion.right;
+        _scrollBoundMin = scrollableRegion.left;
+        _scrollBoundMax = scrollableRegion.right;
     }
 
     _currentOffset = info.offset;
@@ -170,12 +170,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       info.zoomLevel,
       widget.viewportSize,
     );
-
     if (!viewRegion.isEmpty) {
       _pageUpdateThrottler.call(() {
-        _stripState.glance(viewRegion);
-        _updatePageIndex(viewRegion);
-        _updateStripPadding();
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          _stripState.glance(viewRegion);
+          _updatePageIndex(viewRegion);
+        });
       });
     }
 
@@ -192,7 +192,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _updatePageIndex(Rect viewRegion) {
     final bounds = _stripState.pageBounds;
-    final gravity = widget.options.scrollGravity;
+    final gravity = widget.options.pageSenseGravity;
 
     final screenEdge = switch (widget.options.direction) {
       PageViewDirection.down => gravity.select(
@@ -236,29 +236,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     if (!_isChangingPage && _currentPage != pageIndex) {
       widget.onPageChange?.call(pageIndex);
       _currentPage = pageIndex;
-    }
-  }
-
-  void _updateStripPadding() {
-    if (widget.options.padPageToCenter) {
-      final firstPageSize = _stripState.pageBounds.first.size;
-      final lastPageSize = _stripState.pageBounds.last.size;
-      final viewport = widget.viewportSize;
-      final zoomLevel = _currentZoomLevel;
-
-      final padding = switch (widget.options.direction) {
-        PageViewDirection.up || PageViewDirection.down => EdgeInsets.only(
-          top: (viewport.height / zoomLevel - firstPageSize.height) / 2,
-          bottom: (viewport.height / zoomLevel - lastPageSize.height) / 2,
-        ),
-        PageViewDirection.left || PageViewDirection.right => EdgeInsets.only(
-          left: (viewport.width / zoomLevel - firstPageSize.width) / 2,
-          right: (viewport.width / zoomLevel - lastPageSize.width) / 2,
-        ),
-      };
-      _stripPadding.value = padding;
-    } else {
-      _stripPadding.value = EdgeInsets.zero;
     }
   }
 
@@ -376,7 +353,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         PageViewDirection.left => PanelAlignment.right,
       },
       viewportSize: widget.viewportSize,
-      scrollPadding: _stripPadding,
       child: MangaPageStrip(
         key: _stripContainerKey,
         viewportSize: widget.viewportSize,
@@ -388,7 +364,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         itemCount: widget.itemCount,
         itemBuilder: widget.itemBuilder,
       ),
-      onInteract: _handleInteraction,
+      onScroll: _handleScroll,
     );
   }
 }

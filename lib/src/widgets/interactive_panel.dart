@@ -20,8 +20,7 @@ class MangaPageInteractivePanel extends StatefulWidget {
     required this.alignment,
     required this.zoomOnFocalPoint,
     required this.zoomOvershoot,
-    required this.scrollPadding,
-    this.onInteract,
+    this.onScroll,
   });
 
   final Widget child;
@@ -35,8 +34,7 @@ class MangaPageInteractivePanel extends StatefulWidget {
   final PanelAlignment alignment;
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
-  final ValueNotifier<EdgeInsets> scrollPadding;
-  final Function(ScrollInfo info)? onInteract;
+  final Function(ScrollInfo info)? onScroll;
 
   @override
   State<MangaPageInteractivePanel> createState() =>
@@ -46,9 +44,8 @@ class MangaPageInteractivePanel extends StatefulWidget {
 class ScrollInfo {
   final Offset offset;
   final double zoomLevel;
-  final Rect scrollableRegion;
 
-  ScrollInfo(this.offset, this.zoomLevel, this.scrollableRegion);
+  ScrollInfo(this.offset, this.zoomLevel);
 }
 
 class _DoubleTapDetector {
@@ -146,7 +143,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _viewport,
     _childSize,
   ]);
+
   Rect _scrollableRegion = Rect.zero;
+
+  Rect get scrollableRegion => _scrollableRegion;
 
   @override
   void initState() {
@@ -226,9 +226,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _sendScrollInfo() {
-    widget.onInteract?.call(
-      ScrollInfo(_offset.value, _zoomLevel.value, _scrollableRegion),
-    );
+    widget.onScroll?.call(ScrollInfo(_offset.value, _zoomLevel.value));
   }
 
   // Similar to clamp but
@@ -463,13 +461,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       top = 0;
       bottom = 0;
     }
-
-    // Apply padding≈
-    final padding = widget.scrollPadding.value;
-    top -= padding.top;
-    bottom += padding.bottom;
-    left -= padding.left;
-    right += padding.right;
 
     // Inverse coordinate system for inverted directions
     if (widget.alignment == PanelAlignment.right) {

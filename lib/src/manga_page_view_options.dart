@@ -13,8 +13,8 @@ class MangaPageViewOptions {
   final bool crossAxisOverscroll;
   final bool zoomOvershoot;
   final int precacheOverhead;
-  final PageViewGravity scrollGravity;
-  final bool padPageToCenter;
+  final PageViewGravity pageSenseGravity;
+  final PageViewGravity pageJumpGravity;
   final bool zoomOnFocalPoint;
 
   const MangaPageViewOptions({
@@ -30,8 +30,8 @@ class MangaPageViewOptions {
     this.crossAxisOverscroll = true,
     this.zoomOvershoot = true,
     this.precacheOverhead = 0,
-    this.scrollGravity = PageViewGravity.center,
-    this.padPageToCenter = true,
+    this.pageSenseGravity = PageViewGravity.center,
+    this.pageJumpGravity = PageViewGravity.start,
     this.zoomOnFocalPoint = true,
   });
 }
