@@ -71,7 +71,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     super.didUpdateWidget(oldWidget);
 
     if (widget.options.direction != oldWidget.options.direction) {
-      _panelState.forceSettle();
+      final targetPage = _currentPage;
+      _isChangingPage = true;
+      Future.delayed(Duration(milliseconds: 50), () {
+        final pageRect = _stripState.pageBounds[targetPage];
+        _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
+        widget.onPageChange?.call(targetPage);
+        _currentPage = targetPage;
+        _isChangingPage = false;
+      });
     }
   }
 
