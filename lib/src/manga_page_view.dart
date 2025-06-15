@@ -8,16 +8,16 @@ class MangaPageView extends StatefulWidget {
     super.key,
     this.options = const MangaPageViewOptions(),
     required this.controller,
-    required this.itemCount,
-    required this.itemBuilder,
+    required this.pageCount,
+    required this.pageBuilder,
     this.onPageChange,
     this.onProgressChange,
   });
 
   final MangaPageViewController controller;
   final MangaPageViewOptions options;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
+  final int pageCount;
+  final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
   final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
@@ -33,8 +33,8 @@ class _MangaPageViewState extends State<MangaPageView> {
         return MangaPageContinuousView(
           controller: widget.controller,
           options: widget.options,
-          itemCount: widget.itemCount,
-          itemBuilder: widget.itemBuilder,
+          pageCount: widget.pageCount,
+          pageBuilder: widget.pageBuilder,
           viewportSize: constraints.biggest,
           onPageChange: widget.onPageChange,
           onProgressChange: widget.onProgressChange,

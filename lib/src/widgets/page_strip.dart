@@ -8,8 +8,8 @@ class MangaPageStrip extends StatefulWidget {
   const MangaPageStrip({
     super.key,
     required this.viewportSize,
-    required this.itemCount,
-    required this.itemBuilder,
+    required this.pageCount,
+    required this.pageBuilder,
     required this.direction,
     required this.spacing,
     required this.initialPageSize,
@@ -24,8 +24,8 @@ class MangaPageStrip extends StatefulWidget {
   final Size initialPageSize;
   final Size maxPageSize;
   final int precacheOverhead;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
+  final int pageCount;
+  final IndexedWidgetBuilder pageBuilder;
   final Function(int pageIndex) onPageSizeChanged;
 
   @override
@@ -35,16 +35,15 @@ class MangaPageStrip extends StatefulWidget {
 class MangaPageStripState extends State<MangaPageStrip> {
   late List<bool> _pageLoaded;
   late List<Rect> _pageBounds;
-  late Size _containerSize;
 
   List<Rect> get pageBounds => _pageBounds;
 
   @override
   void initState() {
     super.initState();
-    _pageLoaded = List.filled(widget.itemCount, false);
+    _pageLoaded = List.filled(widget.pageCount, false);
     _pageBounds = List.filled(
-      widget.itemCount,
+      widget.pageCount,
       Offset.zero & widget.initialPageSize,
     );
     _updatePageBounds();
@@ -53,7 +52,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
   @override
   void didUpdateWidget(covariant MangaPageStrip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.direction != oldWidget.direction &&
+    if (widget.direction != oldWidget.direction ||
         widget.spacing != oldWidget.spacing) {
       _updatePageBounds();
     }
@@ -67,7 +66,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
   }
 
   void _updatePageBounds() {
-    final pageCount = widget.itemCount;
+    final pageCount = widget.pageCount;
     Offset nextPoint = Offset.zero;
     for (int i = 0; i < pageCount; i++) {
       final pageSize = _pageBounds[i].size;
@@ -91,14 +90,11 @@ class MangaPageStripState extends State<MangaPageStrip> {
         PageViewDirection.right => pageBounds.topRight.translate(spacing, 0),
       };
     }
-
-    final overallBounds = _pageBounds.first.expandToInclude(_pageBounds.last);
-    _containerSize = overallBounds.size;
   }
 
   void glance(Rect viewRegion) {
     List<int>? pageToLoad;
-    for (int i = widget.itemCount - 1; i >= 0; i--) {
+    for (int i = widget.pageCount - 1; i >= 0; i--) {
       final pageBounds = _pageBounds[i];
       if (pageBounds.overlaps(viewRegion)) {
         if (pageToLoad == null) {
@@ -108,7 +104,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
           if (widget.precacheOverhead > 0) {
             for (int p = 1; p <= widget.precacheOverhead; p++) {
               final nextPageLoad = i + p;
-              if (nextPageLoad >= 0 && nextPageLoad < widget.itemCount) {
+              if (nextPageLoad >= 0 && nextPageLoad < widget.pageCount) {
                 _pageLoaded[nextPageLoad] = true;
               }
             }
@@ -140,10 +136,10 @@ class MangaPageStripState extends State<MangaPageStrip> {
         spacing: widget.spacing,
         children: [
           if (widget.direction.isReverse)
-            for (int i = widget.itemCount - 1; i >= 0; i--)
+            for (int i = widget.pageCount - 1; i >= 0; i--)
               _buildPage(context, i)
           else
-            for (int i = 0; i < widget.itemCount; i++) _buildPage(context, i),
+            for (int i = 0; i < widget.pageCount; i++) _buildPage(context, i),
         ],
       ),
     );
@@ -170,7 +166,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
                 maxHeight: widget.maxPageSize.height,
               ),
               child: CachedPage(
-                builder: (context) => widget.itemBuilder(context, index),
+                builder: (context) => widget.pageBuilder(context, index),
                 visible: _pageLoaded[index],
                 initialSize: widget.initialPageSize,
               ),

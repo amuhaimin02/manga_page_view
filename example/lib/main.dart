@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
@@ -26,6 +27,14 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   final _currentPage = ValueNotifier(0);
   final totalPages = 26;
   final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: 0), () {
+      _controller.jumpToPage(10);
+    });
+  }
 
   @override
   void dispose() {
@@ -55,14 +64,14 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 initialZoomLevel: 0.5,
                 minZoomLevel: 0.5,
                 maxZoomLevel: 10,
-                precacheOverhead: 3,
+                precacheOverhead: 0,
                 zoomOvershoot: _overshoot,
                 pageJumpGravity: _scrollGravity,
                 pageSenseGravity: _scrollGravity,
                 spacing: 60.0,
               ),
-              itemCount: totalPages,
-              itemBuilder: (context, index) {
+              pageCount: totalPages,
+              pageBuilder: (context, index) {
                 final letter = String.fromCharCode(65 + index);
                 print('Loading page $letter');
                 return Buffered(

@@ -134,8 +134,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   static const _trackpadDeviceId = 99;
 
   late final _offset = ValueNotifier(Offset.zero);
-  late final _zoomLevel = ValueNotifier(1.0);
-  late final _viewport = ValueNotifier(Size.zero);
+  late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
+  late final _viewport = ValueNotifier(widget.viewportSize);
 
   late final _scrollRegionChange = Listenable.merge([_zoomLevel, _viewport]);
 
@@ -151,12 +151,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _scrollRegionChange.addListener(_updateScrollableRegion);
-
     _viewport.addListener(_settlePageOffset);
 
-    if (widget.initialZoomLevel != 1.0) {
+    if (widget.initialZoomLevel != 1) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
-        _zoomLevel.value = widget.initialZoomLevel;
         _updateScrollableRegion();
         _settlePageOffset();
       });

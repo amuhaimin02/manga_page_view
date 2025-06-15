@@ -11,8 +11,8 @@ class MangaPageContinuousView extends StatefulWidget {
     super.key,
     required this.controller,
     required this.options,
-    required this.itemCount,
-    required this.itemBuilder,
+    required this.pageCount,
+    required this.pageBuilder,
     required this.viewportSize,
     this.onPageChange,
     this.onProgressChange,
@@ -20,8 +20,8 @@ class MangaPageContinuousView extends StatefulWidget {
 
   final MangaPageViewController controller;
   final MangaPageViewOptions options;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
+  final int pageCount;
+  final IndexedWidgetBuilder pageBuilder;
   final Size viewportSize;
   final Function(int index)? onPageChange;
   final Function(MangaPageViewScrollProgress progress)? onProgressChange;
@@ -39,7 +39,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   double _scrollBoundMax = 0;
   Offset _currentOffset = Offset.zero;
   int _currentPage = 0;
-  double _currentZoomLevel = 1.0;
+  late double _currentZoomLevel = widget.options.initialZoomLevel;
   bool _isChangingPage = false;
 
   MangaPageInteractivePanelState get _panelState =>
@@ -187,12 +187,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       widget.viewportSize,
     );
     if (!viewRegion.isEmpty) {
-      _pageUpdateThrottler.call(() {
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          _stripState.glance(viewRegion);
-          _updatePageIndex(viewRegion);
-        });
-      });
+      _stripState.glance(viewRegion);
+      _updatePageIndex(viewRegion);
     }
 
     final fraction = _offsetToFraction(info.offset);
@@ -206,13 +202,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     );
   }
 
-  void _onPageSizeChanged(int pageIndex) {
-    // print('Page index change: $pageIndex');
-    // if (pageIndex <= _currentPage) {
-    //   print('Reorient: $_currentPage');
-    //   _moveToPage(_currentPage);
-    // }
-  }
+  void _onPageSizeChanged(int pageIndex) {}
 
   void _updatePageIndex(Rect viewRegion) {
     final bounds = _stripState.pageBounds;
@@ -248,14 +238,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
 
     int checkIndex = -1;
-    for (int i = 0; i < widget.itemCount; i++) {
+    for (int i = 0; i < widget.pageCount; i++) {
       if (pageEdge(bounds[i]) >= screenEdge) {
         break;
       }
       checkIndex += 1;
     }
 
-    final pageIndex = checkIndex.clamp(0, widget.itemCount - 1);
+    final pageIndex = checkIndex.clamp(0, widget.pageCount - 1);
 
     if (!_isChangingPage && _currentPage != pageIndex) {
       widget.onPageChange?.call(pageIndex);
@@ -385,8 +375,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         initialPageSize: widget.options.initialPageSize,
         maxPageSize: widget.options.maxPageSize,
         precacheOverhead: widget.options.precacheOverhead,
-        itemCount: widget.itemCount,
-        itemBuilder: widget.itemBuilder,
+        pageCount: widget.pageCount,
+        pageBuilder: widget.pageBuilder,
         onPageSizeChanged: _onPageSizeChanged,
       ),
       onScroll: _handleScroll,
