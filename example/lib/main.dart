@@ -18,6 +18,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   PageViewDirection _scrollDirection = PageViewDirection.right;
+  MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.start;
 
@@ -54,6 +55,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
             MangaPageView(
               controller: _controller,
               options: MangaPageViewOptions(
+                mode: _mode,
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
@@ -194,6 +196,23 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 16,
               children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _mode = switch (_mode) {
+                        MangaPageViewMode.continuous =>
+                          MangaPageViewMode.screen,
+                        MangaPageViewMode.screen =>
+                          MangaPageViewMode.continuous,
+                      };
+                    });
+                  },
+                  icon: Icon(
+                    _mode == MangaPageViewMode.continuous
+                        ? Icons.aod
+                        : Icons.import_contacts,
+                  ),
+                ),
                 IconButton(
                   onPressed: () {
                     setState(() {

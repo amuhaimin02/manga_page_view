@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 import 'package:meta/meta.dart';
 import 'manga_page_continuous_view.dart';
+import 'manga_page_screen_view.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView({
@@ -30,15 +31,25 @@ class _MangaPageViewState extends State<MangaPageView> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return MangaPageContinuousView(
-          controller: widget.controller,
-          options: widget.options,
-          pageCount: widget.pageCount,
-          pageBuilder: widget.pageBuilder,
-          viewportSize: constraints.biggest,
-          onPageChange: widget.onPageChange,
-          onProgressChange: widget.onProgressChange,
-        );
+        return switch (widget.options.mode) {
+          MangaPageViewMode.continuous => MangaPageContinuousView(
+            controller: widget.controller,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            viewportSize: constraints.biggest,
+            onPageChange: widget.onPageChange,
+            onProgressChange: widget.onProgressChange,
+          ),
+          MangaPageViewMode.screen => MangaPageScreenView(
+            controller: widget.controller,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            viewportSize: constraints.biggest,
+            onPageChange: widget.onPageChange,
+          ),
+        };
       },
     );
   }

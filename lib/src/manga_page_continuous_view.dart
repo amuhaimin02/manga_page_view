@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
 import '../manga_page_view.dart';
-import 'utils.dart';
 import 'widgets/interactive_panel.dart';
 import 'widgets/page_strip.dart';
 
