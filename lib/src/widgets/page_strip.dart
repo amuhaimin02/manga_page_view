@@ -14,7 +14,8 @@ class MangaPageStrip extends StatefulWidget {
     required this.spacing,
     required this.initialPageSize,
     required this.maxPageSize,
-    required this.precacheOverhead,
+    required this.precacheAhead,
+    required this.precacheBehind,
     required this.onPageSizeChanged,
   });
 
@@ -23,7 +24,8 @@ class MangaPageStrip extends StatefulWidget {
   final double spacing;
   final Size initialPageSize;
   final Size maxPageSize;
-  final int precacheOverhead;
+  final int precacheAhead;
+  final int precacheBehind;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int pageIndex) onPageSizeChanged;
@@ -93,32 +95,48 @@ class MangaPageStripState extends State<MangaPageStrip> {
   }
 
   void glance(Rect viewRegion) {
-    List<int>? pageToLoad;
+    final pageInView = <int>[];
     for (int i = widget.pageCount - 1; i >= 0; i--) {
       final pageBounds = _pageBounds[i];
       if (pageBounds.overlaps(viewRegion)) {
-        if (pageToLoad == null) {
-          pageToLoad = [];
-
-          // Preload in advance if application
-          if (widget.precacheOverhead > 0) {
-            for (int p = 1; p <= widget.precacheOverhead; p++) {
-              final nextPageLoad = i + p;
-              if (nextPageLoad >= 0 && nextPageLoad < widget.pageCount) {
-                _pageLoaded[nextPageLoad] = true;
-              }
-            }
-          }
-        }
-        pageToLoad.add(i);
+        pageInView.add(i);
       }
     }
 
-    if (pageToLoad != null) {
-      for (final pageIndex in pageToLoad) {
-        _pageLoaded[pageIndex] = true;
+    if (pageInView.isNotEmpty) {
+      final pageToLoad = [];
+      for (final i in pageInView) {
+        if (!_pageLoaded[i]) {
+          pageToLoad.add(i);
+        }
+        // Inverted because we iterate in reverse earlier
+        final firstPageVisible = pageInView.last;
+        final lastPageVisible = pageInView.first;
+
+        for (int p = 1; p <= widget.precacheAhead; p++) {
+          final nextPage = lastPageVisible + p;
+          if (nextPage >= 0 &&
+              nextPage < widget.pageCount &&
+              !_pageLoaded[nextPage]) {
+            pageToLoad.add(nextPage);
+          }
+        }
+        for (int p = 1; p <= widget.precacheBehind; p++) {
+          final nextPage = firstPageVisible - p;
+          if (nextPage >= 0 &&
+              nextPage < widget.pageCount &&
+              !_pageLoaded[nextPage]) {
+            pageToLoad.add(nextPage);
+          }
+        }
+
+        if (pageToLoad.isNotEmpty) {
+          for (final index in pageToLoad) {
+            _pageLoaded[index] = true;
+          }
+          setState(() {});
+        }
       }
-      setState(() {});
     }
   }
 

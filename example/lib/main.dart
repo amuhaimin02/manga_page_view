@@ -58,7 +58,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
                 maxZoomLevel: 10,
-                precacheOverhead: 0,
+                precacheAhead: 2,
+                precacheBehind: 2,
                 zoomOvershoot: _overshoot,
                 pageJumpGravity: _scrollGravity,
                 pageSenseGravity: _scrollGravity,
@@ -66,6 +67,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               ),
               pageCount: totalPages,
               pageBuilder: (context, index) {
+                print('Loading page ${index + 1}');
                 // return Buffered(
                 //   child: FittedBox(
                 //     fit: BoxFit.contain,
