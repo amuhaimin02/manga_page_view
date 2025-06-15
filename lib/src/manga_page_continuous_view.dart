@@ -171,11 +171,13 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       widget.viewportSize,
     );
 
-    _pageUpdateThrottler.call(() {
-      _stripState.glance(viewRegion);
-      _updatePageIndex(viewRegion);
-      _updateStripPadding();
-    });
+    if (!viewRegion.isEmpty) {
+      _pageUpdateThrottler.call(() {
+        _stripState.glance(viewRegion);
+        _updatePageIndex(viewRegion);
+        _updateStripPadding();
+      });
+    }
 
     final fraction = _offsetToFraction(info.offset);
 

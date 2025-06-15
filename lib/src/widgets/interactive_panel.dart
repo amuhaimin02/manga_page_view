@@ -193,6 +193,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     super.didUpdateWidget(oldWidget);
 
     _viewport.value = widget.viewportSize;
+
+    _updateChildSize();
+
     _updateScrollableRegion();
 
     Future.microtask(_sendScrollInfo);
@@ -218,7 +221,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void forceSettle() {
     _updateScrollableRegion();
-    _settlePageOffset();
+    _settlePageOffset(forceAllowOverscroll: true);
     _settleZoom();
   }
 
