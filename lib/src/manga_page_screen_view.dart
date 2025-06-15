@@ -25,9 +25,37 @@ class MangaPageScreenView extends StatefulWidget {
 }
 
 class _MangaPageScreenViewState extends State<MangaPageScreenView> {
+  final _interactionPanelKey = GlobalKey<MangaPageInteractivePanelState>();
+
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.pageChangeRequest.addListener(_onPageChangeRequest);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.pageChangeRequest.removeListener(_onPageChangeRequest);
+    super.dispose();
+  }
+
+  void _onPageChangeRequest() {
+    final pageIndex = widget.controller.pageChangeRequest.value;
+    if (pageIndex != null) {
+      setState(() {
+        _currentPage = pageIndex;
+      });
+      widget.onPageChange?.call(pageIndex);
+      widget.controller.pageChangeRequest.value = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MangaPageInteractivePanel(
+      key: _interactionPanelKey,
       viewportSize: widget.viewportSize,
       initialZoomLevel: widget.options.initialZoomLevel,
       minZoomLevel: widget.options.minZoomLevel,
@@ -63,7 +91,7 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
       height: widget.options.direction.isHorizontal
           ? widget.viewportSize.height
           : null,
-      child: widget.pageBuilder(context, 0),
+      child: widget.pageBuilder(context, _currentPage),
     );
   }
 }

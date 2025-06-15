@@ -17,7 +17,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  PageViewDirection _scrollDirection = PageViewDirection.right;
+  late PageViewDirection _scrollDirection;
   MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.start;
@@ -34,6 +34,15 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scrollDirection =
+        MediaQuery.of(context).orientation == Orientation.portrait
+        ? PageViewDirection.down
+        : PageViewDirection.right;
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -41,6 +50,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
     return MaterialApp(
       title: 'Manga Pages Example',
       theme: ThemeData.from(
@@ -198,6 +208,21 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               children: [
                 IconButton(
                   onPressed: () {
+                    _controller.jumpToPage(max(0, _currentPage.value - 1));
+                  },
+                  icon: Icon(Icons.skip_previous),
+                ),
+                IconButton(
+                  onPressed: () {
+                    _controller.jumpToPage(
+                      min(totalPages - 1, _currentPage.value + 1),
+                    );
+                  },
+                  icon: Icon(Icons.skip_next),
+                ),
+                // Toggle view mode
+                IconButton(
+                  onPressed: () {
                     setState(() {
                       _mode = switch (_mode) {
                         MangaPageViewMode.continuous =>
@@ -213,16 +238,21 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                         : Icons.import_contacts,
                   ),
                 ),
+                // Toggle scroll direction
                 IconButton(
                   onPressed: () {
-                    setState(() {
-                      _scrollDirection = switch (_scrollDirection) {
-                        PageViewDirection.right => PageViewDirection.down,
-                        PageViewDirection.down => PageViewDirection.left,
-                        PageViewDirection.left => PageViewDirection.up,
-                        PageViewDirection.up => PageViewDirection.right,
-                      };
-                    });
+                    // This is now automatically determined by orientation
+                    // setState(() {
+                    //   _scrollDirection = switch (_scrollDirection) {
+                    //     PageViewDirection.right => PageViewDirection.down,
+                    //     PageViewDirection.down => PageViewDirection.left,
+                    //     PageViewDirection.left => PageViewDirection.up,
+                    //     PageViewDirection.up => PageViewDirection.right,
+                    //   };
+                    // });
+                    print(
+                      "Scroll direction is now automatically determined by screen orientation.",
+                    );
                   },
                   icon: Icon(() {
                     return switch (_scrollDirection) {
@@ -233,6 +263,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     };
                   }()),
                 ),
+                // Toggle overscroll
                 IconButton(
                   onPressed: () {
                     setState(() {
@@ -243,6 +274,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     _overshoot ? Icons.swipe_vertical : Icons.crop_free,
                   ),
                 ),
+                // Toggle scroll gravity
                 IconButton(
                   onPressed: () {
                     setState(() {

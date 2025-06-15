@@ -185,8 +185,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _viewport.value = widget.viewportSize;
+      _updateScrollableRegion();
+      _settlePageOffset();
       _sendScrollInfo();
     });
   }
@@ -448,13 +451,14 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       rect.bottom,
     );
 
+    // If child is smaller than viewport, center it
     if (left > right) {
-      left = 0;
-      right = 0;
+      final centerOffset = (left + right) / 2;
+      left = right = centerOffset;
     }
     if (top > bottom) {
-      top = 0;
-      bottom = 0;
+      final centerOffset = (top + bottom) / 2;
+      top = bottom = centerOffset;
     }
 
     // Inverse coordinate system for inverted directions

@@ -243,8 +243,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
 
     int checkIndex = -1;
+    final differenceTolerance = 20;
+
     for (int i = 0; i < widget.pageCount; i++) {
-      if (pageEdge(bounds[i]) >= screenEdge) {
+      if (pageEdge(bounds[i]) - screenEdge > differenceTolerance) {
         break;
       }
       checkIndex += 1;
