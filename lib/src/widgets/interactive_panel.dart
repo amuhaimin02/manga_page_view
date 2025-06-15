@@ -200,15 +200,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _updateScrollableRegion();
 
     Future.microtask(_sendScrollInfo);
-
-    if (widget.alignment != oldWidget.alignment) {
-      _stopFlingAnimation();
-
-      Future.delayed(
-        Duration(milliseconds: 100),
-        () => _settlePageOffset(forceAllowOverscroll: true),
-      );
-    }
   }
 
   void jumpToOffset(Offset offset) {

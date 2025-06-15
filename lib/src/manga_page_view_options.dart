@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MangaPageViewOptions {
+  final MangaPageViewMode mode;
   final double minZoomLevel;
   final double maxZoomLevel;
   final double initialZoomLevel;
@@ -18,14 +19,15 @@ class MangaPageViewOptions {
   final bool zoomOnFocalPoint;
 
   const MangaPageViewOptions({
+    this.mode = MangaPageViewMode.continuous,
     this.minZoomLevel = 0.5,
     this.maxZoomLevel = 4.0,
     this.initialZoomLevel = 1.0,
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
     this.spacing = 0.0,
     this.direction = PageViewDirection.down,
-    this.initialPageSize = const Size(300, 300),
-    this.maxPageSize = const Size(2400, 1600),
+    this.initialPageSize = const Size(512, 512),
+    this.maxPageSize = const Size(4096, 4096),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
     this.zoomOvershoot = true,
@@ -35,6 +37,8 @@ class MangaPageViewOptions {
     this.zoomOnFocalPoint = true,
   });
 }
+
+enum MangaPageViewMode { screen, continuous }
 
 enum PageViewDirection {
   up,

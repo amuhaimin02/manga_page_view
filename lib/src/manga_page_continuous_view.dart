@@ -1,4 +1,3 @@
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../manga_page_view.dart';
@@ -46,8 +45,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       _interactionPanelKey.currentState!;
   MangaPageStripState get _stripState => _stripContainerKey.currentState!;
 
-  late final _pageUpdateThrottler = Throttler(Duration(milliseconds: 100));
-
   @override
   void initState() {
     super.initState();
@@ -73,8 +70,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     if (widget.options.direction != oldWidget.options.direction) {
       final targetPage = _currentPage;
       _isChangingPage = true;
+      // TODO: Do not use arbitrary value
       Future.delayed(Duration(milliseconds: 50), () {
         _moveToPage(targetPage);
+        _updatePageDisplay();
       });
     }
   }
@@ -90,6 +89,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _onPageChangeAnimationEnd() {
     _isChangingPage = false;
+    _updatePageDisplay();
   }
 
   void _onFractionChangeRequest() {
@@ -181,14 +181,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _currentOffset = info.offset;
     _currentZoomLevel = info.zoomLevel;
 
-    final viewRegion = _computeVisibleWindow(
-      info.offset,
-      info.zoomLevel,
-      widget.viewportSize,
-    );
-    if (!viewRegion.isEmpty) {
-      _stripState.glance(viewRegion);
-      _updatePageIndex(viewRegion);
+    if (!_isChangingPage) {
+      _updatePageDisplay();
     }
 
     final fraction = _offsetToFraction(info.offset);
@@ -200,6 +194,18 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         fraction: fraction,
       ),
     );
+  }
+
+  void _updatePageDisplay() {
+    final viewRegion = _computeVisibleWindow(
+      _currentOffset,
+      _currentZoomLevel,
+      widget.viewportSize,
+    );
+    if (!viewRegion.isEmpty) {
+      _stripState.glance(viewRegion);
+      _updatePageIndex(viewRegion);
+    }
   }
 
   void _onPageSizeChanged(int pageIndex) {}
@@ -333,7 +339,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     // Adjust window on left and up direction mode
     return switch (widget.options.direction) {
-      PageViewDirection.up => visibleRect.translate(0, viewportSize.height),
+      PageViewDirection.up => visibleRect.translate(0, -viewportSize.height),
       PageViewDirection.down => visibleRect,
       PageViewDirection.left => visibleRect.translate(-viewportSize.width, 0),
       PageViewDirection.right => visibleRect,

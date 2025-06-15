@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
@@ -18,22 +17,19 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  PageViewDirection _scrollDirection = PageViewDirection.left;
+  PageViewDirection _scrollDirection = PageViewDirection.right;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.start;
 
   late final _controller = MangaPageViewController();
 
   final _currentPage = ValueNotifier(0);
-  final totalPages = 26;
+  final totalPages = 100;
   final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: 0), () {
-      _controller.jumpToPage(10);
-    });
   }
 
   @override
@@ -61,29 +57,58 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
-                initialZoomLevel: 0.5,
-                minZoomLevel: 0.5,
                 maxZoomLevel: 10,
                 precacheOverhead: 0,
                 zoomOvershoot: _overshoot,
                 pageJumpGravity: _scrollGravity,
                 pageSenseGravity: _scrollGravity,
-                spacing: 60.0,
+                initialPageSize: Size(600, 600),
               ),
               pageCount: totalPages,
               pageBuilder: (context, index) {
-                final letter = String.fromCharCode(65 + index);
-                print('Loading page $letter');
-                return Buffered(
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: RandomPage(
-                      label: 'Page $letter',
-                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                      width: _random.nextInt(750) + 250,
-                      height: _random.nextInt(750) + 250,
-                    ),
-                  ),
+                // return Buffered(
+                //   child: FittedBox(
+                //     fit: BoxFit.contain,
+                //     child: RandomPage(
+                //       label: 'Page #${index + 1}',
+                //       color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                //       width: _random.nextInt(750) + 250,
+                //       height: _random.nextInt(750) + 250,
+                //     ),
+                //   ),
+                // );
+                Widget loadingSpinner([double? progress]) {
+                  return Container(
+                    width: 600,
+                    height: 600,
+                    alignment: Alignment.center,
+                    child: CircularProgressIndicator(value: progress),
+                  );
+                }
+
+                return Image.network(
+                  'https://picsum.photos/851/1201?c=$index',
+                  fit: BoxFit.contain,
+                  frameBuilder:
+                      (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded || frame != null) {
+                          return child;
+                        } else {
+                          return loadingSpinner();
+                        }
+                      },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child; // image is fully loaded
+                    }
+
+                    return loadingSpinner(
+                      loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                (loadingProgress.expectedTotalBytes ?? 1)
+                          : null,
+                    );
+                  },
                 );
               },
               onPageChange: (index) {
