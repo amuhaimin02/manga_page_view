@@ -2,7 +2,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../manga_page_view.dart';
-import 'cached_page.dart';
+import 'page_loader.dart';
 
 class MangaPageStrip extends StatefulWidget {
   const MangaPageStrip({
@@ -165,7 +165,6 @@ class MangaPageStripState extends State<MangaPageStrip> {
 
   Widget _buildPage(BuildContext context, int index) {
     return Builder(
-      key: ValueKey(index),
       builder: (context) {
         return NotificationListener(
           onNotification: (event) {
@@ -183,10 +182,12 @@ class MangaPageStripState extends State<MangaPageStrip> {
                 maxWidth: widget.maxPageSize.width,
                 maxHeight: widget.maxPageSize.height,
               ),
-              child: CachedPage(
+              child: MangaPageLoader(
+                key: ValueKey(index),
                 builder: (context) => widget.pageBuilder(context, index),
-                visible: _pageLoaded[index],
-                initialSize: widget.initialPageSize,
+                loaded: _pageLoaded[index],
+                emptyBuilder: (context) =>
+                    SizedBox.fromSize(size: widget.initialPageSize),
               ),
             ),
           ),

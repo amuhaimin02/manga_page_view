@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
-import 'package:manga_page_view/src/widgets/interactive_panel.dart';
+
+import 'widgets/interactive_panel.dart';
+import 'widgets/page_loader.dart';
 
 class MangaPageScreenView extends StatefulWidget {
   const MangaPageScreenView({
@@ -10,11 +12,13 @@ class MangaPageScreenView extends StatefulWidget {
     required this.pageCount,
     required this.pageBuilder,
     required this.viewportSize,
+    required this.initialPageIndex,
     this.onPageChange,
   });
 
   final MangaPageViewController controller;
   final MangaPageViewOptions options;
+  final int initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Size viewportSize;
@@ -32,6 +36,7 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
   @override
   void initState() {
     super.initState();
+    _currentPage = widget.initialPageIndex;
     widget.controller.pageChangeRequest.addListener(_onPageChangeRequest);
   }
 
@@ -41,8 +46,14 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant MangaPageScreenView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+  }
+
   void _onPageChangeRequest() {
     final pageIndex = widget.controller.pageChangeRequest.value;
+    print('page change req: $pageIndex');
     if (pageIndex != null) {
       setState(() {
         _currentPage = pageIndex;
@@ -79,11 +90,11 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
       },
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
-      child: _buildPage(context),
+      child: _buildPage(context, _currentPage),
     );
   }
 
-  Widget _buildPage(BuildContext context) {
+  Widget _buildPage(BuildContext context, int index) {
     return SizedBox(
       width: widget.options.direction.isVertical
           ? widget.viewportSize.width
@@ -91,7 +102,12 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
       height: widget.options.direction.isHorizontal
           ? widget.viewportSize.height
           : null,
-      child: widget.pageBuilder(context, _currentPage),
+      child: MangaPageLoader(
+        key: ValueKey(index),
+        builder: (context) => widget.pageBuilder(context, index),
+        loaded: true,
+        emptyBuilder: (context) => SizedBox(),
+      ),
     );
   }
 }

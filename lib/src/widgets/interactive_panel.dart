@@ -200,18 +200,25 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
     _viewport.value = widget.viewportSize;
 
-    _updateScrollableRegion();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _updateScrollableRegion();
+      _settlePageOffset();
+    });
 
     Future.microtask(_sendScrollInfo);
   }
 
   void jumpToOffset(Offset offset) {
-    _stopFlingAnimation();
-    _offset.value = _limitOffsetWithinBounds(offset);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _stopFlingAnimation();
+      _offset.value = _limitOffsetWithinBounds(offset);
+    });
   }
 
   void animateToOffset(Offset offset, VoidCallback onEnd) {
-    _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
+    });
   }
 
   void forceSettle() {

@@ -20,7 +20,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   late PageViewDirection _scrollDirection;
   MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
-  PageViewGravity _scrollGravity = PageViewGravity.start;
+  PageViewGravity _scrollGravity = PageViewGravity.center;
 
   late final _controller = MangaPageViewController();
 
@@ -50,7 +50,6 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
     return MaterialApp(
       title: 'Manga Pages Example',
       theme: ThemeData.from(
@@ -80,17 +79,17 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               pageCount: totalPages,
               pageBuilder: (context, index) {
                 print('Loading page ${index + 1}');
-                // return Buffered(
-                //   child: FittedBox(
-                //     fit: BoxFit.contain,
-                //     child: RandomPage(
-                //       label: 'Page #${index + 1}',
-                //       color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                //       width: _random.nextInt(750) + 250,
-                //       height: _random.nextInt(750) + 250,
-                //     ),
-                //   ),
-                // );
+                return Buffered(
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: RandomPage(
+                      label: 'Page #${index + 1}',
+                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                      width: _random.nextInt(750) + 250,
+                      height: _random.nextInt(750) + 250,
+                    ),
+                  ),
+                );
                 Widget loadingSpinner([double? progress]) {
                   return Container(
                     width: 600,
@@ -202,8 +201,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 );
               },
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
               spacing: 16,
               children: [
                 IconButton(
@@ -241,18 +240,14 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 // Toggle scroll direction
                 IconButton(
                   onPressed: () {
-                    // This is now automatically determined by orientation
-                    // setState(() {
-                    //   _scrollDirection = switch (_scrollDirection) {
-                    //     PageViewDirection.right => PageViewDirection.down,
-                    //     PageViewDirection.down => PageViewDirection.left,
-                    //     PageViewDirection.left => PageViewDirection.up,
-                    //     PageViewDirection.up => PageViewDirection.right,
-                    //   };
-                    // });
-                    print(
-                      "Scroll direction is now automatically determined by screen orientation.",
-                    );
+                    setState(() {
+                      _scrollDirection = switch (_scrollDirection) {
+                        PageViewDirection.right => PageViewDirection.down,
+                        PageViewDirection.down => PageViewDirection.left,
+                        PageViewDirection.left => PageViewDirection.up,
+                        PageViewDirection.up => PageViewDirection.right,
+                      };
+                    });
                   },
                   icon: Icon(() {
                     return switch (_scrollDirection) {

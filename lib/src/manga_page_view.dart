@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
+import 'package:manga_page_view/src/widgets/page_loader.dart';
 import 'package:meta/meta.dart';
 import 'manga_page_continuous_view.dart';
 import 'manga_page_screen_view.dart';
@@ -27,30 +28,43 @@ class MangaPageView extends StatefulWidget {
 }
 
 class _MangaPageViewState extends State<MangaPageView> {
+  late int _currentPage = 0;
+  late final _pageStore = MangaPageLoaderStore();
+
+  void _onPageChange(int pageIndex) {
+    _currentPage = pageIndex;
+    widget.onPageChange?.call(pageIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return switch (widget.options.mode) {
-          MangaPageViewMode.continuous => MangaPageContinuousView(
-            controller: widget.controller,
-            options: widget.options,
-            pageCount: widget.pageCount,
-            pageBuilder: widget.pageBuilder,
-            viewportSize: constraints.biggest,
-            onPageChange: widget.onPageChange,
-            onProgressChange: widget.onProgressChange,
-          ),
-          MangaPageViewMode.screen => MangaPageScreenView(
-            controller: widget.controller,
-            options: widget.options,
-            pageCount: widget.pageCount,
-            pageBuilder: widget.pageBuilder,
-            viewportSize: constraints.biggest,
-            onPageChange: widget.onPageChange,
-          ),
-        };
-      },
+    return MangaPageLoaderProvider(
+      store: _pageStore,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return switch (widget.options.mode) {
+            MangaPageViewMode.continuous => MangaPageContinuousView(
+              initialPageIndex: _currentPage,
+              controller: widget.controller,
+              options: widget.options,
+              pageCount: widget.pageCount,
+              pageBuilder: widget.pageBuilder,
+              viewportSize: constraints.biggest,
+              onPageChange: _onPageChange,
+              onProgressChange: widget.onProgressChange,
+            ),
+            MangaPageViewMode.screen => MangaPageScreenView(
+              controller: widget.controller,
+              initialPageIndex: _currentPage,
+              options: widget.options,
+              pageCount: widget.pageCount,
+              pageBuilder: widget.pageBuilder,
+              viewportSize: constraints.biggest,
+              onPageChange: _onPageChange,
+            ),
+          };
+        },
+      ),
     );
   }
 }
@@ -73,12 +87,14 @@ class MangaPageViewController {
     fractionChangeRequest.value = fraction;
   }
 
-  void jumpToOffset(double offset) {
-    offsetChangeRequest.value = offset;
-  }
+  // void jumpToOffset(double offset) {
+  //   offsetChangeRequest.value = offset;
+  // }
 
   void dispose() {
     pageChangeRequest.dispose();
+    fractionChangeRequest.dispose();
+    offsetChangeRequest.dispose();
   }
 }
 

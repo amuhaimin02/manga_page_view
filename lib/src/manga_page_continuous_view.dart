@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../manga_page_view.dart';
@@ -9,6 +10,7 @@ class MangaPageContinuousView extends StatefulWidget {
     super.key,
     required this.controller,
     required this.options,
+    required this.initialPageIndex,
     required this.pageCount,
     required this.pageBuilder,
     required this.viewportSize,
@@ -18,6 +20,7 @@ class MangaPageContinuousView extends StatefulWidget {
 
   final MangaPageViewController controller;
   final MangaPageViewOptions options;
+  final int initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Size viewportSize;
@@ -51,6 +54,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     widget.controller.fractionChangeRequest.addListener(
       _onFractionChangeRequest,
     );
+    _loadOnPage(widget.initialPageIndex);
   }
 
   @override
@@ -67,13 +71,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     super.didUpdateWidget(oldWidget);
 
     if (widget.options.direction != oldWidget.options.direction) {
-      final targetPage = _currentPage;
-      _isChangingPage = true;
-      // TODO: Do not use arbitrary value
-      Future.delayed(Duration(milliseconds: 50), () {
-        _moveToPage(targetPage);
-        _updatePageDisplay();
-      });
+      _loadOnPage(_currentPage);
     }
   }
 
@@ -139,12 +137,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
   }
 
-  void _moveToPage(int pageIndex) {
-    final pageRect = _stripState.pageBounds[pageIndex];
-    _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
-    widget.onPageChange?.call(pageIndex);
-    _currentPage = pageIndex;
-    _isChangingPage = false;
+  void _loadOnPage(int pageIndex) {
+    _isChangingPage = true;
+    Future.delayed(Duration(milliseconds: 100), () {
+      final pageRect = _stripState.pageBounds[pageIndex];
+      _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
+      widget.onPageChange?.call(pageIndex);
+      _currentPage = pageIndex;
+      _isChangingPage = false;
+      _updatePageDisplay();
+    });
   }
 
   void _animateToPage(int pageIndex) {
