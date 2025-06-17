@@ -136,6 +136,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
   late final _viewport = ValueNotifier(widget.viewportSize);
+  late final _childSize = ValueNotifier(Size.zero);
 
   late final _scrollRegionChange = Listenable.merge([_zoomLevel, _viewport]);
 
@@ -152,13 +153,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _scrollRegionChange.addListener(_updateScrollableRegion);
     _viewport.addListener(_settlePageOffset);
-
-    if (widget.initialZoomLevel != 1) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        _updateScrollableRegion();
-        _settlePageOffset();
-      });
-    }
+    _childSize.addListener(_onChildSizeChanged);
   }
 
   @override
@@ -167,6 +162,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offset.removeListener(_sendScrollInfo);
     _zoomLevel.removeListener(_sendScrollInfo);
     _viewport.removeListener(_settlePageOffset);
+    _childSize.removeListener(_onChildSizeChanged);
 
     _offset.dispose();
     _zoomLevel.dispose();
@@ -188,9 +184,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _viewport.value = widget.viewportSize;
-      _updateScrollableRegion();
-      _settlePageOffset();
-      _sendScrollInfo();
+      _updateChildSize();
     });
   }
 
@@ -439,15 +433,12 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       );
     }
 
-    final childSize =
-        ((_childKey.currentContext!.findRenderObject() as RenderBox)).size;
-
     final rect = transformZoom(
       Rect.fromLTRB(
         0,
         0,
-        childSize.width - _viewport.value.width,
-        childSize.height - _viewport.value.height,
+        _childSize.value.width - _viewport.value.width,
+        _childSize.value.height - _viewport.value.height,
       ),
     );
 
@@ -649,6 +640,20 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _zoomAnimationUpdateListener?.call();
   }
 
+  void _updateChildSize() {
+    final childSize =
+        (_childKey.currentContext!.findRenderObject() as RenderBox).size;
+    _childSize.value = childSize;
+    print('child size: ${_childSize.value}');
+  }
+
+  void _onChildSizeChanged() {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _updateScrollableRegion();
+      _offset.value = _limitOffsetWithinBounds(_offset.value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Listener(
@@ -771,32 +776,28 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         child: ValueListenableBuilder(
           valueListenable: _offset,
           builder: (context, offset, child) {
-            return Transform.translate(
-              offset: -offset,
-
-              child: OverflowBox(
-                maxWidth: double.infinity,
-                maxHeight: double.infinity,
-                alignment: switch (widget.alignment) {
-                  PanelAlignment.top => Alignment.topLeft,
-                  PanelAlignment.left => Alignment.topLeft,
-                  PanelAlignment.bottom => Alignment.bottomLeft,
-                  PanelAlignment.right => Alignment.topRight,
-                },
-                child: child,
-              ),
-            );
+            return Transform.translate(offset: -offset, child: child);
           },
-          child: NotificationListener(
-            onNotification: (event) {
-              if (event is SizeChangedLayoutNotification) {
-                _updateScrollableRegion();
-                return true;
-              }
-              return false;
+          child: OverflowBox(
+            maxWidth: double.infinity,
+            maxHeight: double.infinity,
+            alignment: switch (widget.alignment) {
+              PanelAlignment.top => Alignment.topLeft,
+              PanelAlignment.left => Alignment.topLeft,
+              PanelAlignment.bottom => Alignment.bottomLeft,
+              PanelAlignment.right => Alignment.topRight,
             },
-            child: SizeChangedLayoutNotifier(
-              child: SizedBox(key: _childKey, child: widget.child),
+            child: NotificationListener(
+              onNotification: (event) {
+                if (event is SizeChangedLayoutNotification) {
+                  _updateChildSize();
+                  return true;
+                }
+                return false;
+              },
+              child: SizeChangedLayoutNotifier(
+                child: SizedBox(key: _childKey, child: widget.child),
+              ),
             ),
           ),
         ),

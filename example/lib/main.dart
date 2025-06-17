@@ -18,14 +18,14 @@ class MangaPagesExampleApp extends StatefulWidget {
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   late PageViewDirection _scrollDirection;
-  MangaPageViewMode _mode = MangaPageViewMode.continuous;
+  MangaPageViewMode _mode = MangaPageViewMode.screen;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.center;
 
   late final _controller = MangaPageViewController();
 
   final _currentPage = ValueNotifier(0);
-  final totalPages = 100;
+  final totalPages = 40;
   final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
 
   @override
@@ -79,17 +79,17 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               pageCount: totalPages,
               pageBuilder: (context, index) {
                 print('Loading page ${index + 1}');
-                return Buffered(
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: RandomPage(
-                      label: 'Page #${index + 1}',
-                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                      width: _random.nextInt(750) + 250,
-                      height: _random.nextInt(750) + 250,
-                    ),
-                  ),
-                );
+                // return FittedBox(
+                //   fit: BoxFit.contain,
+                //   child: RandomPage(
+                //     label: 'Page #${index + 1}',
+                //     color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                //     // width: _random.nextInt(750) + 250,
+                //     // height: _random.nextInt(750) + 250,
+                //     width: 650,
+                //     height: 650,
+                //   ),
+                // );
                 Widget loadingSpinner([double? progress]) {
                   return Container(
                     width: 600,
