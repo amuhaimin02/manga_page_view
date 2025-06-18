@@ -55,8 +55,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     widget.controller.fractionChangeRequest.addListener(
       _onFractionChangeRequest,
     );
-    SchedulerBinding.instance.addPostFrameCallback((_) => _updatePageDisplay());
-    // _loadOnPage(widget.initialPageIndex);
+    _loadOnPage(widget.initialPageIndex);
   }
 
   @override

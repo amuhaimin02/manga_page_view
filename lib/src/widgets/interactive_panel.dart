@@ -126,6 +126,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   double? _startZoomLevel;
   static const _trackpadDeviceId = 99;
 
+  late final _readyToDisplay = ValueNotifier(false);
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
   late final _childSize = ValueNotifier(Size.zero);
@@ -151,29 +152,38 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _scrollRegionChange.addListener(_updateScrollableRegion);
-    _viewport.addListener(_settlePageOffset);
+    _viewport.addListener(_onViewportDimensionChanged);
     _childSize.addListener(_onChildSizeChanged);
+    _readyToDisplay.addListener(_onReadyToDisplay);
   }
 
   @override
   void dispose() {
     _viewportSizeProvider.removeListener(_onViewportChanged);
-    _scrollRegionChange.removeListener(_updateScrollableRegion);
-    _offset.removeListener(_sendScrollInfo);
-    _zoomLevel.removeListener(_sendScrollInfo);
-    _viewport.removeListener(_settlePageOffset);
-    _childSize.removeListener(_onChildSizeChanged);
-
-    _offset.dispose();
-    _zoomLevel.dispose();
-    _viewport.dispose();
-
-    _flingXAnimation.dispose();
-    _flingYAnimation.dispose();
-    _zoomAnimation.dispose();
-
-    _offsetAnimation.removeListener(_onAnimateOffsetUpdate);
-    _zoomAnimation.removeListener(_onAnimateZoomUpdate);
+    _scrollRegionChange..removeListener(_updateScrollableRegion);
+    _offset
+      ..removeListener(_sendScrollInfo)
+      ..dispose();
+    _zoomLevel
+      ..removeListener(_sendScrollInfo)
+      ..dispose();
+    _viewport
+      ..removeListener(_onViewportDimensionChanged)
+      ..dispose();
+    _childSize
+      ..removeListener(_onChildSizeChanged)
+      ..dispose();
+    _readyToDisplay
+      ..removeListener(_onReadyToDisplay)
+      ..dispose();
+    _flingXAnimation..dispose();
+    _flingYAnimation..dispose();
+    _zoomAnimation
+      ..removeListener(_onAnimateZoomUpdate)
+      ..dispose();
+    _offsetAnimation
+      ..removeListener(_onAnimateOffsetUpdate)
+      ..dispose();
 
     super.dispose();
   }
@@ -188,7 +198,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateChildSize();
       _updateScrollableRegion();
-      _settlePageOffset();
+      _offset.value = _limitOffsetWithinBounds(_offset.value);
     });
   }
 
@@ -196,17 +206,19 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _updateScrollableRegion();
-      _settlePageOffset();
-    });
+    if (widget.alignment != oldWidget.alignment) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _stopFlinging();
+        _updateScrollableAndSettle();
+      });
+    }
 
     Future.microtask(_sendScrollInfo);
   }
 
   void jumpToOffset(Offset offset) {
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _stopFlingAnimation();
+      _stopFlinging();
       _offset.value = _limitOffsetWithinBounds(offset);
     });
   }
@@ -216,11 +228,18 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
     });
   }
+  //
+  // void forceSettle() {
+  //   _updateScrollableRegion();
+  //   _settlePageOffset(forceAllowOverscroll: true);
+  //   _settleZoom();
+  // }
 
-  void forceSettle() {
-    _updateScrollableRegion();
-    _settlePageOffset(forceAllowOverscroll: true);
-    _settleZoom();
+  void _onReadyToDisplay() {
+    // if (_readyToDisplay.value) {
+    //   _updateScrollableRegion();
+    //   _offset.value = _limitOffsetWithinBounds(_offset.value);
+    // }
   }
 
   void _sendScrollInfo() {
@@ -229,6 +248,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _onViewportChanged() {
     _viewport.value = _viewportSizeProvider.value;
+  }
+
+  void _onViewportDimensionChanged() {
+    // This is called when the viewport size changes.
+    _updateScrollableAndSettle();
   }
 
   // Similar to clamp but
@@ -241,11 +265,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _handleTouch() {
-    _stopFlingAnimation();
+    _stopFlinging();
     _startZoomLevel = _zoomLevel.value;
   }
 
-  void _stopFlingAnimation() {
+  void _stopFlinging() {
     _flingXAnimation.stop();
     _flingYAnimation.stop();
   }
@@ -423,7 +447,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       ), // Control left-right movement
       false => _offset.value + delta,
     };
-    _stopFlingAnimation();
+    _stopFlinging();
     _offset.value = _limitOffsetWithinBounds(newOffset);
   }
 
@@ -656,16 +680,32 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _onChildSizeChanged() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _updateScrollableRegion();
-
-      if (!_isTouching) {
-        _offset.value = _limitOffsetWithinBounds(_offset.value);
-      }
+      _updateScrollableAndSettle();
     });
+  }
+
+  void _updateScrollableAndSettle() {
+    // Order matters here. The scrollable region must be updated before settling the offset.
+    // Otherwise, the offset might be settled based on an outdated scrollable region.
+    final oldScrollableRegion = _scrollableRegion;
+    _updateScrollableRegion();
+    // Only settle if the scrollable region actually changed, to avoid unnecessary animations.
+    if (oldScrollableRegion != _scrollableRegion &&
+        !_isTouching &&
+        !_isFlinging) {
+      _updateScrollableRegion();
+      _settlePageOffset();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_readyToDisplay.value) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _readyToDisplay.value = true;
+      });
+    }
+
     return ClipRect(
       child: Listener(
         behavior: HitTestBehavior.translucent,
@@ -793,25 +833,35 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
             builder: (context, offset, child) {
               return Transform.translate(offset: -offset, child: child);
             },
-            child: OverflowBox(
-              maxWidth: double.infinity,
-              maxHeight: double.infinity,
-              alignment: switch (widget.alignment) {
-                PanelAlignment.top => Alignment.topLeft,
-                PanelAlignment.left => Alignment.topLeft,
-                PanelAlignment.bottom => Alignment.bottomLeft,
-                PanelAlignment.right => Alignment.topRight,
+            child: ValueListenableBuilder(
+              valueListenable: _readyToDisplay,
+              builder: (context, readyToDisplay, child) {
+                return AnimatedOpacity(
+                  opacity: readyToDisplay ? 1 : 0,
+                  duration: Duration(milliseconds: 200),
+                  child: child,
+                );
               },
-              child: NotificationListener(
-                onNotification: (event) {
-                  if (event is SizeChangedLayoutNotification) {
-                    _updateChildSize();
-                    return true;
-                  }
-                  return false;
+              child: OverflowBox(
+                maxWidth: double.infinity,
+                maxHeight: double.infinity,
+                alignment: switch (widget.alignment) {
+                  PanelAlignment.top => Alignment.topLeft,
+                  PanelAlignment.left => Alignment.topLeft,
+                  PanelAlignment.bottom => Alignment.bottomLeft,
+                  PanelAlignment.right => Alignment.topRight,
                 },
-                child: SizeChangedLayoutNotifier(
-                  child: SizedBox(key: _childKey, child: widget.child),
+                child: NotificationListener(
+                  onNotification: (event) {
+                    if (event is SizeChangedLayoutNotification) {
+                      _updateChildSize();
+                      return true;
+                    }
+                    return false;
+                  },
+                  child: SizeChangedLayoutNotifier(
+                    child: SizedBox(key: _childKey, child: widget.child),
+                  ),
                 ),
               ),
             ),
