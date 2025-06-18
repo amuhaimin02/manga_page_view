@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
@@ -128,7 +129,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 _currentPage.value = index;
               },
               onProgressChange: (progress) {
-                _currentProgress.value = progress;
+                // TODO: Do not use this
+                SchedulerBinding.instance.addPostFrameCallback((_) {
+                  _currentProgress.value = progress;
+                });
               },
             ),
             _buildDebugPanel(context),

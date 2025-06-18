@@ -71,9 +71,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // if (widget.options.direction != oldWidget.options.direction) {
-    //   _loadOnPage(_currentPage);
-    // }
+    if (widget.options.direction != oldWidget.options.direction) {
+      _loadOnPage(_currentPage);
+    }
   }
 
   void _onPageChangeRequest() {
@@ -140,9 +140,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _loadOnPage(int pageIndex) {
     _isChangingPage = true;
-    Future.delayed(Duration(milliseconds: 100), () {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
       final pageRect = _stripState.pageBounds[pageIndex];
-      _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
+      _panelState.animateToOffset(_getPageJumpOffset(pageRect));
       widget.onPageChange?.call(pageIndex);
       _currentPage = pageIndex;
       _isChangingPage = false;

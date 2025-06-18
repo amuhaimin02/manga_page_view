@@ -167,9 +167,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
         return NotificationListener(
           onNotification: (event) {
             if (event is SizeChangedLayoutNotification) {
-              SchedulerBinding.instance.addPostFrameCallback((_) {
-                _onPageSizeChanged(context, index);
-              });
+              _onPageSizeChanged(context, index);
               return true;
             }
             return false;
