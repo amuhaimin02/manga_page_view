@@ -2,12 +2,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../manga_page_view.dart';
-import 'page_loader.dart';
+import 'viewport_change.dart';
 
 class MangaPageStrip extends StatefulWidget {
   const MangaPageStrip({
     super.key,
-    required this.viewportSize,
     required this.pageCount,
     required this.pageBuilder,
     required this.direction,
@@ -19,7 +18,6 @@ class MangaPageStrip extends StatefulWidget {
     required this.onPageSizeChanged,
   });
 
-  final Size viewportSize; // TODO: Remove?
   final PageViewDirection direction;
   final double spacing;
   final Size initialPageSize;
@@ -39,6 +37,8 @@ class MangaPageStripState extends State<MangaPageStrip> {
   late List<Rect> _pageBounds;
 
   List<Rect> get pageBounds => _pageBounds;
+
+  Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
   @override
   void initState() {
@@ -141,8 +141,8 @@ class MangaPageStripState extends State<MangaPageStrip> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: widget.direction.isVertical ? widget.viewportSize.width : null,
-      height: widget.direction.isHorizontal ? widget.viewportSize.height : null,
+      width: widget.direction.isVertical ? _viewportSize.width : null,
+      height: widget.direction.isHorizontal ? _viewportSize.height : null,
       child: Flex(
         direction: widget.direction.isVertical
             ? Axis.vertical

@@ -1,5 +1,6 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
+import 'package:manga_page_view/src/widgets/viewport_change.dart';
 
 import '../manga_page_view.dart';
 import 'widgets/interactive_panel.dart';
@@ -13,7 +14,6 @@ class MangaPageContinuousView extends StatefulWidget {
     required this.initialPageIndex,
     required this.pageCount,
     required this.pageBuilder,
-    required this.viewportSize,
     this.onPageChange,
     this.onProgressChange,
   });
@@ -23,7 +23,6 @@ class MangaPageContinuousView extends StatefulWidget {
   final int initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
-  final Size viewportSize;
   final Function(int index)? onPageChange;
   final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
@@ -46,6 +45,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   MangaPageInteractivePanelState get _panelState =>
       _interactionPanelKey.currentState!;
   MangaPageStripState get _stripState => _stripContainerKey.currentState!;
+
+  Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
   @override
   void initState() {
@@ -101,7 +102,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   }
 
   Offset _getPageJumpOffset(Rect pageBounds) {
-    final viewport = widget.viewportSize;
+    final viewport = _viewportSize;
     final padding = (viewport / 2) * (1 - 1 / _currentZoomLevel);
 
     final bounds = Rect.fromLTRB(
@@ -202,7 +203,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final viewRegion = _computeVisibleWindow(
       _currentOffset,
       _currentZoomLevel,
-      widget.viewportSize,
+      _viewportSize,
     );
     if (!viewRegion.isEmpty) {
       _stripState.glance(viewRegion);
@@ -376,10 +377,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         PageViewDirection.up => PanelAlignment.bottom,
         PageViewDirection.left => PanelAlignment.right,
       },
-      viewportSize: widget.viewportSize,
       child: MangaPageStrip(
         key: _stripContainerKey,
-        viewportSize: widget.viewportSize,
         direction: widget.options.direction,
         spacing: widget.options.spacing,
         initialPageSize: widget.options.initialPageSize,

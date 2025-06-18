@@ -4,7 +4,7 @@ import 'package:manga_page_view/manga_page_view.dart';
 import 'package:manga_page_view/src/widgets/page_carousel.dart';
 
 import 'widgets/interactive_panel.dart';
-import 'widgets/page_loader.dart';
+import 'widgets/viewport_change.dart';
 
 class MangaPageScreenView extends StatefulWidget {
   const MangaPageScreenView({
@@ -13,7 +13,6 @@ class MangaPageScreenView extends StatefulWidget {
     required this.controller,
     required this.pageCount,
     required this.pageBuilder,
-    required this.viewportSize,
     required this.initialPageIndex,
     this.onPageChange,
   });
@@ -23,7 +22,6 @@ class MangaPageScreenView extends StatefulWidget {
   final int initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
-  final Size viewportSize;
   final Function(int index)? onPageChange;
 
   @override
@@ -34,6 +32,8 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
   late final _carouselKey = GlobalKey<MangaPageCarouselState>();
 
   MangaPageCarouselState get _carouselState => _carouselKey.currentState!;
+
+  Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
   @override
   void initState() {
@@ -60,17 +60,15 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
     return MangaPageCarousel(
       key: _carouselKey,
       initialIndex: widget.initialPageIndex,
-      viewportSize: widget.viewportSize,
       direction: widget.options.direction,
       itemCount: widget.pageCount,
       onPageChange: widget.onPageChange,
-      itemBuilder: _buildPage,
+      itemBuilder: _buildPanel,
     );
   }
 
-  Widget _buildPage(BuildContext context, int index) {
+  Widget _buildPanel(BuildContext context, int index) {
     return MangaPageInteractivePanel(
-      viewportSize: widget.viewportSize,
       initialZoomLevel: widget.options.initialZoomLevel,
       minZoomLevel: 1,
       maxZoomLevel: widget.options.maxZoomLevel,
@@ -95,22 +93,23 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
       },
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
-      child: SizedBox(
-        width: widget.options.direction.isVertical
-            ? widget.viewportSize.width
-            : null,
-        height: widget.options.direction.isHorizontal
-            ? widget.viewportSize.height
-            : null,
-        child: Flex(
-          direction: widget.options.direction.isVertical
-              ? Axis.vertical
-              : Axis.horizontal,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [widget.pageBuilder(context, index)],
-        ),
-      ),
+      child: _buildPage(context, index),
+    );
+  }
+
+  Widget _buildPage(BuildContext context, int index) {
+    return ValueListenableBuilder(
+      valueListenable: ViewportSizeProvider.of(context),
+      builder: (context, value, child) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: _viewportSize.width,
+            maxHeight: _viewportSize.height,
+          ),
+          child: FittedBox(fit: BoxFit.contain, child: child),
+        );
+      },
+      child: widget.pageBuilder(context, index),
     );
   }
 }

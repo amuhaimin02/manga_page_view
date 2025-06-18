@@ -4,13 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
+import 'viewport_change.dart';
+
 enum PanelAlignment { top, bottom, left, right }
 
 class MangaPageInteractivePanel extends StatefulWidget {
   const MangaPageInteractivePanel({
     super.key,
     required this.child,
-    required this.viewportSize, // TODO: Remove?
     required this.initialZoomLevel,
     required this.minZoomLevel,
     required this.maxZoomLevel,
@@ -24,7 +25,6 @@ class MangaPageInteractivePanel extends StatefulWidget {
   });
 
   final Widget child;
-  final Size viewportSize;
   final double initialZoomLevel;
   final double minZoomLevel;
   final double maxZoomLevel;
@@ -128,8 +128,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
-  late final _viewport = ValueNotifier(widget.viewportSize);
   late final _childSize = ValueNotifier(Size.zero);
+  late final _viewport = ValueNotifier(Size.zero);
+  late final _viewportSizeProvider = ViewportSizeProvider.of(context);
 
   late final _scrollRegionChange = Listenable.merge([_zoomLevel, _viewport]);
 
@@ -139,6 +140,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   bool get _isFlinging =>
       _flingXAnimation.isAnimating || _flingYAnimation.isAnimating;
+
+  bool get _isTouching => _activePointers.isNotEmpty;
 
   @override
   void initState() {
@@ -154,6 +157,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   @override
   void dispose() {
+    _viewportSizeProvider.removeListener(_onViewportChanged);
     _scrollRegionChange.removeListener(_updateScrollableRegion);
     _offset.removeListener(_sendScrollInfo);
     _zoomLevel.removeListener(_sendScrollInfo);
@@ -178,18 +182,19 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    _viewport.value = _viewportSizeProvider.value;
+    _viewportSizeProvider.addListener(_onViewportChanged);
+
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _viewport.value = widget.viewportSize;
       _updateChildSize();
       _updateScrollableRegion();
+      _settlePageOffset();
     });
   }
 
   @override
   void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    _viewport.value = widget.viewportSize;
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateScrollableRegion();
@@ -220,6 +225,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   void _sendScrollInfo() {
     widget.onScroll?.call(_offset.value, _zoomLevel.value);
+  }
+
+  void _onViewportChanged() {
+    _viewport.value = _viewportSizeProvider.value;
   }
 
   // Similar to clamp but
@@ -465,7 +474,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       bottom = -bottom;
     }
 
-    _scrollableRegion = Rect.fromLTRB(left, top, right, bottom);
+    final newRegion = Rect.fromLTRB(left, top, right, bottom);
+
+    _scrollableRegion = newRegion;
   }
 
   Offset _limitOffsetWithinBounds(
@@ -647,10 +658,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateScrollableRegion();
 
-      if (!_isFlinging) {
-        _settlePageOffset();
+      if (!_isTouching) {
+        _offset.value = _limitOffsetWithinBounds(_offset.value);
       }
-      // _offset.value = _limitOffsetWithinBounds(_offset.value);
     });
   }
 

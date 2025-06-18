@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
+import 'viewport_change.dart';
+
 class MangaPageCarousel extends StatefulWidget {
   const MangaPageCarousel({
     super.key,
     this.initialIndex = 0,
-    required this.viewportSize,
     required this.itemCount,
     required this.itemBuilder,
     required this.direction,
@@ -13,7 +14,6 @@ class MangaPageCarousel extends StatefulWidget {
   });
 
   final int initialIndex;
-  final Size viewportSize; // TODO: Remove?
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final PageViewDirection direction;
@@ -33,6 +33,8 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
 
   double? _touchPoint = null;
   late int _currentIndex = widget.initialIndex;
+
+  Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
   @override
   void initState() {
@@ -169,10 +171,10 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
           final double viewportDimension;
           if (widget.direction.isHorizontal) {
             delta = details.localPosition.dx - _touchPoint!;
-            viewportDimension = widget.viewportSize.width;
+            viewportDimension = _viewportSize.width;
           } else {
             delta = details.localPosition.dy - _touchPoint!;
-            viewportDimension = widget.viewportSize.height;
+            viewportDimension = _viewportSize.height;
           }
 
           final progress = delta / viewportDimension;
@@ -186,15 +188,16 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
         _snapToNearest(Velocity.zero);
       },
       child: IgnorePointer(
+        // ignoring: false,
         child: ValueListenableBuilder(
           valueListenable: _scrollProgress,
           builder: (context, progress, child) {
             final double scrollSize;
 
             if (widget.direction.isHorizontal) {
-              scrollSize = widget.viewportSize.width;
+              scrollSize = _viewportSize.width;
             } else {
-              scrollSize = widget.viewportSize.height;
+              scrollSize = _viewportSize.height;
             }
 
             final reverseFactor = widget.direction.isReverse ? -1 : 1;
