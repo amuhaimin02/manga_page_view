@@ -217,7 +217,7 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
                                 scrollSize
                           : 0,
                     ),
-                    child: ClipRect(child: item.value),
+                    child: item.value,
                   ),
               ],
             );

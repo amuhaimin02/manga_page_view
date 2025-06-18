@@ -35,7 +35,7 @@ class MangaPageStrip extends StatefulWidget {
 }
 
 class MangaPageStripState extends State<MangaPageStrip> {
-  late List<bool> _pageLoaded;
+  late Map<int, Widget> _loadedWidgets = {};
   late List<Rect> _pageBounds;
 
   List<Rect> get pageBounds => _pageBounds;
@@ -43,7 +43,6 @@ class MangaPageStripState extends State<MangaPageStrip> {
   @override
   void initState() {
     super.initState();
-    _pageLoaded = List.filled(widget.pageCount, false);
     _pageBounds = List.filled(
       widget.pageCount,
       Offset.zero & widget.initialPageSize,
@@ -104,9 +103,9 @@ class MangaPageStripState extends State<MangaPageStrip> {
     }
 
     if (pageInView.isNotEmpty) {
-      final pageToLoad = [];
+      final pageToLoad = Set<int>();
       for (final i in pageInView) {
-        if (!_pageLoaded[i]) {
+        if (!_loadedWidgets.containsKey(i)) {
           pageToLoad.add(i);
         }
         // Inverted because we iterate in reverse earlier
@@ -117,7 +116,7 @@ class MangaPageStripState extends State<MangaPageStrip> {
           final nextPage = lastPageVisible + p;
           if (nextPage >= 0 &&
               nextPage < widget.pageCount &&
-              !_pageLoaded[nextPage]) {
+              !_loadedWidgets.containsKey(nextPage)) {
             pageToLoad.add(nextPage);
           }
         }
@@ -125,17 +124,16 @@ class MangaPageStripState extends State<MangaPageStrip> {
           final nextPage = firstPageVisible - p;
           if (nextPage >= 0 &&
               nextPage < widget.pageCount &&
-              !_pageLoaded[nextPage]) {
+              !_loadedWidgets.containsKey(nextPage)) {
             pageToLoad.add(nextPage);
           }
         }
-
-        if (pageToLoad.isNotEmpty) {
-          for (final index in pageToLoad) {
-            _pageLoaded[index] = true;
-          }
-          setState(() {});
+      }
+      if (pageToLoad.isNotEmpty) {
+        for (final index in pageToLoad) {
+          _loadedWidgets[index] = widget.pageBuilder(context, index);
         }
+        setState(() {});
       }
     }
   }
@@ -182,13 +180,9 @@ class MangaPageStripState extends State<MangaPageStrip> {
                 maxWidth: widget.maxPageSize.width,
                 maxHeight: widget.maxPageSize.height,
               ),
-              child: MangaPageLoader(
-                key: ValueKey(index),
-                builder: (context) => widget.pageBuilder(context, index),
-                loaded: _pageLoaded[index],
-                emptyBuilder: (context) =>
-                    SizedBox.fromSize(size: widget.initialPageSize),
-              ),
+              child:
+                  _loadedWidgets[index] ??
+                  SizedBox.fromSize(size: widget.initialPageSize),
             ),
           ),
         );

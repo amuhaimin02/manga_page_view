@@ -29,7 +29,7 @@ class MangaPageView extends StatefulWidget {
 
 class _MangaPageViewState extends State<MangaPageView> {
   late int _currentPage = 0;
-  late final _pageStore = MangaPageLoaderStore();
+  // late final _pageStore = MangaPageLoaderStore();
 
   void _onPageChange(int pageIndex) {
     _currentPage = pageIndex;
@@ -38,33 +38,30 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   @override
   Widget build(BuildContext context) {
-    return MangaPageLoaderProvider(
-      store: _pageStore,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return switch (widget.options.mode) {
-            MangaPageViewMode.continuous => MangaPageContinuousView(
-              initialPageIndex: _currentPage,
-              controller: widget.controller,
-              options: widget.options,
-              pageCount: widget.pageCount,
-              pageBuilder: widget.pageBuilder,
-              viewportSize: constraints.biggest,
-              onPageChange: _onPageChange,
-              onProgressChange: widget.onProgressChange,
-            ),
-            MangaPageViewMode.screen => MangaPageScreenView(
-              controller: widget.controller,
-              initialPageIndex: _currentPage,
-              options: widget.options,
-              pageCount: widget.pageCount,
-              pageBuilder: widget.pageBuilder,
-              viewportSize: constraints.biggest,
-              onPageChange: _onPageChange,
-            ),
-          };
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return switch (widget.options.mode) {
+          MangaPageViewMode.continuous => MangaPageContinuousView(
+            initialPageIndex: _currentPage,
+            controller: widget.controller,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            viewportSize: constraints.biggest,
+            onPageChange: _onPageChange,
+            onProgressChange: widget.onProgressChange,
+          ),
+          MangaPageViewMode.screen => MangaPageScreenView(
+            controller: widget.controller,
+            initialPageIndex: _currentPage,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            viewportSize: constraints.biggest,
+            onPageChange: _onPageChange,
+          ),
+        };
+      },
     );
   }
 }

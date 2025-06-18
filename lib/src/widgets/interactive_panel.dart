@@ -34,18 +34,11 @@ class MangaPageInteractivePanel extends StatefulWidget {
   final PanelAlignment alignment;
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
-  final Function(ScrollInfo info)? onScroll;
+  final Function(Offset offset, double zoomLevel)? onScroll;
 
   @override
   State<MangaPageInteractivePanel> createState() =>
       MangaPageInteractivePanelState();
-}
-
-class ScrollInfo {
-  final Offset offset;
-  final double zoomLevel;
-
-  ScrollInfo(this.offset, this.zoomLevel);
 }
 
 class _DoubleTapDetector {
@@ -144,6 +137,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   Rect get scrollableRegion => _scrollableRegion;
 
+  bool get _isFlinging =>
+      _flingXAnimation.isAnimating || _flingYAnimation.isAnimating;
+
   @override
   void initState() {
     super.initState();
@@ -185,6 +181,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _viewport.value = widget.viewportSize;
       _updateChildSize();
+      _updateScrollableRegion();
     });
   }
 
@@ -222,7 +219,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _sendScrollInfo() {
-    widget.onScroll?.call(ScrollInfo(_offset.value, _zoomLevel.value));
+    widget.onScroll?.call(_offset.value, _zoomLevel.value);
   }
 
   // Similar to clamp but
@@ -644,159 +641,168 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     final childSize =
         (_childKey.currentContext!.findRenderObject() as RenderBox).size;
     _childSize.value = childSize;
-    print('child size: ${_childSize.value}');
   }
 
   void _onChildSizeChanged() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateScrollableRegion();
-      _offset.value = _limitOffsetWithinBounds(_offset.value);
+
+      if (!_isFlinging) {
+        _settlePageOffset();
+      }
+      // _offset.value = _limitOffsetWithinBounds(_offset.value);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) {
-        _activePointers[event.device] = VelocityTracker.withKind(event.kind)
-          ..addPosition(event.timeStamp, event.localPosition);
-        ;
-        _activePositions[event.device] = event.localPosition;
+    return ClipRect(
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (event) {
+          _activePointers[event.device] = VelocityTracker.withKind(event.kind)
+            ..addPosition(event.timeStamp, event.localPosition);
+          ;
+          _activePositions[event.device] = event.localPosition;
 
-        _handleTouch();
+          _handleTouch();
 
-        if (event.device == 0) {
-          // Primary touch
-          _doubleTapDetector.registerTap(event.timeStamp, event.localPosition);
-          _startTouchPoint = event.localPosition;
-        } else if (event.device == 1) {
-          // Secondary touch
-          _startPinchDistance =
-              (_startTouchPoint! - event.localPosition).distance;
-        }
-        if (event.device == 0 &&
-            _doubleTapDetector.isTriggered(event.timeStamp)) {
-          _isZoomDragging = true;
-        }
-      },
-      onPointerUp: (event) {
-        final tracker = _activePointers[event.device]!;
-        _activePointers.remove(event.device);
-        _activePositions.remove(event.device);
+          if (event.device == 0) {
+            // Primary touch
+            _doubleTapDetector.registerTap(
+              event.timeStamp,
+              event.localPosition,
+            );
+            _startTouchPoint = event.localPosition;
+          } else if (event.device == 1) {
+            // Secondary touch
+            _startPinchDistance =
+                (_startTouchPoint! - event.localPosition).distance;
+          }
+          if (event.device == 0 &&
+              _doubleTapDetector.isTriggered(event.timeStamp)) {
+            _isZoomDragging = true;
+          }
+        },
+        onPointerUp: (event) {
+          final tracker = _activePointers[event.device]!;
+          _activePointers.remove(event.device);
+          _activePositions.remove(event.device);
 
-        if (event.device == 0) {
-          _doubleTapDetector.registerUntap(
+          if (event.device == 0) {
+            _doubleTapDetector.registerUntap(
+              event.timeStamp,
+              event.localPosition,
+            );
+          } else if (event.device == 1) {
+            // Second touch released
+            // Record zoom level in case of user wants to pinch again
+            _startZoomLevel = _zoomLevel.value;
+          }
+
+          if (_activePointers.isEmpty) {
+            if (event.device == 0 &&
+                _doubleTapDetector.isTriggered(event.timeStamp)) {
+              _handleZoomDoubleTap(_startTouchPoint!);
+            } else {
+              final magnitude = tracker.getVelocity().pixelsPerSecond.distance;
+              if (magnitude > 0 ||
+                  !_doubleTapDetector.willTrigger(event.timeStamp)) {
+                _handleFling(tracker.getVelocity());
+              }
+            }
+            _handleLift();
+          }
+        },
+        onPointerMove: (event) {
+          _activePointers[event.device]!.addPosition(
             event.timeStamp,
             event.localPosition,
           );
-        } else if (event.device == 1) {
-          // Second touch released
-          // Record zoom level in case of user wants to pinch again
-          _startZoomLevel = _zoomLevel.value;
-        }
+          _activePositions[event.device] = event.localPosition;
+          _doubleTapDetector.reset();
 
-        if (_activePointers.isEmpty) {
-          if (event.device == 0 &&
-              _doubleTapDetector.isTriggered(event.timeStamp)) {
-            _handleZoomDoubleTap(_startTouchPoint!);
-          } else {
-            final magnitude = tracker.getVelocity().pixelsPerSecond.distance;
-            if (magnitude > 0 ||
-                !_doubleTapDetector.willTrigger(event.timeStamp)) {
-              _handleFling(tracker.getVelocity());
-            }
+          if (_isZoomDragging) {
+            _handleZoomDrag(event.localPosition);
+            return;
           }
-          _handleLift();
-        }
-      },
-      onPointerMove: (event) {
-        _activePointers[event.device]!.addPosition(
-          event.timeStamp,
-          event.localPosition,
-        );
-        _activePositions[event.device] = event.localPosition;
-        _doubleTapDetector.reset();
 
-        if (_isZoomDragging) {
-          _handleZoomDrag(event.localPosition);
-          return;
-        }
+          if (_activePointers.containsKey(0) &&
+              _activePointers.containsKey(1)) {
+            final (firstPoint, secondPoint) = (
+              _activePositions[0]!,
+              _activePositions[1]!,
+            );
+            final focalPoint = (firstPoint + secondPoint) / 2;
+            final distance = (firstPoint - secondPoint).distance;
 
-        if (_activePointers.containsKey(0) && _activePointers.containsKey(1)) {
-          final (firstPoint, secondPoint) = (
-            _activePositions[0]!,
-            _activePositions[1]!,
+            final distanceRatio = _startPinchDistance != null
+                ? distance / _startPinchDistance!
+                : 1.0;
+
+            _handlePinch(focalPoint, distanceRatio);
+          }
+
+          _handlePanDrag(event.localDelta);
+        },
+        onPointerSignal: (event) {
+          if (event is PointerScrollEvent) {
+            _handleMouseWheel(event.localPosition, event.scrollDelta);
+          }
+        },
+        onPointerPanZoomStart: (event) {
+          _activePointers[_trackpadDeviceId] = VelocityTracker.withKind(
+            event.kind,
           );
-          final focalPoint = (firstPoint + secondPoint) / 2;
-          final distance = (firstPoint - secondPoint).distance;
+          _handleTouch();
+        },
+        onPointerPanZoomUpdate: (event) {
+          if (event.scale != 1) {
+            _handlePinch(event.localPosition, event.scale);
+          }
 
-          final distanceRatio = _startPinchDistance != null
-              ? distance / _startPinchDistance!
-              : 1.0;
-
-          _handlePinch(focalPoint, distanceRatio);
-        }
-
-        _handlePanDrag(event.localDelta);
-      },
-      onPointerSignal: (event) {
-        if (event is PointerScrollEvent) {
-          _handleMouseWheel(event.localPosition, event.scrollDelta);
-        }
-      },
-      onPointerPanZoomStart: (event) {
-        _activePointers[_trackpadDeviceId] = VelocityTracker.withKind(
-          event.kind,
-        );
-        _handleTouch();
-      },
-      onPointerPanZoomUpdate: (event) {
-        if (event.scale != 1) {
-          _handlePinch(event.localPosition, event.scale);
-        }
-
-        _activePointers[_trackpadDeviceId]!.addPosition(
-          event.timeStamp,
-          event.localPan,
-        );
-        _handlePanDrag(event.localPanDelta);
-      },
-      onPointerPanZoomEnd: (event) {
-        final tracker = _activePointers[_trackpadDeviceId]!;
-        _activePointers.remove(_trackpadDeviceId);
-        _handleLift();
-        _handleFling(tracker.getVelocity());
-      },
-      child: ValueListenableBuilder(
-        valueListenable: _zoomLevel,
-        builder: (context, zoomLevel, child) {
-          return Transform.scale(scale: zoomLevel, child: child);
+          _activePointers[_trackpadDeviceId]!.addPosition(
+            event.timeStamp,
+            event.localPan,
+          );
+          _handlePanDrag(event.localPanDelta);
+        },
+        onPointerPanZoomEnd: (event) {
+          final tracker = _activePointers[_trackpadDeviceId]!;
+          _activePointers.remove(_trackpadDeviceId);
+          _handleLift();
+          _handleFling(tracker.getVelocity());
         },
         child: ValueListenableBuilder(
-          valueListenable: _offset,
-          builder: (context, offset, child) {
-            return Transform.translate(offset: -offset, child: child);
+          valueListenable: _zoomLevel,
+          builder: (context, zoomLevel, child) {
+            return Transform.scale(scale: zoomLevel, child: child);
           },
-          child: OverflowBox(
-            maxWidth: double.infinity,
-            maxHeight: double.infinity,
-            alignment: switch (widget.alignment) {
-              PanelAlignment.top => Alignment.topLeft,
-              PanelAlignment.left => Alignment.topLeft,
-              PanelAlignment.bottom => Alignment.bottomLeft,
-              PanelAlignment.right => Alignment.topRight,
+          child: ValueListenableBuilder(
+            valueListenable: _offset,
+            builder: (context, offset, child) {
+              return Transform.translate(offset: -offset, child: child);
             },
-            child: NotificationListener(
-              onNotification: (event) {
-                if (event is SizeChangedLayoutNotification) {
-                  _updateChildSize();
-                  return true;
-                }
-                return false;
+            child: OverflowBox(
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              alignment: switch (widget.alignment) {
+                PanelAlignment.top => Alignment.topLeft,
+                PanelAlignment.left => Alignment.topLeft,
+                PanelAlignment.bottom => Alignment.bottomLeft,
+                PanelAlignment.right => Alignment.topRight,
               },
-              child: SizeChangedLayoutNotifier(
-                child: SizedBox(key: _childKey, child: widget.child),
+              child: NotificationListener(
+                onNotification: (event) {
+                  if (event is SizeChangedLayoutNotification) {
+                    _updateChildSize();
+                    return true;
+                  }
+                  return false;
+                },
+                child: SizeChangedLayoutNotifier(
+                  child: SizedBox(key: _childKey, child: widget.child),
+                ),
               ),
             ),
           ),

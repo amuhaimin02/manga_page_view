@@ -54,7 +54,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     widget.controller.fractionChangeRequest.addListener(
       _onFractionChangeRequest,
     );
-    _loadOnPage(widget.initialPageIndex);
+    SchedulerBinding.instance.addPostFrameCallback((_) => _updatePageDisplay());
+    // _loadOnPage(widget.initialPageIndex);
   }
 
   @override
@@ -70,9 +71,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.options.direction != oldWidget.options.direction) {
-      _loadOnPage(_currentPage);
-    }
+    // if (widget.options.direction != oldWidget.options.direction) {
+    //   _loadOnPage(_currentPage);
+    // }
   }
 
   void _onPageChangeRequest() {
@@ -162,7 +163,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     );
   }
 
-  void _handleScroll(ScrollInfo info) {
+  void _handleScroll(Offset offset, double zoomLevel) {
     final scrollableRegion = _panelState.scrollableRegion;
     switch (widget.options.direction) {
       case PageViewDirection.up:
@@ -179,14 +180,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         _scrollBoundMax = scrollableRegion.right;
     }
 
-    _currentOffset = info.offset;
-    _currentZoomLevel = info.zoomLevel;
+    _currentOffset = offset;
+    _currentZoomLevel = zoomLevel;
 
     if (!_isChangingPage) {
       _updatePageDisplay();
     }
 
-    final fraction = _offsetToFraction(info.offset);
+    final fraction = _offsetToFraction(offset);
 
     widget.onProgressChange?.call(
       MangaPageViewScrollProgress(
