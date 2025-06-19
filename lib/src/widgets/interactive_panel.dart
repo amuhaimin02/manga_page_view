@@ -201,14 +201,13 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.alignment != oldWidget.alignment) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        _stopFlinging();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _stopFlinging();
+      if (widget.alignment != oldWidget.alignment) {
         _changeAlignmentAxis(oldWidget.alignment, widget.alignment);
-      });
-    }
-
-    Future.microtask(_sendScrollInfo);
+      }
+      _sendScrollInfo();
+    });
   }
 
   void jumpToOffset(Offset offset) {
@@ -742,7 +741,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     if (oldScrollableRegion != _scrollableRegion &&
         !_isTouching &&
         !_isFlinging) {
-      _updateScrollableRegion();
       _settlePageOffset();
     }
   }

@@ -69,7 +69,6 @@ class _MangaPageScreenViewState extends State<MangaPageScreenView> {
 
   Widget _buildPanel(BuildContext context, int index) {
     return MangaPageInteractivePanel(
-      // key: ValueKey(index),
       initialZoomLevel: widget.options.initialZoomLevel,
       minZoomLevel: 1,
       maxZoomLevel: widget.options.maxZoomLevel,

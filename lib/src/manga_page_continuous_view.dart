@@ -71,9 +71,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.options.direction != oldWidget.options.direction) {
-      _loadOnPage(_currentPage);
-    }
+    // if (widget.options.direction != oldWidget.options.direction) {
+    //   _loadOnPage(_currentPage);
+    // }
   }
 
   void _onPageChangeRequest() {
