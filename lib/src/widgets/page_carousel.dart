@@ -160,35 +160,35 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      // onPanStart: (details) {
-      //   _touchPoint = widget.direction.isHorizontal
-      //       ? details.localPosition.dx
-      //       : details.localPosition.dy;
-      // },
-      // onPanUpdate: (details) {
-      //   if (_touchPoint != null) {
-      //     final double delta;
-      //     final double viewportDimension;
-      //     if (widget.direction.isHorizontal) {
-      //       delta = details.localPosition.dx - _touchPoint!;
-      //       viewportDimension = _viewportSize.width;
-      //     } else {
-      //       delta = details.localPosition.dy - _touchPoint!;
-      //       viewportDimension = _viewportSize.height;
-      //     }
-      //
-      //     final progress = delta / viewportDimension;
-      //     _scrollProgress.value = progress.clamp(-1.0, 1.0);
-      //   }
-      // },
-      // onPanEnd: (details) {
-      //   _snapToNearest(details.velocity);
-      // },
-      // onPanCancel: () {
-      //   _snapToNearest(Velocity.zero);
-      // },
+      onPanStart: (details) {
+        _touchPoint = widget.direction.isHorizontal
+            ? details.localPosition.dx
+            : details.localPosition.dy;
+      },
+      onPanUpdate: (details) {
+        if (_touchPoint != null) {
+          final double delta;
+          final double viewportDimension;
+          if (widget.direction.isHorizontal) {
+            delta = details.localPosition.dx - _touchPoint!;
+            viewportDimension = _viewportSize.width;
+          } else {
+            delta = details.localPosition.dy - _touchPoint!;
+            viewportDimension = _viewportSize.height;
+          }
+
+          final progress = delta / viewportDimension;
+          _scrollProgress.value = progress.clamp(-1.0, 1.0);
+        }
+      },
+      onPanEnd: (details) {
+        _snapToNearest(details.velocity);
+      },
+      onPanCancel: () {
+        _snapToNearest(Velocity.zero);
+      },
       child: IgnorePointer(
-        ignoring: false,
+        // ignoring: false,
         child: ValueListenableBuilder(
           valueListenable: _scrollProgress,
           builder: (context, progress, child) {
@@ -206,6 +206,7 @@ class MangaPageCarouselState extends State<MangaPageCarousel>
               children: [
                 for (final item in _loadedWidgets.entries)
                   Transform.translate(
+                    key: ValueKey(item.key),
                     offset: Offset(
                       widget.direction.isHorizontal
                           ? (progress +

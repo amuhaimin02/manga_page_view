@@ -67,15 +67,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     widget.controller.pageChangeRequest.removeListener(_onPageChangeRequest);
   }
 
-  @override
-  void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // if (widget.options.direction != oldWidget.options.direction) {
-    //   _loadOnPage(_currentPage);
-    // }
-  }
-
   void _onPageChangeRequest() {
     final pageIndex = widget.controller.pageChangeRequest.value;
 
@@ -142,11 +133,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _isChangingPage = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       final pageRect = _stripState.pageBounds[pageIndex];
-      _panelState.animateToOffset(_getPageJumpOffset(pageRect));
-      widget.onPageChange?.call(pageIndex);
-      _currentPage = pageIndex;
-      _isChangingPage = false;
-      _updatePageDisplay();
+      _panelState.animateToOffset(
+        _getPageJumpOffset(pageRect),
+        _onPageChangeAnimationEnd,
+      );
     });
   }
 
@@ -186,16 +176,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     if (!_isChangingPage) {
       _updatePageDisplay();
     }
-
-    final fraction = _offsetToFraction(offset);
-
-    widget.onProgressChange?.call(
-      MangaPageViewScrollProgress(
-        currentPage: 1,
-        totalPages: 1,
-        fraction: fraction,
-      ),
-    );
   }
 
   void _updatePageDisplay() {
@@ -208,6 +188,15 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       _stripState.glance(viewRegion);
       _updatePageIndex(viewRegion);
     }
+    final fraction = _offsetToFraction(_currentOffset);
+
+    widget.onProgressChange?.call(
+      MangaPageViewScrollProgress(
+        currentPage: 1,
+        totalPages: 1,
+        fraction: fraction,
+      ),
+    );
   }
 
   void _onPageSizeChanged(int pageIndex) {}

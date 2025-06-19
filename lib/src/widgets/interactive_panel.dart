@@ -189,9 +189,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    _viewport.value = _viewportSizeProvider.value;
-    _viewportSizeProvider.addListener(_onViewportChanged);
     _firstAppearanceAnimation.forward(from: 0);
+    _viewport.value = _viewportSizeProvider.value;
+
+    _viewportSizeProvider.addListener(_onViewportChanged);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _resetPosition();
