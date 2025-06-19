@@ -113,6 +113,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   late final _flingYAnimation = AnimationController.unbounded(vsync: this);
   late final _offsetAnimation = AnimationController(vsync: this);
   late final _zoomAnimation = AnimationController(vsync: this);
+  late final _firstAppearanceAnimation = AnimationController(
+    vsync: this,
+    duration: Duration(milliseconds: 200),
+  );
 
   VoidCallback? _offsetAnimationUpdateListener;
   VoidCallback? _zoomAnimationUpdateListener;
@@ -126,7 +130,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   double? _startZoomLevel;
   static const _trackpadDeviceId = 99;
 
-  late final _readyToDisplay = ValueNotifier(false);
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
   late final _childSize = ValueNotifier(Size.zero);
@@ -152,7 +155,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offsetAnimation.addListener(_onAnimateOffsetUpdate);
     _zoomAnimation.addListener(_onAnimateZoomUpdate);
     _scrollRegionChange.addListener(_updateScrollableRegion);
-    _viewport.addListener(_onViewportDimensionChanged);
     _childSize.addListener(_onChildSizeChanged);
   }
 
@@ -166,13 +168,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _zoomLevel
       ..removeListener(_sendScrollInfo)
       ..dispose();
-    _viewport
-      ..removeListener(_onViewportDimensionChanged)
-      ..dispose();
+    _viewport..dispose();
     _childSize
       ..removeListener(_onChildSizeChanged)
       ..dispose();
-    _readyToDisplay..dispose();
     _flingXAnimation..dispose();
     _flingYAnimation..dispose();
     _zoomAnimation
@@ -181,6 +180,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _offsetAnimation
       ..removeListener(_onAnimateOffsetUpdate)
       ..dispose();
+    _firstAppearanceAnimation..dispose();
 
     super.dispose();
   }
@@ -191,6 +191,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
     _viewport.value = _viewportSizeProvider.value;
     _viewportSizeProvider.addListener(_onViewportChanged);
+    _firstAppearanceAnimation.forward(from: 0);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _resetPosition();
@@ -200,6 +201,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   @override
   void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _firstAppearanceAnimation.forward(from: 0);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _stopFlinging();
@@ -210,10 +212,16 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     });
   }
 
+  void _onViewportChanged() {
+    _viewport.value = _viewportSizeProvider.value;
+    _updateScrollableRegion();
+    _offset.value = _limitOffsetInScrollable(_offset.value);
+  }
+
   void jumpToOffset(Offset offset) {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _stopFlinging();
-      _offset.value = _limitOffsetWithinBounds(offset);
+      _offset.value = _limitOffsetInScrollable(offset);
     });
   }
 
@@ -227,7 +235,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _stopFlinging();
     _updateChildSize();
     _updateScrollableRegion();
-    _offset.value = _limitOffsetWithinBounds(_offset.value);
+    _offset.value = _limitOffsetInScrollable(_offset.value);
   }
 
   void _changeAlignmentAxis(
@@ -287,23 +295,14 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       newOffset = newOffset;
     }
 
-    _offset.value = newOffset;
+    _offset.value = _limitOffsetInScrollable(newOffset);
   }
 
   void _sendScrollInfo() {
     widget.onScroll?.call(_offset.value, _zoomLevel.value);
   }
 
-  void _onViewportChanged() {
-    _viewport.value = _viewportSizeProvider.value;
-  }
-
-  void _onViewportDimensionChanged() {
-    // This is called when the viewport size changes.
-    _updateScrollableAndSettle();
-  }
-
-  // Similar to clamp but
+  // Similar to clamp but min and max can be either way (A or B used instead)
   double _limitBound(double value, double limitA, double limitB) {
     if (limitA <= limitB) {
       return value.clamp(limitA, limitB);
@@ -325,14 +324,19 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void _handlePanDrag(Offset delta) {
     final deltaX = delta.dx / _zoomLevel.value;
     final deltaY = delta.dy / _zoomLevel.value;
+
     var newX = _offset.value.dx - deltaX;
     var newY = _offset.value.dy - deltaY;
 
-    _offset.value = _limitOffsetWithinBounds(
-      Offset(newX, newY),
-      allowHorizontalOverscroll: widget.horizontalOverscroll,
-      allowVerticalOverscroll: widget.verticalOverscroll,
-    );
+    if (!widget.horizontalOverscroll) {
+      newX = _limitBound(newX, _scrollableRegion.left, _scrollableRegion.right);
+    }
+
+    if (!widget.verticalOverscroll) {
+      newY = _limitBound(newY, _scrollableRegion.top, _scrollableRegion.bottom);
+    }
+
+    _offset.value = Offset(newX, newY);
   }
 
   double _resistZoomOvershoot(double currentZoom) {
@@ -374,11 +378,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
           focalPointFromCenter.dy * zoomDifference,
         ) /
         initialZoom;
-    return _limitOffsetWithinBounds(
-      _offset.value + moveOffset / finalZoom,
-      allowHorizontalOverscroll: widget.horizontalOverscroll,
-      allowVerticalOverscroll: widget.verticalOverscroll,
-    );
+
+    return _limitOffsetInScrollable(_offset.value + moveOffset / finalZoom);
   }
 
   void _handleZoomDrag(Offset position) {
@@ -406,7 +407,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         newZoom,
       );
     } else {
-      _offset.value = _limitOffsetWithinBounds(_offset.value);
+      _offset.value = _limitOffsetInScrollable(_offset.value);
     }
   }
 
@@ -434,7 +435,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         newZoom,
       );
     } else {
-      _offset.value = _limitOffsetWithinBounds(_offset.value);
+      _offset.value = _limitOffsetInScrollable(_offset.value);
     }
   }
 
@@ -482,7 +483,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
           newZoom,
         );
       } else {
-        _offset.value = _limitOffsetWithinBounds(_offset.value);
+        _offset.value = _limitOffsetInScrollable(_offset.value);
       }
       return;
     }
@@ -496,7 +497,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       false => _offset.value + delta,
     };
     _stopFlinging();
-    _offset.value = _limitOffsetWithinBounds(newOffset);
+    _offset.value = _limitOffsetInScrollable(newOffset);
   }
 
   void _updateScrollableRegion() {
@@ -551,21 +552,11 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _scrollableRegion = newRegion;
   }
 
-  Offset _limitOffsetWithinBounds(
-    Offset offset, {
-    bool allowVerticalOverscroll = false,
-    bool allowHorizontalOverscroll = false,
-  }) {
-    var (x, y) = (offset.dx, offset.dy);
-
-    if (!allowHorizontalOverscroll) {
-      x = _limitBound(x, _scrollableRegion.left, _scrollableRegion.right);
-    }
-    if (!allowVerticalOverscroll) {
-      y = _limitBound(y, _scrollableRegion.top, _scrollableRegion.bottom);
-    }
-
-    return Offset(x, y);
+  Offset _limitOffsetInScrollable(Offset offset) {
+    return Offset(
+      _limitBound(offset.dx, _scrollableRegion.left, _scrollableRegion.right),
+      _limitBound(offset.dy, _scrollableRegion.top, _scrollableRegion.bottom),
+    );
   }
 
   void _settleZoom() {
@@ -671,7 +662,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
             newZoom,
           );
         } else {
-          _offset.value = _limitOffsetWithinBounds(_offset.value);
+          _offset.value = _limitOffsetInScrollable(_offset.value);
         }
         if (_zoomAnimation.isCompleted) {
           _settlePageOffset();
@@ -692,7 +683,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     final currentOffset = _offset.value;
     final zoomTween = Tween<Offset>(
       begin: currentOffset,
-      end: _limitOffsetWithinBounds(targetOffset),
+      end: _limitOffsetInScrollable(targetOffset),
     );
     final animation = zoomTween.animate(
       CurvedAnimation(parent: _offsetAnimation, curve: Curves.easeOut),
@@ -747,12 +738,6 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   @override
   Widget build(BuildContext context) {
-    if (!_readyToDisplay.value) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        _readyToDisplay.value = true;
-      });
-    }
-
     return ClipRect(
       child: Listener(
         behavior: HitTestBehavior.translucent,
@@ -880,15 +865,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
             builder: (context, offset, child) {
               return Transform.translate(offset: -offset, child: child);
             },
-            child: ValueListenableBuilder(
-              valueListenable: _readyToDisplay,
-              builder: (context, readyToDisplay, child) {
-                return AnimatedOpacity(
-                  opacity: readyToDisplay ? 1 : 0,
-                  duration: Duration(milliseconds: 200),
-                  child: child,
-                );
-              },
+            child: FadeTransition(
+              opacity: _firstAppearanceAnimation,
               child: OverflowBox(
                 maxWidth: double.infinity,
                 maxHeight: double.infinity,
