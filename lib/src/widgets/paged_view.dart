@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
 import 'viewport.dart';
+
+const flingVelocityThreshold = 500;
 
 class MangaPagePagedView extends StatefulWidget {
   const MangaPagePagedView({
@@ -148,11 +151,11 @@ class _PageCarouselState extends State<_PageCarousel>
   late final AnimationController _snapAnimation;
   VoidCallback? _snapAnimationUpdateListener;
 
-  double? _touchPoint = null;
   late int _currentIndex = widget.initialIndex;
   bool _canMove = false;
 
   Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  VelocityTracker? _velocityTracker;
 
   @override
   void initState() {
@@ -249,11 +252,23 @@ class _PageCarouselState extends State<_PageCarousel>
     });
   }
 
+  void _updatePan(Offset delta) {
+    final double deltaValue;
+    final double fullScrollSize;
+    if (widget.direction.isHorizontal) {
+      deltaValue = delta.dx;
+      fullScrollSize = _viewportSize.width;
+    } else {
+      deltaValue = delta.dy;
+      fullScrollSize = _viewportSize.height;
+    }
+
+    final progress = _scrollProgress.value - (deltaValue / fullScrollSize);
+    _scrollProgress.value = progress.clamp(-1.0, 1.0);
+  }
+
   void _snapToNearest(Velocity flingVelocity) {
     if (!_canMove) {
-      return;
-    }
-    if (_touchPoint == null) {
       return;
     }
     _canMove = false;
@@ -265,11 +280,12 @@ class _PageCarouselState extends State<_PageCarousel>
     final scrollProgress = _scrollProgress.value;
 
     final moreThanHalf = scrollProgress.abs() > 0.5;
-    final isFastSwiping = velocityValue.abs() > 500;
-    final newIndex = _currentIndex + scrollProgress.toInt();
+    final isFlinging = velocityValue.abs() > flingVelocityThreshold;
+    final newIndex =
+        _currentIndex + scrollProgress.sign * (scrollProgress.truncate() + 1);
 
     final shouldSnap =
-        (moreThanHalf || isFastSwiping) &&
+        (moreThanHalf || isFlinging) &&
         (newIndex >= 0 && newIndex < widget.itemCount);
 
     final target = shouldSnap ? scrollProgress.sign : 0.0;
@@ -277,7 +293,7 @@ class _PageCarouselState extends State<_PageCarousel>
     final snapTween = Tween<double>(
       begin: scrollProgress,
       end: target,
-    ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeOut));
 
     _snapAnimationUpdateListener = () {
       _scrollProgress.value = snapTween.value;
@@ -287,7 +303,6 @@ class _PageCarouselState extends State<_PageCarousel>
     _snapAnimation
       ..duration = const Duration(milliseconds: 200)
       ..forward(from: 0);
-    _touchPoint = null;
   }
 
   void _afterSnap() {
@@ -303,38 +318,43 @@ class _PageCarouselState extends State<_PageCarousel>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Listener(
       behavior: HitTestBehavior.translucent,
-      onPanStart: (details) {
-        _touchPoint = widget.direction.isHorizontal
-            ? details.localPosition.dx
-            : details.localPosition.dy;
+      onPointerDown: (event) {
+        if (event.device == 0) {
+          // Primary touch
+          _velocityTracker = VelocityTracker.withKind(event.kind);
+        }
       },
-      onPanUpdate: (details) {
+      onPointerMove: (event) {
         if (!_canMove) {
           return;
         }
 
-        if (_touchPoint != null) {
-          final double delta;
-          final double fullScrollSize;
-          if (widget.direction.isHorizontal) {
-            delta = details.delta.dx;
-            fullScrollSize = _viewportSize.width;
-          } else {
-            delta = details.delta.dy;
-            fullScrollSize = _viewportSize.height;
-          }
-
-          final progress = _scrollProgress.value - (delta / fullScrollSize);
-          _scrollProgress.value = progress.clamp(-1.0, 1.0);
+        if (event.device == 0) {
+          // Primary touch
+          _velocityTracker?.addPosition(event.timeStamp, event.localPosition);
+          _updatePan(event.localDelta);
         }
       },
-      onPanEnd: (details) {
-        _snapToNearest(details.velocity);
+      onPointerUp: (event) {
+        if (event.device == 0) {
+          _snapToNearest(_velocityTracker!.getVelocity());
+        }
       },
-      onPanCancel: () {
+      onPointerCancel: (event) {
         _snapToNearest(Velocity.zero);
+      },
+      // Trackpad
+      onPointerPanZoomStart: (event) {
+        _velocityTracker = VelocityTracker.withKind(event.kind);
+      },
+      onPointerPanZoomUpdate: (event) {
+        _velocityTracker?.addPosition(event.timeStamp, event.pan);
+        _updatePan(event.panDelta);
+      },
+      onPointerPanZoomEnd: (event) {
+        _snapToNearest(_velocityTracker!.getVelocity());
       },
       child: NotificationListener(
         onNotification: (event) {

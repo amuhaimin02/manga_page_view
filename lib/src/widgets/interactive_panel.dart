@@ -148,6 +148,7 @@ class InteractivePanelState extends State<InteractivePanel>
   bool get _isFlinging =>
       _flingXAnimation.isAnimating || _flingYAnimation.isAnimating;
   bool get _isTouching => _activePointers.isNotEmpty;
+  bool _isPinching = false;
   bool _isPanning = false;
   bool _isPanLocked = false;
 
@@ -357,41 +358,52 @@ class InteractivePanelState extends State<InteractivePanel>
       newY = _limitBound(newY, _scrollableRegion.top, _scrollableRegion.bottom);
     }
 
+    final newOffset = Offset(newX, newY);
+
     if (!_isPanning) {
       // First time panning
       _isPanning = true;
 
-      bool cannotPan = false;
-      final axis = widget.panCheckAxis;
+      _checkPanPossible(newOffset);
+    } else {
+      _offset.value = newOffset;
+    }
+  }
 
-      if (axis != null) {
-        // Check if user can pan out of bounds
-        if (axis == Axis.vertical) {
-          if (!_isInBound(
-            newY,
-            _scrollableRegion.top,
-            _scrollableRegion.bottom,
-          )) {
-            cannotPan = true;
-          }
-        } else if (axis == Axis.horizontal) {
-          if (!_isInBound(
-            newX,
-            _scrollableRegion.left,
-            _scrollableRegion.right,
-          )) {
-            cannotPan = true;
-          }
+  void _checkPanPossible(Offset offset) {
+    if (_isPinching) {
+      return;
+    }
+
+    bool cannotPan = false;
+    final axis = widget.panCheckAxis;
+
+    if (axis != null) {
+      // Check if user is trying to pan out of bounds
+      if (axis == Axis.horizontal) {
+        if (!_isInBound(
+          offset.dx,
+          _scrollableRegion.left,
+          _scrollableRegion.right,
+        )) {
+          cannotPan = true;
         }
-
-        if (cannotPan) {
-          InteractivePanelCannotPanNotification().dispatch(context);
-          _isPanLocked = true;
+      } else if (axis == Axis.vertical) {
+        if (!_isInBound(
+          offset.dy,
+          _scrollableRegion.top,
+          _scrollableRegion.bottom,
+        )) {
+          cannotPan = true;
         }
       }
-    } else {
-      _offset.value = Offset(newX, newY);
-      ;
+
+      // If user is trying to pan out of bounds, lock panning and notify
+
+      if (cannotPan) {
+        InteractivePanelCannotPanNotification().dispatch(context);
+        _isPanLocked = true;
+      }
     }
   }
 
@@ -508,6 +520,7 @@ class InteractivePanelState extends State<InteractivePanel>
     if (_activePointers.isEmpty) {
       _isZoomDragging = false;
       _isPanning = false;
+      _isPinching = false;
       _isPanLocked = false;
       _startTouchPoint = null;
       _startPinchDistance = null;
@@ -850,6 +863,7 @@ class InteractivePanelState extends State<InteractivePanel>
           } else if (event.device == 1) {
             // Second touch released
             // Record zoom level in case of user wants to pinch again
+            _isPinching = false;
             _startZoomLevel = _zoomLevel.value;
           }
 
@@ -882,6 +896,8 @@ class InteractivePanelState extends State<InteractivePanel>
 
           if (_activePointers.containsKey(0) &&
               _activePointers.containsKey(1)) {
+            _isPinching = true;
+
             final (firstPoint, secondPoint) = (
               _activePositions[0]!,
               _activePositions[1]!,
@@ -911,6 +927,7 @@ class InteractivePanelState extends State<InteractivePanel>
         },
         onPointerPanZoomUpdate: (event) {
           if (event.scale != 1) {
+            _isPinching = true;
             _handlePinch(event.localPosition, event.scale);
           }
 
