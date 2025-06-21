@@ -285,16 +285,16 @@ class _PageCarouselState extends State<_PageCarousel>
 
         if (_touchPoint != null) {
           final double delta;
-          final double viewportDimension;
+          final double fullScrollSize;
           if (widget.direction.isHorizontal) {
-            delta = details.localPosition.dx - _touchPoint!;
-            viewportDimension = _viewportSize.width;
+            delta = details.delta.dx;
+            fullScrollSize = _viewportSize.width;
           } else {
-            delta = details.localPosition.dy - _touchPoint!;
-            viewportDimension = _viewportSize.height;
+            delta = details.delta.dy;
+            fullScrollSize = _viewportSize.height;
           }
 
-          final progress = delta / viewportDimension;
+          final progress = _scrollProgress.value + (delta / fullScrollSize);
           _scrollProgress.value = progress.clamp(-1.0, 1.0);
         }
       },

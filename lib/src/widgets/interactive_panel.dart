@@ -320,6 +320,14 @@ class InteractivePanelState extends State<InteractivePanel>
     }
   }
 
+  bool _isInBound(double value, double limitA, double limitB) {
+    if (limitA <= limitB) {
+      return value > limitA && value < limitB;
+    } else {
+      return value > limitB && value < limitA;
+    }
+  }
+
   void _handleTouch() {
     _stopFlinging();
     _startZoomLevel = _zoomLevel.value;
@@ -349,8 +357,6 @@ class InteractivePanelState extends State<InteractivePanel>
       newY = _limitBound(newY, _scrollableRegion.top, _scrollableRegion.bottom);
     }
 
-    final newOffset = Offset(newX, newY);
-
     if (!_isPanning) {
       // First time panning
       _isPanning = true;
@@ -361,16 +367,19 @@ class InteractivePanelState extends State<InteractivePanel>
       if (axis != null) {
         // Check if user can pan out of bounds
         if (axis == Axis.vertical) {
-          if (newOffset.dy <= _scrollableRegion.top ||
-              newOffset.dy >= _scrollableRegion.bottom) {
+          if (!_isInBound(
+            newY,
+            _scrollableRegion.top,
+            _scrollableRegion.bottom,
+          )) {
             cannotPan = true;
           }
         } else if (axis == Axis.horizontal) {
-          print(
-            'Checking ${newOffset.dx} ${_scrollableRegion.left} ${_scrollableRegion.right}',
-          );
-          if (newOffset.dx <= _scrollableRegion.left ||
-              newOffset.dx >= _scrollableRegion.right) {
+          if (!_isInBound(
+            newX,
+            _scrollableRegion.left,
+            _scrollableRegion.right,
+          )) {
             cannotPan = true;
           }
         }
@@ -381,7 +390,8 @@ class InteractivePanelState extends State<InteractivePanel>
         }
       }
     } else {
-      _offset.value = newOffset;
+      _offset.value = Offset(newX, newY);
+      ;
     }
   }
 
@@ -429,6 +439,9 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handleZoomDrag(Offset position) {
+    if (_isPanLocked) {
+      return;
+    }
     final currentZoom = _zoomLevel.value;
     final difference = position.dy - _startTouchPoint!.dy;
 
@@ -466,6 +479,9 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handlePinch(Offset focalPoint, double scale) {
+    if (_isPanLocked) {
+      return;
+    }
     final currentZoom = _zoomLevel.value;
     double newZoom = _startZoomLevel! * scale;
 
@@ -809,8 +825,12 @@ class InteractivePanelState extends State<InteractivePanel>
             _startTouchPoint = event.localPosition;
           } else if (event.device == 1) {
             // Secondary touch
-            _startPinchDistance =
-                (_startTouchPoint! - event.localPosition).distance;
+            final firstTouchPosition = _activePositions[0];
+            final secondTouchPosition = _activePositions[1];
+            if (firstTouchPosition != null && secondTouchPosition != null) {
+              _startPinchDistance =
+                  (firstTouchPosition - secondTouchPosition).distance;
+            }
           }
           if (event.device == 0 &&
               _doubleTapDetector.isTriggered(event.timeStamp)) {
