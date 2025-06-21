@@ -1,7 +1,7 @@
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
@@ -101,30 +101,46 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   );
                 }
 
-                return Image.network(
-                  'https://picsum.photos/851/1201?c=$index',
-                  fit: BoxFit.contain,
-                  frameBuilder:
-                      (context, child, frame, wasSynchronouslyLoaded) {
-                        if (wasSynchronouslyLoaded || frame != null) {
-                          return child;
-                        } else {
-                          return loadingSpinner();
-                        }
-                      },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) {
-                      return child; // image is fully loaded
-                    }
-
-                    return loadingSpinner(
-                      loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                                (loadingProgress.expectedTotalBytes ?? 1)
-                          : null,
-                    );
-                  },
+                return CachedNetworkImage(
+                  imageUrl: 'https://picsum.photos/851/1201?c=$index',
+                  placeholder: (context, url) => Container(
+                    width: 600,
+                    height: 600,
+                    alignment: Alignment.center,
+                    child: CircularProgressIndicator(),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 600,
+                    height: 600,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.error),
+                  ),
                 );
+
+                // return Image.network(
+                //   'https://picsum.photos/851/1201?c=$index',
+                //   fit: BoxFit.contain,
+                //   frameBuilder:
+                //       (context, child, frame, wasSynchronouslyLoaded) {
+                //         if (wasSynchronouslyLoaded || frame != null) {
+                //           return child;
+                //         } else {
+                //           return loadingSpinner();
+                //         }
+                //       },
+                //   loadingBuilder: (context, child, loadingProgress) {
+                //     if (loadingProgress == null) {
+                //       return child; // image is fully loaded
+                //     }
+                //
+                //     return loadingSpinner(
+                //       loadingProgress.expectedTotalBytes != null
+                //           ? loadingProgress.cumulativeBytesLoaded /
+                //                 (loadingProgress.expectedTotalBytes ?? 1)
+                //           : null,
+                //     );
+                //   },
+                // );
               },
               onPageChange: (index) {
                 _currentPage.value = index;
