@@ -20,7 +20,7 @@ class MangaPageViewOptions {
   final bool zoomOnFocalPoint;
 
   const MangaPageViewOptions({
-    this.mode = MangaPageViewMode.continuous,
+    this.mode = MangaPageViewMode.paged,
     this.minZoomLevel = 0.5,
     this.maxZoomLevel = 4.0,
     this.initialZoomLevel = 1.0,
@@ -40,7 +40,7 @@ class MangaPageViewOptions {
   });
 }
 
-enum MangaPageViewMode { screen, continuous }
+enum MangaPageViewMode { screen, paged }
 
 enum PageViewDirection {
   up,

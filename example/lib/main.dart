@@ -197,7 +197,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                         value: fraction,
                         // max: _currentProgress?.totalPixels ?? 0,
                         onChanged: (value) {
-                          _controller.jumpToFraction(value);
+                          _controller.jumpToProgress(value);
                         },
                       ),
                     ),
@@ -211,13 +211,13 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               children: [
                 IconButton(
                   onPressed: () {
-                    _controller.jumpToPage(max(0, _currentPage.value - 1));
+                    _controller.animateToPage(max(0, _currentPage.value - 1));
                   },
                   icon: Icon(Icons.skip_previous),
                 ),
                 IconButton(
                   onPressed: () {
-                    _controller.jumpToPage(
+                    _controller.animateToPage(
                       min(totalPages - 1, _currentPage.value + 1),
                     );
                   },
@@ -228,15 +228,13 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   onPressed: () {
                     setState(() {
                       _mode = switch (_mode) {
-                        MangaPageViewMode.continuous =>
-                          MangaPageViewMode.screen,
-                        MangaPageViewMode.screen =>
-                          MangaPageViewMode.continuous,
+                        MangaPageViewMode.paged => MangaPageViewMode.screen,
+                        MangaPageViewMode.screen => MangaPageViewMode.paged,
                       };
                     });
                   },
                   icon: Icon(
-                    _mode == MangaPageViewMode.continuous
+                    _mode == MangaPageViewMode.paged
                         ? Icons.aod
                         : Icons.import_contacts,
                   ),

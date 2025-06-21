@@ -1,8 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 import 'package:meta/meta.dart';
-import 'manga_page_continuous_view.dart';
-import 'manga_page_screen_view.dart';
+import 'widgets/continuous_view.dart';
+import 'widgets/paged_view.dart';
+import 'manga_page_view_controller.dart';
 import 'widgets/viewport.dart';
 
 class MangaPageView extends StatefulWidget {
@@ -40,7 +41,7 @@ class _MangaPageViewState extends State<MangaPageView> {
   Widget build(BuildContext context) {
     return ViewportChangeListener(
       child: switch (widget.options.mode) {
-        MangaPageViewMode.continuous => MangaPageContinuousView(
+        MangaPageViewMode.paged => MangaPageContinuousView(
           initialPageIndex: _currentPage,
           controller: widget.controller,
           options: widget.options,
@@ -49,7 +50,7 @@ class _MangaPageViewState extends State<MangaPageView> {
           onPageChange: _onPageChange,
           onProgressChange: widget.onProgressChange,
         ),
-        MangaPageViewMode.screen => MangaPageScreenView(
+        MangaPageViewMode.screen => MangaPagePagedView(
           controller: widget.controller,
           initialPageIndex: _currentPage,
           options: widget.options,
@@ -59,35 +60,6 @@ class _MangaPageViewState extends State<MangaPageView> {
         ),
       },
     );
-  }
-}
-
-class MangaPageViewController {
-  MangaPageViewController();
-
-  @internal
-  final pageChangeRequest = ValueNotifier<int?>(null);
-  @internal
-  final fractionChangeRequest = ValueNotifier<double?>(null);
-  @internal
-  final offsetChangeRequest = ValueNotifier<double?>(null);
-
-  void jumpToPage(int index) {
-    pageChangeRequest.value = index;
-  }
-
-  void jumpToFraction(double fraction) {
-    fractionChangeRequest.value = fraction;
-  }
-
-  // void jumpToOffset(double offset) {
-  //   offsetChangeRequest.value = offset;
-  // }
-
-  void dispose() {
-    pageChangeRequest.dispose();
-    fractionChangeRequest.dispose();
-    offsetChangeRequest.dispose();
   }
 }
 

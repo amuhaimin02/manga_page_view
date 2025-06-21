@@ -230,7 +230,7 @@ class InteractivePanelState extends State<InteractivePanel>
     });
   }
 
-  void animateToOffset(Offset offset, [VoidCallback? onEnd]) {
+  void animateToOffset(Offset offset, {VoidCallback? onEnd}) {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
     });

@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-import '../manga_page_view.dart';
-import 'widgets/interactive_panel.dart';
-import 'widgets/viewport.dart';
+import '../../manga_page_view.dart';
+import 'interactive_panel.dart';
+import 'viewport.dart';
 
-class MangaPageScreenView extends StatefulWidget {
-  const MangaPageScreenView({
+class MangaPagePagedView extends StatefulWidget {
+  const MangaPagePagedView({
     super.key,
     required this.options,
     required this.controller,
@@ -24,33 +26,37 @@ class MangaPageScreenView extends StatefulWidget {
   final Function(int index)? onPageChange;
 
   @override
-  State<MangaPageScreenView> createState() => _MangaPageScreenViewState();
+  State<MangaPagePagedView> createState() => _MangaPagePagedViewState();
 }
 
-class _MangaPageScreenViewState extends State<MangaPageScreenView> {
+class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   late final _carouselKey = GlobalKey<_PageCarouselState>();
 
   _PageCarouselState get _carouselState => _carouselKey.currentState!;
 
   Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
+  StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.pageChangeRequest.addListener(_onPageChangeRequest);
+    _controllerIntentStream = widget.controller.intents.listen(
+      _onControllerIntent,
+    );
   }
 
   @override
   void dispose() {
-    widget.controller.pageChangeRequest.removeListener(_onPageChangeRequest);
     super.dispose();
+    _controllerIntentStream?.cancel();
   }
 
-  void _onPageChangeRequest() {
-    final pageIndex = widget.controller.pageChangeRequest.value;
-    if (pageIndex != null) {
-      _carouselState.jumpToPage(pageIndex);
-      widget.controller.pageChangeRequest.value = null;
+  void _onControllerIntent(ControllerChangeIntent intent) {
+    switch (intent) {
+      case PageChangeIntent(index: final pageIndex, animate: final animate):
+        _carouselState.jumpToPage(pageIndex);
+      default:
     }
   }
 

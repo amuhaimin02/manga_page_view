@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/src/widgets/viewport.dart';
 
-import '../manga_page_view.dart';
-import 'widgets/interactive_panel.dart';
+import '../../manga_page_view.dart';
+import 'interactive_panel.dart';
 
 class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
@@ -46,47 +48,41 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   Size get _viewportSize => ViewportSizeProvider.of(context).value;
 
+  StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.pageChangeRequest.addListener(_onPageChangeRequest);
-    widget.controller.fractionChangeRequest.addListener(
-      _onFractionChangeRequest,
+    _controllerIntentStream = widget.controller.intents.listen(
+      _onControllerIntent,
     );
-    _loadOnPage(widget.initialPageIndex);
+    _goToPage(widget.initialPageIndex);
   }
 
   @override
   void dispose() {
     super.dispose();
-    widget.controller.fractionChangeRequest.removeListener(
-      _onFractionChangeRequest,
-    );
-    widget.controller.pageChangeRequest.removeListener(_onPageChangeRequest);
+    _controllerIntentStream?.cancel();
   }
 
-  void _onPageChangeRequest() {
-    final pageIndex = widget.controller.pageChangeRequest.value;
-
-    if (pageIndex != null) {
-      _animateToPage(pageIndex);
-      widget.controller.fractionChangeRequest.value = null;
-    }
-  }
-
-  void _onPageChangeAnimationEnd() {
-    _isChangingPage = false;
-    _updatePageDisplay();
-  }
-
-  void _onFractionChangeRequest() {
-    final fraction = widget.controller.fractionChangeRequest.value;
-
-    if (fraction != null) {
-      _isChangingPage = false;
-      final targetOffset = _fractionToOffset(fraction);
-      _panelState.jumpToOffset(targetOffset);
-      widget.controller.fractionChangeRequest.value = null;
+  void _onControllerIntent(ControllerChangeIntent intent) {
+    switch (intent) {
+      case PageChangeIntent(index: final pageIndex, animate: final animate):
+        if (animate) {
+          _animateToPage(pageIndex);
+        } else {
+          _goToPage(pageIndex);
+        }
+      case ProgressChangeIntent(
+        progress: final progress,
+        animate: final animate,
+      ):
+        final targetOffset = progressToOffset(progress);
+        if (animate) {
+          _panelState.animateToOffset(targetOffset, onEnd: _onPageChangeEnd);
+        } else {
+          _panelState.jumpToOffset(targetOffset);
+        }
     }
   }
 
@@ -128,27 +124,31 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     };
   }
 
-  void _loadOnPage(int pageIndex) {
+  void _goToPage(int pageIndex) {
     _isChangingPage = true;
+
+    // Early callback
+    widget.onPageChange?.call(pageIndex);
+
     SchedulerBinding.instance.addPostFrameCallback((_) {
       final pageRect = _stripState.pageBounds[pageIndex];
-      _panelState.animateToOffset(
-        _getPageJumpOffset(pageRect),
-        _onPageChangeAnimationEnd,
-      );
+      _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
+      _onPageChangeEnd();
     });
   }
 
+  void _onPageChangeEnd() {
+    _isChangingPage = false;
+    _updatePageDisplay();
+  }
+
   void _animateToPage(int pageIndex) {
-    final pageRect = _stripState.pageBounds[pageIndex];
     _isChangingPage = true;
 
-    widget.onPageChange?.call(pageIndex);
-    _currentPage = pageIndex;
-
+    final pageRect = _stripState.pageBounds[pageIndex];
     _panelState.animateToOffset(
       _getPageJumpOffset(pageRect),
-      _onPageChangeAnimationEnd,
+      onEnd: _onPageChangeEnd,
     );
   }
 
@@ -197,8 +197,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       ),
     );
   }
-
-  void _onPageSizeChanged(int pageIndex) {}
 
   void _updatePageIndex(Rect viewRegion) {
     final bounds = _stripState.pageBounds;
@@ -284,7 +282,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     return ((current - min) / (max - min)).clamp(0, 1);
   }
 
-  Offset _fractionToOffset(double fraction) {
+  Offset progressToOffset(double fraction) {
     final double target;
     final double min;
     final double max;
@@ -375,7 +373,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         precacheBehind: widget.options.precacheBehind,
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
-        onPageSizeChanged: _onPageSizeChanged,
       ),
       onScroll: _handleScroll,
     );
@@ -393,7 +390,6 @@ class _PageStrip extends StatefulWidget {
     required this.maxPageSize,
     required this.precacheAhead,
     required this.precacheBehind,
-    required this.onPageSizeChanged,
   });
 
   final PageViewDirection direction;
@@ -404,7 +400,6 @@ class _PageStrip extends StatefulWidget {
   final int precacheBehind;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
-  final Function(int pageIndex) onPageSizeChanged;
 
   @override
   State<_PageStrip> createState() => _PageStripState();
@@ -441,7 +436,6 @@ class _PageStripState extends State<_PageStrip> {
     final pageSize = (context.findRenderObject() as RenderBox).size;
     _pageBounds[index] = Offset.zero & pageSize;
     _updatePageBounds();
-    widget.onPageSizeChanged(index);
   }
 
   void _updatePageBounds() {
