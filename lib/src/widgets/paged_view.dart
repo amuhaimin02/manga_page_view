@@ -253,44 +253,40 @@ class _PageCarouselState extends State<_PageCarousel>
     if (!_canMove) {
       return;
     }
+    if (_touchPoint == null) {
+      return;
+    }
     _canMove = false;
 
     final double velocityValue = widget.direction.isHorizontal
         ? flingVelocity.pixelsPerSecond.dx
         : flingVelocity.pixelsPerSecond.dy;
 
-    if (_touchPoint != null) {
-      final moreThanHalf = _scrollProgress.value.abs() > 0.5;
-      final isFastSwiping = velocityValue.abs() > 500;
-      final reverseFactor = widget.direction.isReverse ? -1 : 1;
-      final direction = _scrollProgress.value.sign * reverseFactor;
-      final newIndex = _currentIndex + direction;
+    final scrollProgress = _scrollProgress.value;
 
-      final shouldSnap =
-          (moreThanHalf || isFastSwiping) &&
-          (newIndex >= 0 && newIndex < widget.itemCount);
+    final moreThanHalf = scrollProgress.abs() > 0.5;
+    final isFastSwiping = velocityValue.abs() > 500;
+    final newIndex = _currentIndex + scrollProgress.toInt();
 
-      final target = shouldSnap ? 1.0 : 0.0;
+    final shouldSnap =
+        (moreThanHalf || isFastSwiping) &&
+        (newIndex >= 0 && newIndex < widget.itemCount);
 
-      final snapTween =
-          Tween<double>(
-            begin: _scrollProgress.value,
-            end: direction > 0 ? target : -target,
-          ).animate(
-            CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut),
-          );
+    final target = shouldSnap ? scrollProgress.sign : 0.0;
 
-      _snapAnimationUpdateListener = () {
-        _scrollProgress.value = snapTween.value;
-        if (_snapAnimation.isCompleted) {
-          _afterSnap();
-        }
-      };
+    final snapTween = Tween<double>(
+      begin: scrollProgress,
+      end: target,
+    ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut));
 
-      _snapAnimation
-        ..duration = const Duration(milliseconds: 200)
-        ..forward(from: 0);
-    }
+    _snapAnimationUpdateListener = () {
+      _scrollProgress.value = snapTween.value;
+      if (_snapAnimation.isCompleted) _afterSnap();
+    };
+
+    _snapAnimation
+      ..duration = const Duration(milliseconds: 200)
+      ..forward(from: 0);
     _touchPoint = null;
   }
 
@@ -359,8 +355,6 @@ class _PageCarouselState extends State<_PageCarousel>
               scrollSize = _viewportSize.height;
             }
 
-            final reverseFactor = widget.direction.isReverse ? -1 : 1;
-
             return Stack(
               children: [
                 for (final item in _loadedWidgets.entries)
@@ -368,14 +362,10 @@ class _PageCarouselState extends State<_PageCarousel>
                     key: ValueKey(item.key),
                     offset: Offset(
                       widget.direction.isHorizontal
-                          ? ((item.key - _currentIndex - progress) *
-                                    reverseFactor) *
-                                scrollSize
+                          ? (item.key - _currentIndex - progress) * scrollSize
                           : 0,
                       widget.direction.isVertical
-                          ? ((item.key - _currentIndex - progress) *
-                                    reverseFactor) *
-                                scrollSize
+                          ? (item.key - _currentIndex - progress) * scrollSize
                           : 0,
                     ),
                     child: item.value,
