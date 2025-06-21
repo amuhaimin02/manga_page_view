@@ -27,8 +27,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   final _currentPage = ValueNotifier(0);
   final _currentZoomLevel = ValueNotifier(1.0);
-  final totalPages = 40;
-  final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
+  final totalPages = 5;
+  final _currentProgress = ValueNotifier(0.0);
 
   @override
   void initState() {
@@ -186,20 +186,18 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
             ValueListenableBuilder(
               valueListenable: _currentProgress,
               builder: (context, progress, child) {
-                final fraction = progress != null ? progress.fraction : 0.0;
                 return Row(
                   children: [
                     SizedBox(
                       width: 60,
                       child: Text(
-                        '${(fraction * 100).toStringAsFixed(1)} %',
+                        '${(progress * 100).toStringAsFixed(1)} %',
                         textAlign: TextAlign.end,
                       ),
                     ),
                     Expanded(
                       child: Slider(
-                        value: fraction,
-                        // max: _currentProgress?.totalPixels ?? 0,
+                        value: progress,
                         onChanged: (value) {
                           _controller.moveToProgress(value);
                         },
@@ -233,97 +231,98 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 );
               },
             ),
-
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 16,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    _controller.moveToPage(
-                      max(0, _currentPage.value - 1),
-                      duration: Duration(milliseconds: 300),
-                    );
-                  },
-                  icon: Icon(Icons.skip_previous),
-                ),
-                IconButton(
-                  onPressed: () {
-                    _controller.moveToPage(
-                      min(totalPages - 1, _currentPage.value + 1),
-                      duration: Duration(milliseconds: 300),
-                    );
-                  },
-                  icon: Icon(Icons.skip_next),
-                ),
-                // Toggle view mode
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _mode = switch (_mode) {
-                        MangaPageViewMode.paged => MangaPageViewMode.screen,
-                        MangaPageViewMode.screen => MangaPageViewMode.paged,
-                      };
-                    });
-                  },
-                  icon: Icon(
-                    _mode == MangaPageViewMode.paged
-                        ? Icons.aod
-                        : Icons.import_contacts,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                spacing: 16,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      _controller.moveToPage(
+                        max(0, _currentPage.value - 1),
+                        duration: Duration(milliseconds: 300),
+                      );
+                    },
+                    icon: Icon(Icons.skip_previous),
                   ),
-                ),
-                // Toggle scroll direction
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _scrollDirection = switch (_scrollDirection) {
-                        PageViewDirection.right => PageViewDirection.down,
-                        PageViewDirection.down => PageViewDirection.left,
-                        PageViewDirection.left => PageViewDirection.up,
-                        PageViewDirection.up => PageViewDirection.right,
-                      };
-                    });
-                  },
-                  icon: Icon(() {
-                    return switch (_scrollDirection) {
-                      PageViewDirection.right => Icons.arrow_forward,
-                      PageViewDirection.down => Icons.arrow_downward,
-                      PageViewDirection.left => Icons.arrow_back,
-                      PageViewDirection.up => Icons.arrow_upward,
-                    };
-                  }()),
-                ),
-                // Toggle overscroll
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _overshoot = !_overshoot;
-                    });
-                  },
-                  icon: Icon(
-                    _overshoot ? Icons.swipe_vertical : Icons.crop_free,
+                  IconButton(
+                    onPressed: () {
+                      _controller.moveToPage(
+                        min(totalPages - 1, _currentPage.value + 1),
+                        duration: Duration(milliseconds: 300),
+                      );
+                    },
+                    icon: Icon(Icons.skip_next),
                   ),
-                ),
-                // Toggle scroll gravity
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _scrollGravity = switch (_scrollGravity) {
-                        PageViewGravity.start => PageViewGravity.center,
-                        PageViewGravity.center => PageViewGravity.end,
-                        PageViewGravity.end => PageViewGravity.start,
+                  // Toggle view mode
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _mode = switch (_mode) {
+                          MangaPageViewMode.paged => MangaPageViewMode.screen,
+                          MangaPageViewMode.screen => MangaPageViewMode.paged,
+                        };
+                      });
+                    },
+                    icon: Icon(
+                      _mode == MangaPageViewMode.paged
+                          ? Icons.aod
+                          : Icons.import_contacts,
+                    ),
+                  ),
+                  // Toggle scroll direction
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _scrollDirection = switch (_scrollDirection) {
+                          PageViewDirection.right => PageViewDirection.down,
+                          PageViewDirection.down => PageViewDirection.left,
+                          PageViewDirection.left => PageViewDirection.up,
+                          PageViewDirection.up => PageViewDirection.right,
+                        };
+                      });
+                    },
+                    icon: Icon(() {
+                      return switch (_scrollDirection) {
+                        PageViewDirection.right => Icons.arrow_forward,
+                        PageViewDirection.down => Icons.arrow_downward,
+                        PageViewDirection.left => Icons.arrow_back,
+                        PageViewDirection.up => Icons.arrow_upward,
                       };
-                    });
-                  },
-                  icon: Icon(() {
-                    return switch (_scrollGravity) {
-                      PageViewGravity.start => Icons.align_vertical_top,
-                      PageViewGravity.center => Icons.align_vertical_center,
-                      PageViewGravity.end => Icons.align_vertical_bottom,
-                    };
-                  }()),
-                ),
-              ],
+                    }()),
+                  ),
+                  // Toggle overscroll
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _overshoot = !_overshoot;
+                      });
+                    },
+                    icon: Icon(
+                      _overshoot ? Icons.swipe_vertical : Icons.crop_free,
+                    ),
+                  ),
+                  // Toggle scroll gravity
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _scrollGravity = switch (_scrollGravity) {
+                          PageViewGravity.start => PageViewGravity.center,
+                          PageViewGravity.center => PageViewGravity.end,
+                          PageViewGravity.end => PageViewGravity.start,
+                        };
+                      });
+                    },
+                    icon: Icon(() {
+                      return switch (_scrollGravity) {
+                        PageViewGravity.start => Icons.align_vertical_top,
+                        PageViewGravity.center => Icons.align_vertical_center,
+                        PageViewGravity.end => Icons.align_vertical_bottom,
+                      };
+                    }()),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

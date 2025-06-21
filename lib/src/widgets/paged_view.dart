@@ -19,6 +19,7 @@ class MangaPagePagedView extends StatefulWidget {
     required this.pageBuilder,
     required this.initialPageIndex,
     this.onPageChange,
+    this.onProgressChange,
     this.onZoomChange,
   });
 
@@ -28,6 +29,7 @@ class MangaPagePagedView extends StatefulWidget {
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
+  final Function(double progress)? onProgressChange;
   final Function(double zoomLevel)? onZoomChange;
 
   @override
@@ -39,11 +41,13 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   final Map<int, GlobalKey<InteractivePanelState>> _panelKeys = {};
 
   _PageCarouselState get _carouselState => _carouselKey.currentState!;
-  InteractivePanelState get _activePanelState =>
-      _panelKeys[_currentPage]!.currentState!;
+  InteractivePanelState? get _activePanelState =>
+      _panelKeys[_currentPage]?.currentState;
 
   Size get _viewportSize => ViewportSizeProvider.of(context).value;
+
   late int _currentPage = widget.initialPageIndex;
+  late double _currentProgress = _pageIndexToProgress(_currentPage);
 
   StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
 
@@ -71,23 +75,50 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
         }
       case ZoomChangeIntent(:final zoomLevel, :final duration, :final curve):
         if (duration > Duration.zero) {
-          _activePanelState.zoomTo(zoomLevel);
+          _activePanelState!.zoomTo(zoomLevel);
         } else {
-          _activePanelState.animateZoomTo(zoomLevel, duration, curve);
+          _activePanelState!.animateZoomTo(zoomLevel, duration, curve);
         }
-      default:
+      case ProgressChangeIntent(:final progress, :final duration, :final curve):
+        _currentProgress = progress;
+        widget.onProgressChange?.call(_currentProgress);
+        final targetIndex = _progressToPageIndex(progress);
+        if (targetIndex != _currentPage) {
+          if (duration > Duration.zero) {
+            _carouselState.animateToPage(targetIndex, duration, curve);
+          } else {
+            _carouselState.jumpToPage(targetIndex);
+          }
+        }
     }
+  }
+
+  double _pageIndexToProgress(int pageIndex) {
+    return (pageIndex / (widget.pageCount - 1)).clamp(0, 1);
+  }
+
+  int _progressToPageIndex(double progress) {
+    return (progress * (widget.pageCount - 1)).round().clamp(
+      0,
+      widget.pageCount - 1,
+    );
   }
 
   void _onPageChange(int index) {
     _currentPage = index;
+
     widget.onPageChange?.call(index);
-    widget.onZoomChange?.call(
-      _activePanelState.zoomLevel.clamp(
-        widget.options.minZoomLevel,
-        widget.options.maxZoomLevel,
-      ),
-    );
+
+    widget.onProgressChange?.call(_pageIndexToProgress(index));
+
+    if (_activePanelState != null) {
+      widget.onZoomChange?.call(
+        _activePanelState!.zoomLevel.clamp(
+          widget.options.minZoomLevel,
+          widget.options.maxZoomLevel,
+        ),
+      );
+    }
   }
 
   void _onPanelScroll(int pageIndex, Offset offset, double zoomLevel) {

@@ -22,7 +22,7 @@ class MangaPageView extends StatefulWidget {
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
   final Function(double zoomLevel)? onZoomChange;
-  final Function(MangaPageViewScrollProgress progress)? onProgressChange;
+  final Function(double progress)? onProgressChange;
 
   @override
   State<MangaPageView> createState() => _MangaPageViewState();
@@ -30,7 +30,6 @@ class MangaPageView extends StatefulWidget {
 
 class _MangaPageViewState extends State<MangaPageView> {
   late int _currentPage = 0;
-  // late final _pageStore = MangaPageLoaderStore();
 
   void _onPageChange(int pageIndex) {
     _currentPage = pageIndex;
@@ -48,8 +47,8 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
-          onZoomChange: widget.onZoomChange,
           onProgressChange: widget.onProgressChange,
+          onZoomChange: widget.onZoomChange,
         ),
         MangaPageViewMode.screen => MangaPagePagedView(
           controller: widget.controller,
@@ -58,21 +57,10 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
+          onProgressChange: widget.onProgressChange,
           onZoomChange: widget.onZoomChange,
         ),
       },
     );
   }
-}
-
-class MangaPageViewScrollProgress {
-  final int currentPage;
-  final int totalPages;
-  final double fraction;
-
-  MangaPageViewScrollProgress({
-    required this.currentPage,
-    required this.totalPages,
-    required this.fraction,
-  });
 }

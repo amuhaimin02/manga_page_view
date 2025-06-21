@@ -27,7 +27,7 @@ class MangaPageContinuousView extends StatefulWidget {
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
   final Function(double zoomLevel)? onZoomChange;
-  final Function(MangaPageViewScrollProgress progress)? onProgressChange;
+  final Function(double progress)? onProgressChange;
 
   @override
   State<MangaPageContinuousView> createState() =>
@@ -210,13 +210,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     }
     final fraction = _offsetToFraction(_currentOffset);
 
-    widget.onProgressChange?.call(
-      MangaPageViewScrollProgress(
-        currentPage: 1,
-        totalPages: 1,
-        fraction: fraction,
-      ),
-    );
+    widget.onProgressChange?.call(fraction);
   }
 
   void _updatePageIndex(Rect viewRegion) {
