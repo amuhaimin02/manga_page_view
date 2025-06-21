@@ -164,7 +164,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     );
   }
 
-  void _handleScroll(Offset offset, double zoomLevel) {
+  void _onScroll(Offset offset, double zoomLevel) {
     final scrollableRegion = _panelState.scrollableRegion;
     switch (widget.options.direction) {
       case PageViewDirection.up:
@@ -389,7 +389,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
       ),
-      onScroll: _handleScroll,
+      onScroll: _onScroll,
     );
   }
 }
