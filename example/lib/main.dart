@@ -27,7 +27,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   final _currentPage = ValueNotifier(0);
   final _currentZoomLevel = ValueNotifier(1.0);
-  final totalPages = 5;
+  final totalPages = 40;
   final _currentProgress = ValueNotifier(0.0);
 
   @override
@@ -70,7 +70,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
-                maxZoomLevel: 10,
+                maxZoomLevel: 8,
                 precacheAhead: 2,
                 precacheBehind: 2,
                 zoomOvershoot: _overshoot,
@@ -88,8 +88,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 //     color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
                 //     // width: _random.nextInt(750) + 250,
                 //     // height: _random.nextInt(750) + 250,
-                //     width: 1000,
-                //     height: 1600,
+                //     width: 1600,
+                //     height: 3000,
                 //   ),
                 // );
                 Widget loadingSpinner([double? progress]) {
@@ -133,10 +133,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 _currentZoomLevel.value = zoomLevel;
               },
               onProgressChange: (progress) {
-                // TODO: Do not use this
-                SchedulerBinding.instance.addPostFrameCallback((_) {
-                  _currentProgress.value = progress;
-                });
+                _currentProgress.value = progress;
               },
             ),
             _buildDebugPanel(context),
@@ -220,7 +217,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                       child: Slider(
                         value: currentZoomLevel,
                         min: 0.5,
-                        max: 4.0,
+                        max: 8.0,
                         label: currentZoomLevel.toStringAsFixed(1),
                         onChanged: (value) {
                           _controller.zoomTo(value);

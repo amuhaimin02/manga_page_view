@@ -187,7 +187,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
             maxWidth: _viewportSize.width,
             maxHeight: _viewportSize.height,
           ),
-          child: FittedBox(fit: BoxFit.contain, child: child),
+          child: child,
         );
       },
       child: widget.pageBuilder(context, index),
