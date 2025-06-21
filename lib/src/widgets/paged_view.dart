@@ -55,7 +55,11 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   void _onControllerIntent(ControllerChangeIntent intent) {
     switch (intent) {
       case PageChangeIntent(index: final pageIndex, animate: final animate):
-        _carouselState.jumpToPage(pageIndex);
+        if (animate) {
+          _carouselState.animateToPage(pageIndex);
+        } else {
+          _carouselState.jumpToPage(pageIndex);
+        }
       default:
     }
   }
@@ -187,6 +191,35 @@ class _PageCarouselState extends State<_PageCarousel>
     _updatePageContents();
   }
 
+  void animateToPage(int newIndex) {
+    if (newIndex == _currentIndex ||
+        newIndex < 0 ||
+        newIndex >= widget.itemCount) {
+      return;
+    }
+
+    // Early callback
+    widget.onPageChange?.call(newIndex);
+
+    final difference = newIndex - _currentIndex;
+
+    final snapTween = Tween<double>(
+      begin: _scrollProgress.value,
+      end: difference.toDouble(),
+    ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut));
+
+    _snapAnimationUpdateListener = () {
+      _scrollProgress.value = snapTween.value;
+      if (_snapAnimation.isCompleted) {
+        _afterSnap();
+      }
+    };
+
+    _snapAnimation
+      ..duration = const Duration(milliseconds: 200)
+      ..forward(from: 0);
+  }
+
   void _onSnapAnimationUpdate() {
     _snapAnimationUpdateListener?.call();
   }
@@ -231,17 +264,21 @@ class _PageCarouselState extends State<_PageCarousel>
       final isFastSwiping = velocityValue.abs() > 500;
       final reverseFactor = widget.direction.isReverse ? -1 : 1;
       final direction = _scrollProgress.value.sign * reverseFactor;
-      final newIndex = _currentIndex - direction;
+      final newIndex = _currentIndex + direction;
 
       final shouldSnap =
           (moreThanHalf || isFastSwiping) &&
           (newIndex >= 0 && newIndex < widget.itemCount);
 
       final target = shouldSnap ? 1.0 : 0.0;
-      final snapTween = Tween<double>(
-        begin: _scrollProgress.value,
-        end: _scrollProgress.value < 0 ? -target : target,
-      ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeOut));
+
+      final snapTween =
+          Tween<double>(
+            begin: _scrollProgress.value,
+            end: direction > 0 ? target : -target,
+          ).animate(
+            CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut),
+          );
 
       _snapAnimationUpdateListener = () {
         _scrollProgress.value = snapTween.value;
@@ -258,17 +295,10 @@ class _PageCarouselState extends State<_PageCarousel>
   }
 
   void _afterSnap() {
-    final reverseFactor = widget.direction.isReverse ? -1 : 1;
-    final progress = _scrollProgress.value * reverseFactor;
-    if (progress < 0) {
-      // Moved forward
-      _currentIndex = _currentIndex + 1;
-      _updatePageContents();
-    } else if (progress > 0) {
-      // Moved backward
-      _currentIndex = _currentIndex - 1;
-      _updatePageContents();
-    }
+    final progress = _scrollProgress.value;
+
+    _currentIndex = _currentIndex + progress.toInt();
+    _updatePageContents();
 
     _currentIndex = _currentIndex.clamp(0, widget.itemCount - 1);
     widget.onPageChange?.call(_currentIndex);
@@ -300,7 +330,7 @@ class _PageCarouselState extends State<_PageCarousel>
             fullScrollSize = _viewportSize.height;
           }
 
-          final progress = _scrollProgress.value + (delta / fullScrollSize);
+          final progress = _scrollProgress.value - (delta / fullScrollSize);
           _scrollProgress.value = progress.clamp(-1.0, 1.0);
         }
       },
@@ -338,15 +368,13 @@ class _PageCarouselState extends State<_PageCarousel>
                     key: ValueKey(item.key),
                     offset: Offset(
                       widget.direction.isHorizontal
-                          ? (progress +
-                                    (item.key - _currentIndex) *
-                                        reverseFactor) *
+                          ? ((item.key - _currentIndex - progress) *
+                                    reverseFactor) *
                                 scrollSize
                           : 0,
                       widget.direction.isVertical
-                          ? (progress +
-                                    (item.key - _currentIndex) *
-                                        reverseFactor) *
+                          ? ((item.key - _currentIndex - progress) *
+                                    reverseFactor) *
                                 scrollSize
                           : 0,
                     ),

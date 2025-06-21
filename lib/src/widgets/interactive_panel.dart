@@ -753,7 +753,7 @@ class InteractivePanelState extends State<InteractivePanel>
       end: _limitOffsetInScrollable(targetOffset),
     );
     final animation = zoomTween.animate(
-      CurvedAnimation(parent: _offsetAnimation, curve: Curves.easeOut),
+      CurvedAnimation(parent: _offsetAnimation, curve: Curves.easeInOut),
     );
 
     _offsetAnimationUpdateListener = () {
