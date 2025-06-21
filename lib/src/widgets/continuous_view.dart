@@ -16,6 +16,7 @@ class MangaPageContinuousView extends StatefulWidget {
     required this.pageCount,
     required this.pageBuilder,
     this.onPageChange,
+    this.onZoomChange,
     this.onProgressChange,
   });
 
@@ -25,6 +26,7 @@ class MangaPageContinuousView extends StatefulWidget {
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
+  final Function(double zoomLevel)? onZoomChange;
   final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
   @override
@@ -67,21 +69,29 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _onControllerIntent(ControllerChangeIntent intent) {
     switch (intent) {
-      case PageChangeIntent(index: final pageIndex, animate: final animate):
-        if (animate) {
-          _animateToPage(pageIndex);
+      case PageChangeIntent(:final index, :final duration, :final curve):
+        if (duration > Duration.zero) {
+          _animateToPage(index, duration, curve);
         } else {
-          _goToPage(pageIndex);
+          _goToPage(index);
         }
-      case ProgressChangeIntent(
-        progress: final progress,
-        animate: final animate,
-      ):
+      case ProgressChangeIntent(:final progress, :final duration, :final curve):
         final targetOffset = progressToOffset(progress);
-        if (animate) {
-          _panelState.animateToOffset(targetOffset, onEnd: _onPageChangeEnd);
+        if (duration > Duration.zero) {
+          _panelState.animateToOffset(
+            targetOffset,
+            duration,
+            curve,
+            onEnd: _onPageChangeEnd,
+          );
         } else {
           _panelState.jumpToOffset(targetOffset);
+        }
+      case ZoomChangeIntent(:final zoomLevel, :final duration, :final curve):
+        if (duration > Duration.zero) {
+          _panelState.animateZoomTo(zoomLevel, duration, curve);
+        } else {
+          _panelState.zoomTo(zoomLevel);
         }
     }
   }
@@ -142,12 +152,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _updatePageDisplay();
   }
 
-  void _animateToPage(int pageIndex) {
+  void _animateToPage(int pageIndex, Duration duration, Curve curve) {
     _isChangingPage = true;
 
     final pageRect = _stripState.pageBounds[pageIndex];
     _panelState.animateToOffset(
       _getPageJumpOffset(pageRect),
+      duration,
+      curve,
       onEnd: _onPageChangeEnd,
     );
   }
@@ -170,7 +182,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     }
 
     _currentOffset = offset;
-    _currentZoomLevel = zoomLevel;
+
+    if (zoomLevel != _currentZoomLevel) {
+      _currentZoomLevel = zoomLevel;
+      widget.onZoomChange?.call(
+        zoomLevel.clamp(
+          widget.options.minZoomLevel,
+          widget.options.maxZoomLevel,
+        ),
+      );
+    }
 
     if (!_isChangingPage) {
       _updatePageDisplay();

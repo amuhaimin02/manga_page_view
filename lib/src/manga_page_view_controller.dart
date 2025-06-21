@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/animation.dart';
+
 class MangaPageViewController {
   MangaPageViewController();
 
@@ -11,20 +13,28 @@ class MangaPageViewController {
     _intents.close();
   }
 
-  void jumpToPage(int index) {
-    _intents.add(PageChangeIntent(index: index, animate: false));
+  void moveToPage(
+    int index, {
+    Duration duration = Duration.zero,
+    Curve curve = Curves.easeInOut,
+  }) {
+    _intents.add(PageChangeIntent(index, duration, curve));
   }
 
-  void animateToPage(int index) {
-    _intents.add(PageChangeIntent(index: index, animate: true));
+  void moveToProgress(
+    double progress, {
+    Duration duration = Duration.zero,
+    Curve curve = Curves.easeInOut,
+  }) {
+    _intents.add(ProgressChangeIntent(progress, duration, curve));
   }
 
-  void jumpToProgress(double progress) {
-    _intents.add(ProgressChangeIntent(progress: progress, animate: false));
-  }
-
-  void animateToProgress(double progress) {
-    _intents.add(ProgressChangeIntent(progress: progress, animate: true));
+  void zoomTo(
+    double zoomLevel, {
+    Duration duration = Duration.zero,
+    Curve curve = Curves.easeInOut,
+  }) {
+    _intents.add(ZoomChangeIntent(zoomLevel, duration, curve));
   }
 }
 
@@ -34,14 +44,24 @@ sealed class ControllerChangeIntent {
 
 class PageChangeIntent extends ControllerChangeIntent {
   final int index;
-  final bool animate;
+  final Duration duration;
+  final Curve curve;
 
-  const PageChangeIntent({required this.index, required this.animate});
+  const PageChangeIntent(this.index, this.duration, this.curve);
 }
 
 class ProgressChangeIntent extends ControllerChangeIntent {
   final double progress;
-  final bool animate;
+  final Duration duration;
+  final Curve curve;
 
-  const ProgressChangeIntent({required this.progress, required this.animate});
+  const ProgressChangeIntent(this.progress, this.duration, this.curve);
+}
+
+class ZoomChangeIntent extends ControllerChangeIntent {
+  final double zoomLevel;
+  final Duration duration;
+  final Curve curve;
+
+  const ZoomChangeIntent(this.zoomLevel, this.duration, this.curve);
 }

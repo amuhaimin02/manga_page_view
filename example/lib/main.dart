@@ -26,6 +26,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   late final _controller = MangaPageViewController();
 
   final _currentPage = ValueNotifier(0);
+  final _currentZoomLevel = ValueNotifier(1.0);
   final totalPages = 40;
   final _currentProgress = ValueNotifier<MangaPageViewScrollProgress?>(null);
 
@@ -128,6 +129,9 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               onPageChange: (index) {
                 _currentPage.value = index;
               },
+              onZoomChange: (zoomLevel) {
+                _currentZoomLevel.value = zoomLevel;
+              },
               onProgressChange: (progress) {
                 // TODO: Do not use this
                 SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -171,7 +175,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                         divisions: totalPages - 1,
                         label: '${currentPage + 1}',
                         onChanged: (value) {
-                          _controller.jumpToPage(value.toInt());
+                          _controller.moveToPage(value.toInt());
                         },
                       ),
                     ),
@@ -197,7 +201,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                         value: fraction,
                         // max: _currentProgress?.totalPixels ?? 0,
                         onChanged: (value) {
-                          _controller.jumpToProgress(value);
+                          _controller.moveToProgress(value);
                         },
                       ),
                     ),
@@ -205,20 +209,49 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 );
               },
             ),
+            ValueListenableBuilder(
+              valueListenable: _currentZoomLevel,
+              builder: (context, currentZoomLevel, child) {
+                return Row(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 30.0, right: 4.0),
+                      child: Icon(Icons.zoom_in),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: currentZoomLevel,
+                        min: 0.5,
+                        max: 4.0,
+                        label: currentZoomLevel.toStringAsFixed(1),
+                        onChanged: (value) {
+                          _controller.zoomTo(value);
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 16,
               children: [
                 IconButton(
                   onPressed: () {
-                    _controller.animateToPage(max(0, _currentPage.value - 1));
+                    _controller.moveToPage(
+                      max(0, _currentPage.value - 1),
+                      duration: Duration(milliseconds: 300),
+                    );
                   },
                   icon: Icon(Icons.skip_previous),
                 ),
                 IconButton(
                   onPressed: () {
-                    _controller.animateToPage(
+                    _controller.moveToPage(
                       min(totalPages - 1, _currentPage.value + 1),
+                      duration: Duration(milliseconds: 300),
                     );
                   },
                   icon: Icon(Icons.skip_next),

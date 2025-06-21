@@ -6,6 +6,10 @@ import 'dart:math' as math;
 
 import 'viewport.dart';
 
+const _trackpadDeviceId = 99;
+const _defaultZoomAnimationDuration = Duration(milliseconds: 300);
+const _defaultZoomAnimationCurve = Curves.easeInOut;
+
 enum InteractivePanelAlignment { top, bottom, left, right }
 
 class InteractivePanelCannotPanNotification extends Notification {}
@@ -131,10 +135,13 @@ class InteractivePanelState extends State<InteractivePanel>
   Offset? _startTouchPoint;
   double? _startPinchDistance;
   double? _startZoomLevel;
-  static const _trackpadDeviceId = 99;
 
   late final _offset = ValueNotifier(Offset.zero);
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
+
+  Offset get offset => _offset.value;
+  double get zoomLevel => _zoomLevel.value;
+
   late final _childSize = ValueNotifier(Size.zero);
   late final _viewport = ValueNotifier(Size.zero);
   late final _viewportSizeProvider = ViewportSizeProvider.of(context);
@@ -201,6 +208,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _resetPosition();
+      _sendScrollInfo();
     });
   }
 
@@ -231,10 +239,27 @@ class InteractivePanelState extends State<InteractivePanel>
     });
   }
 
-  void animateToOffset(Offset offset, {VoidCallback? onEnd}) {
+  void animateToOffset(
+    Offset offset,
+    Duration duration,
+    Curve curve, {
+    VoidCallback? onEnd,
+  }) {
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _animateOffsetChange(targetOffset: offset, onEnd: onEnd);
+      _animateOffsetChange(offset, duration, curve, onEnd: onEnd);
     });
+  }
+
+  void zoomTo(double zoomLevel) {
+    _zoomLevel.value = zoomLevel.clamp(
+      widget.minZoomLevel,
+      widget.maxZoomLevel,
+    );
+    _settlePageOffset();
+  }
+
+  void animateZoomTo(double zoomLevel, Duration duration, Curve curve) {
+    _animateZoomChange(zoomLevel, duration, curve);
   }
 
   void _resetPosition() {
@@ -533,7 +558,12 @@ class InteractivePanelState extends State<InteractivePanel>
 
     if (presetZoomLevels.isEmpty) {
       // Default behavior if no preset levels are defined
-      _animateZoomChange(targetLevel: 1.0, focalPoint: touchPoint);
+      _animateZoomChange(
+        1.0,
+        _defaultZoomAnimationDuration,
+        _defaultZoomAnimationCurve,
+        focalPoint: touchPoint,
+      );
       return;
     }
 
@@ -542,7 +572,12 @@ class InteractivePanelState extends State<InteractivePanel>
       orElse: () => presetZoomLevels.first,
     );
 
-    _animateZoomChange(targetLevel: nextZoomLevel, focalPoint: touchPoint);
+    _animateZoomChange(
+      nextZoomLevel,
+      _defaultZoomAnimationDuration,
+      _defaultZoomAnimationCurve,
+      focalPoint: touchPoint,
+    );
   }
 
   void _handleMouseWheel(Offset focalPoint, Offset delta) {
@@ -644,7 +679,12 @@ class InteractivePanelState extends State<InteractivePanel>
       widget.minZoomLevel,
       widget.maxZoomLevel,
     );
-    _animateZoomChange(targetLevel: settledZoomLevel, handleOffset: false);
+    _animateZoomChange(
+      settledZoomLevel,
+      _defaultZoomAnimationDuration,
+      _defaultZoomAnimationCurve,
+      handleOffset: false,
+    );
   }
 
   void _settlePageOffset({
@@ -719,20 +759,22 @@ class InteractivePanelState extends State<InteractivePanel>
     );
   }
 
-  void _animateZoomChange({
-    required double targetLevel,
+  void _animateZoomChange(
+    double targetLevel,
+    Duration duration,
+    Curve curve, {
     bool handleOffset = true,
     Offset? focalPoint = null,
   }) {
     final currentLevel = _zoomLevel.value;
-    final zoomTween = Tween<double>(begin: currentLevel, end: targetLevel);
-    final animation = zoomTween.animate(
-      CurvedAnimation(parent: _zoomAnimation, curve: Curves.easeInOut),
-    );
+    final zoomTween = Tween<double>(
+      begin: currentLevel,
+      end: targetLevel,
+    ).animate(CurvedAnimation(parent: _zoomAnimation, curve: curve));
 
     _zoomAnimationUpdateListener = () {
       final currentZoom = _zoomLevel.value;
-      final newZoom = animation.value;
+      final newZoom = zoomTween.value;
       _zoomLevel.value = newZoom;
       if (handleOffset) {
         if (focalPoint != null && widget.zoomOnFocalPoint) {
@@ -751,26 +793,25 @@ class InteractivePanelState extends State<InteractivePanel>
     };
 
     _zoomAnimation
-      ..drive(zoomTween)
-      ..duration = Duration(milliseconds: 200)
+      ..duration = duration
       ..forward(from: 0);
   }
 
-  void _animateOffsetChange({
-    required Offset targetOffset,
+  void _animateOffsetChange(
+    Offset targetOffset,
+    Duration duration,
+    Curve curve, {
     VoidCallback? onEnd,
   }) {
     final currentOffset = _offset.value;
-    final zoomTween = Tween<Offset>(
+
+    final offsetTween = Tween<Offset>(
       begin: currentOffset,
       end: _limitOffsetInScrollable(targetOffset),
-    );
-    final animation = zoomTween.animate(
-      CurvedAnimation(parent: _offsetAnimation, curve: Curves.easeInOut),
-    );
+    ).animate(CurvedAnimation(parent: _offsetAnimation, curve: curve));
 
     _offsetAnimationUpdateListener = () {
-      _offset.value = animation.value;
+      _offset.value = offsetTween.value;
       if (_offsetAnimation.isCompleted) {
         _settlePageOffset();
         onEnd?.call();
@@ -778,8 +819,7 @@ class InteractivePanelState extends State<InteractivePanel>
     };
 
     _offsetAnimation
-      ..drive(zoomTween)
-      ..duration = Duration(milliseconds: 200)
+      ..duration = duration
       ..forward(from: 0);
   }
 

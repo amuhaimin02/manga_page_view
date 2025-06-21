@@ -19,6 +19,7 @@ class MangaPagePagedView extends StatefulWidget {
     required this.pageBuilder,
     required this.initialPageIndex,
     this.onPageChange,
+    this.onZoomChange,
   });
 
   final MangaPageViewController controller;
@@ -27,6 +28,7 @@ class MangaPagePagedView extends StatefulWidget {
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
+  final Function(double zoomLevel)? onZoomChange;
 
   @override
   State<MangaPagePagedView> createState() => _MangaPagePagedViewState();
@@ -34,10 +36,14 @@ class MangaPagePagedView extends StatefulWidget {
 
 class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   late final _carouselKey = GlobalKey<_PageCarouselState>();
+  final Map<int, GlobalKey<InteractivePanelState>> _panelKeys = {};
 
   _PageCarouselState get _carouselState => _carouselKey.currentState!;
+  InteractivePanelState get _activePanelState =>
+      _panelKeys[_currentPage]!.currentState!;
 
   Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  late int _currentPage = widget.initialPageIndex;
 
   StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
 
@@ -57,13 +63,41 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
 
   void _onControllerIntent(ControllerChangeIntent intent) {
     switch (intent) {
-      case PageChangeIntent(index: final pageIndex, animate: final animate):
-        if (animate) {
-          _carouselState.animateToPage(pageIndex);
+      case PageChangeIntent(:final index, :final duration, :final curve):
+        if (duration > Duration.zero) {
+          _carouselState.animateToPage(index, duration, curve);
         } else {
-          _carouselState.jumpToPage(pageIndex);
+          _carouselState.jumpToPage(index);
+        }
+      case ZoomChangeIntent(:final zoomLevel, :final duration, :final curve):
+        if (duration > Duration.zero) {
+          _activePanelState.zoomTo(zoomLevel);
+        } else {
+          _activePanelState.animateZoomTo(zoomLevel, duration, curve);
         }
       default:
+    }
+  }
+
+  void _onPageChange(int index) {
+    _currentPage = index;
+    widget.onPageChange?.call(index);
+    widget.onZoomChange?.call(
+      _activePanelState.zoomLevel.clamp(
+        widget.options.minZoomLevel,
+        widget.options.maxZoomLevel,
+      ),
+    );
+  }
+
+  void _onPanelScroll(int pageIndex, Offset offset, double zoomLevel) {
+    if (pageIndex == _currentPage) {
+      widget.onZoomChange?.call(
+        zoomLevel.clamp(
+          widget.options.minZoomLevel,
+          widget.options.maxZoomLevel,
+        ),
+      );
     }
   }
 
@@ -74,13 +108,19 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       initialIndex: widget.initialPageIndex,
       direction: widget.options.direction,
       itemCount: widget.pageCount,
-      onPageChange: widget.onPageChange,
+      onPageChange: _onPageChange,
       itemBuilder: _buildPanel,
     );
   }
 
   Widget _buildPanel(BuildContext context, int index) {
+    // Create keys for panel if not exists. We need them to manipulate the panel states later on.
+    final panelKey = _panelKeys.putIfAbsent(
+      index,
+      () => GlobalKey<InteractivePanelState>(),
+    );
     return InteractivePanel(
+      key: panelKey,
       initialZoomLevel: widget.options.initialZoomLevel,
       minZoomLevel: 1,
       maxZoomLevel: widget.options.maxZoomLevel,
@@ -102,6 +142,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
       panCheckAxis: widget.options.direction.axis,
+      onScroll: (offset, zoomLevel) => _onPanelScroll(index, offset, zoomLevel),
       child: _buildPage(context, index),
     );
   }
@@ -194,7 +235,7 @@ class _PageCarouselState extends State<_PageCarousel>
     _updatePageContents();
   }
 
-  void animateToPage(int newIndex) {
+  void animateToPage(int newIndex, Duration duration, Curve curve) {
     if (newIndex == _currentIndex ||
         newIndex < 0 ||
         newIndex >= widget.itemCount) {
@@ -209,7 +250,7 @@ class _PageCarouselState extends State<_PageCarousel>
     final snapTween = Tween<double>(
       begin: _scrollProgress.value,
       end: difference.toDouble(),
-    ).animate(CurvedAnimation(parent: _snapAnimation, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: _snapAnimation, curve: curve));
 
     _snapAnimationUpdateListener = () {
       _scrollProgress.value = snapTween.value;
@@ -219,7 +260,7 @@ class _PageCarouselState extends State<_PageCarousel>
     };
 
     _snapAnimation
-      ..duration = const Duration(milliseconds: 200)
+      ..duration = duration
       ..forward(from: 0);
   }
 

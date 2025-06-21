@@ -1,9 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
-import 'package:meta/meta.dart';
 import 'widgets/continuous_view.dart';
 import 'widgets/paged_view.dart';
-import 'manga_page_view_controller.dart';
 import 'widgets/viewport.dart';
 
 class MangaPageView extends StatefulWidget {
@@ -14,6 +12,7 @@ class MangaPageView extends StatefulWidget {
     required this.pageCount,
     required this.pageBuilder,
     this.onPageChange,
+    this.onZoomChange,
     this.onProgressChange,
   });
 
@@ -22,6 +21,7 @@ class MangaPageView extends StatefulWidget {
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
+  final Function(double zoomLevel)? onZoomChange;
   final Function(MangaPageViewScrollProgress progress)? onProgressChange;
 
   @override
@@ -48,6 +48,7 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
+          onZoomChange: widget.onZoomChange,
           onProgressChange: widget.onProgressChange,
         ),
         MangaPageViewMode.screen => MangaPagePagedView(
@@ -57,6 +58,7 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
+          onZoomChange: widget.onZoomChange,
         ),
       },
     );
