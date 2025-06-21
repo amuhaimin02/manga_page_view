@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/src/widgets/viewport.dart';
+import 'package:manga_page_view/src/widgets/viewport_size.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
@@ -48,7 +48,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   InteractivePanelState get _panelState => _interactionPanelKey.currentState!;
   _PageStripState get _stripState => _stripContainerKey.currentState!;
 
-  Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  Size get _viewportSize => ViewportSize.of(context).value;
 
   StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
 
@@ -356,6 +356,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     return InteractivePanel(
       key: _interactionPanelKey,
       initialZoomLevel: widget.options.initialZoomLevel,
+      initialFadeInDuration: widget.options.initialFadeInDuration,
+      initialFadeInCurve: widget.options.initialFadeInCurve,
       minZoomLevel: widget.options.minZoomLevel,
       maxZoomLevel: widget.options.maxZoomLevel,
       presetZoomLevels: widget.options.presetZoomLevels,
@@ -426,7 +428,7 @@ class _PageStripState extends State<_PageStrip> {
 
   List<Rect> get pageBounds => _pageBounds;
 
-  Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  Size get _viewportSize => ViewportSize.of(context).value;
 
   @override
   void initState() {

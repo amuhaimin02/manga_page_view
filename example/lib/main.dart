@@ -19,7 +19,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   late PageViewDirection _scrollDirection;
-  MangaPageViewMode _mode = MangaPageViewMode.screen;
+  MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.center;
 
@@ -272,8 +272,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     onPressed: () {
                       setState(() {
                         _mode = switch (_mode) {
-                          MangaPageViewMode.paged => MangaPageViewMode.screen,
-                          MangaPageViewMode.screen => MangaPageViewMode.paged,
+                          MangaPageViewMode.paged =>
+                            MangaPageViewMode.continuous,
+                          MangaPageViewMode.continuous =>
+                            MangaPageViewMode.paged,
                         };
                       });
                     },

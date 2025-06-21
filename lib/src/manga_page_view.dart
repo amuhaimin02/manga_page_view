@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 import 'widgets/continuous_view.dart';
 import 'widgets/paged_view.dart';
-import 'widgets/viewport.dart';
+import 'widgets/viewport_size.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView({
@@ -38,9 +38,9 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   @override
   Widget build(BuildContext context) {
-    return ViewportChangeListener(
+    return ViewportSize(
       child: switch (widget.options.mode) {
-        MangaPageViewMode.paged => MangaPageContinuousView(
+        MangaPageViewMode.continuous => MangaPageContinuousView(
           initialPageIndex: _currentPage,
           controller: widget.controller,
           options: widget.options,
@@ -50,7 +50,7 @@ class _MangaPageViewState extends State<MangaPageView> {
           onProgressChange: widget.onProgressChange,
           onZoomChange: widget.onZoomChange,
         ),
-        MangaPageViewMode.screen => MangaPagePagedView(
+        MangaPageViewMode.paged => MangaPagePagedView(
           controller: widget.controller,
           initialPageIndex: _currentPage,
           options: widget.options,

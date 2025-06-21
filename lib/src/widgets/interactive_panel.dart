@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
-import 'viewport.dart';
+import 'viewport_size.dart';
 
 const _trackpadDeviceId = 99;
 const _defaultZoomAnimationDuration = Duration(milliseconds: 300);
@@ -19,6 +19,8 @@ class InteractivePanel extends StatefulWidget {
     super.key,
     required this.child,
     required this.initialZoomLevel,
+    required this.initialFadeInDuration,
+    required this.initialFadeInCurve,
     required this.minZoomLevel,
     required this.maxZoomLevel,
     required this.presetZoomLevels,
@@ -33,6 +35,8 @@ class InteractivePanel extends StatefulWidget {
 
   final Widget child;
   final double initialZoomLevel;
+  final Duration initialFadeInDuration;
+  final Curve initialFadeInCurve;
   final double minZoomLevel;
   final double maxZoomLevel;
   final List<double> presetZoomLevels;
@@ -122,7 +126,7 @@ class InteractivePanelState extends State<InteractivePanel>
   late final _zoomAnimation = AnimationController(vsync: this);
   late final _firstAppearanceAnimation = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: 200),
+    duration: widget.initialFadeInDuration,
   );
 
   VoidCallback? _offsetAnimationUpdateListener;
@@ -144,7 +148,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
   late final _childSize = ValueNotifier(Size.zero);
   late final _viewport = ValueNotifier(Size.zero);
-  late final _viewportSizeProvider = ViewportSizeProvider.of(context);
+  late final _viewportSizeProvider = ViewportSize.of(context);
 
   late final _scrollRegionChange = Listenable.merge([_zoomLevel, _viewport]);
 
@@ -276,9 +280,7 @@ class InteractivePanelState extends State<InteractivePanel>
     final childSize = _childSize.value;
     final viewportSize = _viewport.value;
 
-    if (childSize.isEmpty || viewportSize.isEmpty) {
-      return;
-    }
+    if (childSize.isEmpty || viewportSize.isEmpty) return;
 
     double fraction(double value, double min, double max) {
       return (value - min) / (max - min);
@@ -365,9 +367,7 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handlePanDrag(Offset delta) {
-    if (_isPanLocked) {
-      return;
-    }
+    if (_isPanLocked) return;
 
     final deltaX = delta.dx / _zoomLevel.value;
     final deltaY = delta.dy / _zoomLevel.value;
@@ -396,9 +396,7 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _checkPanPossible(Offset offset) {
-    if (_isPinching) {
-      return;
-    }
+    if (_isPinching) return;
 
     bool cannotPan = false;
     final axis = widget.panCheckAxis;
@@ -476,9 +474,8 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handleZoomDrag(Offset position) {
-    if (_isPanLocked) {
-      return;
-    }
+    if (_isPanLocked) return;
+
     final currentZoom = _zoomLevel.value;
     final difference = position.dy - _startTouchPoint!.dy;
 
@@ -508,17 +505,15 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handleFling(Velocity velocity) {
-    if (_isPanLocked) {
-      return;
-    }
+    if (_isPanLocked) return;
+
     _settlePageOffset(velocity: velocity.pixelsPerSecond / _zoomLevel.value);
     _settleZoom();
   }
 
   void _handlePinch(Offset focalPoint, double scale) {
-    if (_isPanLocked) {
-      return;
-    }
+    if (_isPanLocked) return;
+
     final currentZoom = _zoomLevel.value;
     double newZoom = _startZoomLevel! * scale;
 
@@ -994,7 +989,10 @@ class InteractivePanelState extends State<InteractivePanel>
               return Transform.translate(offset: -offset, child: child);
             },
             child: FadeTransition(
-              opacity: _firstAppearanceAnimation,
+              opacity: CurvedAnimation(
+                parent: _firstAppearanceAnimation,
+                curve: widget.initialFadeInCurve,
+              ),
               child: OverflowBox(
                 maxWidth: double.infinity,
                 maxHeight: double.infinity,

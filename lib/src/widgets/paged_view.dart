@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
-import 'viewport.dart';
+import 'viewport_size.dart';
 
 const flingVelocityThreshold = 500;
 
@@ -44,7 +44,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   InteractivePanelState? get _activePanelState =>
       _panelKeys[_currentPage]?.currentState;
 
-  Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  Size get _viewportSize => ViewportSize.of(context).value;
 
   late int _currentPage = widget.initialPageIndex;
   late double _currentProgress = _pageIndexToProgress(_currentPage);
@@ -153,6 +153,8 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     return InteractivePanel(
       key: panelKey,
       initialZoomLevel: widget.options.initialZoomLevel,
+      initialFadeInDuration: widget.options.initialFadeInDuration,
+      initialFadeInCurve: widget.options.initialFadeInCurve,
       minZoomLevel: 1,
       maxZoomLevel: widget.options.maxZoomLevel,
       presetZoomLevels: widget.options.presetZoomLevels
@@ -180,7 +182,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
 
   Widget _buildPage(BuildContext context, int index) {
     return ValueListenableBuilder(
-      valueListenable: ViewportSizeProvider.of(context),
+      valueListenable: ViewportSize.of(context),
       builder: (context, value, child) {
         return ConstrainedBox(
           constraints: BoxConstraints(
@@ -226,7 +228,7 @@ class _PageCarouselState extends State<_PageCarousel>
   late int _currentIndex = widget.initialIndex;
   bool _canMove = false;
 
-  Size get _viewportSize => ViewportSizeProvider.of(context).value;
+  Size get _viewportSize => ViewportSize.of(context).value;
   VelocityTracker? _velocityTracker;
 
   @override

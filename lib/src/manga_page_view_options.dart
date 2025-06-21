@@ -18,6 +18,8 @@ class MangaPageViewOptions {
   final PageViewGravity pageSenseGravity;
   final PageViewGravity pageJumpGravity;
   final bool zoomOnFocalPoint;
+  final Duration initialFadeInDuration;
+  final Curve initialFadeInCurve;
 
   const MangaPageViewOptions({
     this.mode = MangaPageViewMode.paged,
@@ -37,10 +39,12 @@ class MangaPageViewOptions {
     this.pageSenseGravity = PageViewGravity.center,
     this.pageJumpGravity = PageViewGravity.start,
     this.zoomOnFocalPoint = true,
+    this.initialFadeInDuration = const Duration(milliseconds: 300),
+    this.initialFadeInCurve = Curves.linear,
   });
 }
 
-enum MangaPageViewMode { screen, paged }
+enum MangaPageViewMode { continuous, paged }
 
 enum PageViewDirection {
   up,
