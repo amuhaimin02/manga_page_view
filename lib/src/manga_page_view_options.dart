@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class MangaPageViewOptions {
   final MangaPageViewMode mode;
@@ -51,6 +51,8 @@ enum PageViewDirection {
   bool get isVertical => this == up || this == down;
   bool get isHorizontal => this == left || this == right;
   bool get isReverse => this == up || this == left;
+
+  Axis get axis => isVertical ? Axis.vertical : Axis.horizontal;
 }
 
 enum PageViewGravity {

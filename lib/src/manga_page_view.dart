@@ -3,7 +3,7 @@ import 'package:manga_page_view/manga_page_view.dart';
 import 'package:meta/meta.dart';
 import 'manga_page_continuous_view.dart';
 import 'manga_page_screen_view.dart';
-import 'widgets/viewport_change.dart';
+import 'widgets/viewport.dart';
 
 class MangaPageView extends StatefulWidget {
   const MangaPageView({

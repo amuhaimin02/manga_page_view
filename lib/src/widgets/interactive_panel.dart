@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
-import 'viewport_change.dart';
+import 'viewport.dart';
 
-enum PanelAlignment { top, bottom, left, right }
+enum InteractivePanelAlignment { top, bottom, left, right }
 
-class MangaPageInteractivePanel extends StatefulWidget {
-  const MangaPageInteractivePanel({
+class InteractivePanelCannotPanNotification extends Notification {}
+
+class InteractivePanel extends StatefulWidget {
+  const InteractivePanel({
     super.key,
     required this.child,
     required this.initialZoomLevel,
@@ -21,6 +23,7 @@ class MangaPageInteractivePanel extends StatefulWidget {
     required this.alignment,
     required this.zoomOnFocalPoint,
     required this.zoomOvershoot,
+    required this.panCheckAxis,
     this.onScroll,
   });
 
@@ -31,14 +34,14 @@ class MangaPageInteractivePanel extends StatefulWidget {
   final List<double> presetZoomLevels;
   final bool verticalOverscroll;
   final bool horizontalOverscroll;
-  final PanelAlignment alignment;
+  final InteractivePanelAlignment alignment;
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
+  final Axis? panCheckAxis;
   final Function(Offset offset, double zoomLevel)? onScroll;
 
   @override
-  State<MangaPageInteractivePanel> createState() =>
-      MangaPageInteractivePanelState();
+  State<InteractivePanel> createState() => InteractivePanelState();
 }
 
 class _DoubleTapDetector {
@@ -105,7 +108,7 @@ class _DoubleTapDetector {
   }
 }
 
-class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
+class InteractivePanelState extends State<InteractivePanel>
     with TickerProviderStateMixin {
   late final _childKey = GlobalKey();
 
@@ -144,8 +147,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
 
   bool get _isFlinging =>
       _flingXAnimation.isAnimating || _flingYAnimation.isAnimating;
-
   bool get _isTouching => _activePointers.isNotEmpty;
+  bool _isPanning = false;
+  bool _isPanLocked = false;
 
   @override
   void initState() {
@@ -200,7 +204,7 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   @override
-  void didUpdateWidget(covariant MangaPageInteractivePanel oldWidget) {
+  void didUpdateWidget(covariant InteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     _firstAppearanceAnimation.forward(from: 0);
 
@@ -240,8 +244,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _changeAlignmentAxis(
-    PanelAlignment oldAlignment,
-    PanelAlignment newAlignment,
+    InteractivePanelAlignment oldAlignment,
+    InteractivePanelAlignment newAlignment,
   ) {
     final childSize = _childSize.value;
     final viewportSize = _viewport.value;
@@ -259,12 +263,14 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     }
 
     final currentScrollProgress = switch (oldAlignment) {
-      PanelAlignment.left || PanelAlignment.right => fraction(
+      InteractivePanelAlignment.left ||
+      InteractivePanelAlignment.right => fraction(
         _offset.value.dx.abs(),
         _scrollableRegion.left,
         _scrollableRegion.right,
       ),
-      PanelAlignment.top || PanelAlignment.bottom => fraction(
+      InteractivePanelAlignment.top ||
+      InteractivePanelAlignment.bottom => fraction(
         _offset.value.dy.abs(),
         _scrollableRegion.top,
         _scrollableRegion.bottom,
@@ -274,7 +280,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     _updateScrollableRegion();
 
     Offset newOffset = switch (newAlignment) {
-      PanelAlignment.left || PanelAlignment.right => Offset(
+      InteractivePanelAlignment.left ||
+      InteractivePanelAlignment.right => Offset(
         unfraction(
           currentScrollProgress,
           _scrollableRegion.left,
@@ -282,7 +289,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         ),
         0,
       ),
-      PanelAlignment.top || PanelAlignment.bottom => Offset(
+      InteractivePanelAlignment.top ||
+      InteractivePanelAlignment.bottom => Offset(
         0,
         unfraction(
           currentScrollProgress,
@@ -291,8 +299,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
         ),
       ),
     };
-    if (newAlignment == PanelAlignment.bottom ||
-        newAlignment == PanelAlignment.right) {
+    if (newAlignment == InteractivePanelAlignment.bottom ||
+        newAlignment == InteractivePanelAlignment.right) {
       newOffset = newOffset;
     }
 
@@ -323,6 +331,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _handlePanDrag(Offset delta) {
+    if (_isPanLocked) {
+      return;
+    }
+
     final deltaX = delta.dx / _zoomLevel.value;
     final deltaY = delta.dy / _zoomLevel.value;
 
@@ -337,7 +349,40 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
       newY = _limitBound(newY, _scrollableRegion.top, _scrollableRegion.bottom);
     }
 
-    _offset.value = Offset(newX, newY);
+    final newOffset = Offset(newX, newY);
+
+    if (!_isPanning) {
+      // First time panning
+      _isPanning = true;
+
+      bool cannotPan = false;
+      final axis = widget.panCheckAxis;
+
+      if (axis != null) {
+        // Check if user can pan out of bounds
+        if (axis == Axis.vertical) {
+          if (newOffset.dy <= _scrollableRegion.top ||
+              newOffset.dy >= _scrollableRegion.bottom) {
+            cannotPan = true;
+          }
+        } else if (axis == Axis.horizontal) {
+          print(
+            'Checking ${newOffset.dx} ${_scrollableRegion.left} ${_scrollableRegion.right}',
+          );
+          if (newOffset.dx <= _scrollableRegion.left ||
+              newOffset.dx >= _scrollableRegion.right) {
+            cannotPan = true;
+          }
+        }
+
+        if (cannotPan) {
+          InteractivePanelCannotPanNotification().dispatch(context);
+          _isPanLocked = true;
+        }
+      }
+    } else {
+      _offset.value = newOffset;
+    }
   }
 
   double _resistZoomOvershoot(double currentZoom) {
@@ -413,6 +458,9 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   }
 
   void _handleFling(Velocity velocity) {
+    if (_isPanLocked) {
+      return;
+    }
     _settlePageOffset(velocity: velocity.pixelsPerSecond / _zoomLevel.value);
     _settleZoom();
   }
@@ -443,6 +491,8 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
   void _handleLift() {
     if (_activePointers.isEmpty) {
       _isZoomDragging = false;
+      _isPanning = false;
+      _isPanLocked = false;
       _startTouchPoint = null;
       _startPinchDistance = null;
       _startZoomLevel = null;
@@ -540,10 +590,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
     }
 
     // Inverse coordinate system for inverted directions
-    if (widget.alignment == PanelAlignment.right) {
+    if (widget.alignment == InteractivePanelAlignment.right) {
       left = -left;
       right = -right;
-    } else if (widget.alignment == PanelAlignment.bottom) {
+    } else if (widget.alignment == InteractivePanelAlignment.bottom) {
       top = -top;
       bottom = -bottom;
     }
@@ -872,10 +922,10 @@ class MangaPageInteractivePanelState extends State<MangaPageInteractivePanel>
                 maxWidth: double.infinity,
                 maxHeight: double.infinity,
                 alignment: switch (widget.alignment) {
-                  PanelAlignment.top => Alignment.topLeft,
-                  PanelAlignment.left => Alignment.topLeft,
-                  PanelAlignment.bottom => Alignment.bottomLeft,
-                  PanelAlignment.right => Alignment.topRight,
+                  InteractivePanelAlignment.top => Alignment.topLeft,
+                  InteractivePanelAlignment.left => Alignment.topLeft,
+                  InteractivePanelAlignment.bottom => Alignment.bottomLeft,
+                  InteractivePanelAlignment.right => Alignment.topRight,
                 },
                 child: NotificationListener(
                   onNotification: (event) {

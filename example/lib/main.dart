@@ -19,7 +19,7 @@ class MangaPagesExampleApp extends StatefulWidget {
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
   late PageViewDirection _scrollDirection;
-  MangaPageViewMode _mode = MangaPageViewMode.continuous;
+  MangaPageViewMode _mode = MangaPageViewMode.screen;
   bool _overshoot = true;
   PageViewGravity _scrollGravity = PageViewGravity.center;
 
@@ -79,7 +79,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               ),
               pageCount: totalPages,
               pageBuilder: (context, index) {
-                print('Loading page ${index + 1}');
+                // print('Loading page ${index + 1}');
                 // return FittedBox(
                 //   fit: BoxFit.contain,
                 //   child: RandomPage(
