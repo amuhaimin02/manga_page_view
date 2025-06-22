@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
+import 'double_tap_detector.dart';
 import 'viewport_size.dart';
 
 const _trackpadDeviceId = 99;
@@ -52,70 +53,6 @@ class InteractivePanel extends StatefulWidget {
   State<InteractivePanel> createState() => InteractivePanelState();
 }
 
-class _DoubleTapDetector {
-  static const _durationThreshold = Duration(milliseconds: 300);
-  static const _distanceThreshold = 40.0;
-
-  _DoubleTapDetector();
-
-  Duration? _firstTapTimestamp;
-  Duration? _secondTapTimestamp;
-  Offset? _firstTapPosition;
-  Offset? _secondTapPosition;
-
-  void registerTap(Duration timestamp, Offset position) {
-    if (_firstTapTimestamp != null &&
-        timestamp - _firstTapTimestamp! > _durationThreshold) {
-      reset();
-    }
-    if (_secondTapTimestamp != null &&
-        timestamp - _secondTapTimestamp! > _durationThreshold) {
-      reset();
-    }
-
-    if (_firstTapTimestamp == null) {
-      _firstTapTimestamp = timestamp;
-      _firstTapPosition = position;
-    } else if (_secondTapTimestamp == null) {
-      _secondTapTimestamp = timestamp;
-      _secondTapPosition = position;
-    }
-  }
-
-  void registerUntap(Duration timestamp, Offset position) {
-    if (_firstTapTimestamp != null &&
-        timestamp - _firstTapTimestamp! > _durationThreshold) {
-      reset();
-    }
-  }
-
-  void reset() {
-    _firstTapTimestamp = null;
-    _secondTapTimestamp = null;
-    _firstTapPosition = null;
-    _secondTapPosition = null;
-  }
-
-  bool isTriggered(Duration timestamp) {
-    if (_firstTapTimestamp == null || _secondTapTimestamp == null) {
-      return false;
-    }
-
-    if (timestamp - _secondTapTimestamp! > _durationThreshold) {
-      return false;
-    }
-
-    final duration = _secondTapTimestamp! - _firstTapTimestamp!;
-    final distance = (_firstTapPosition! - _secondTapPosition!).distance;
-
-    return duration < _durationThreshold && distance < _distanceThreshold;
-  }
-
-  bool willTrigger(Duration timestamp) {
-    return _firstTapTimestamp != null && _secondTapTimestamp == null;
-  }
-}
-
 class InteractivePanelState extends State<InteractivePanel>
     with TickerProviderStateMixin {
   late final _childKey = GlobalKey();
@@ -134,8 +71,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
   final _activePointers = <int, VelocityTracker>{};
   final _activePositions = <int, Offset>{};
-  final _doubleTapDetector = _DoubleTapDetector();
-  bool _isZoomDragging = false;
+  final _doubleTapDetector = DoubleTapDetector();
   Offset? _startTouchPoint;
   double? _startPinchDistance;
   double? _startZoomLevel;
@@ -162,6 +98,7 @@ class InteractivePanelState extends State<InteractivePanel>
   bool _isPinching = false;
   bool _isPanning = false;
   bool _isPanLocked = false;
+  bool _isZoomDragging = false;
 
   @override
   void initState() {
@@ -874,6 +811,10 @@ class InteractivePanelState extends State<InteractivePanel>
               event.localPosition,
             );
             _startTouchPoint = event.localPosition;
+
+            if (_doubleTapDetector.isActive(event.timeStamp)) {
+              _isZoomDragging = true;
+            }
           } else if (event.device == 1) {
             // Secondary touch
             final firstTouchPosition = _activePositions[0];
@@ -882,10 +823,6 @@ class InteractivePanelState extends State<InteractivePanel>
               _startPinchDistance =
                   (firstTouchPosition - secondTouchPosition).distance;
             }
-          }
-          if (event.device == 0 &&
-              _doubleTapDetector.isTriggered(event.timeStamp)) {
-            _isZoomDragging = true;
           }
         },
         onPointerUp: (event) {
@@ -896,12 +833,7 @@ class InteractivePanelState extends State<InteractivePanel>
           _activePointers.remove(event.device);
           _activePositions.remove(event.device);
 
-          if (event.device == 0) {
-            _doubleTapDetector.registerUntap(
-              event.timeStamp,
-              event.localPosition,
-            );
-          } else if (event.device == 1) {
+          if (event.device == 1) {
             // Second touch released
             // Record zoom level in case of user wants to pinch again
             _isPinching = false;
@@ -909,13 +841,15 @@ class InteractivePanelState extends State<InteractivePanel>
           }
 
           if (_activePointers.isEmpty) {
-            if (event.device == 0 &&
-                _doubleTapDetector.isTriggered(event.timeStamp)) {
-              _handleZoomDoubleTap(_startTouchPoint!);
+            if (_doubleTapDetector.isActive(event.timeStamp)) {
+              _handleZoomDoubleTap(event.localPosition);
             } else {
               final magnitude = tracker.getVelocity().pixelsPerSecond.distance;
-              if (magnitude > 0 ||
-                  !_doubleTapDetector.willTrigger(event.timeStamp)) {
+              if (magnitude > 300 ||
+                  !_doubleTapDetector.isAwaitingSecondTap(
+                    event.timeStamp,
+                    event.localPosition,
+                  )) {
                 _handleFling(tracker.getVelocity());
               }
             }
@@ -931,7 +865,6 @@ class InteractivePanelState extends State<InteractivePanel>
             event.localPosition,
           );
           _activePositions[event.device] = event.localPosition;
-          _doubleTapDetector.reset();
 
           if (_isZoomDragging) {
             _handleZoomDrag(event.localPosition);
