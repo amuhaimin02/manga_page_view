@@ -857,6 +857,9 @@ class InteractivePanelState extends State<InteractivePanel>
       child: Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: (event) {
+          // Only detects left mouse click or touch
+          if (event.buttons & kPrimaryButton == 0) return;
+
           _activePointers[event.device] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
           ;
@@ -886,6 +889,9 @@ class InteractivePanelState extends State<InteractivePanel>
           }
         },
         onPointerUp: (event) {
+          // Skip if the gestures aren't captured by pointerDown/pointerMove events
+          if (!_activePointers.containsKey(event.device)) return;
+
           final tracker = _activePointers[event.device]!;
           _activePointers.remove(event.device);
           _activePositions.remove(event.device);
@@ -917,6 +923,9 @@ class InteractivePanelState extends State<InteractivePanel>
           }
         },
         onPointerMove: (event) {
+          // Only detects left mouse click or touch
+          if (event.buttons & kPrimaryButton == 0) return;
+
           _activePointers[event.device]!.addPosition(
             event.timeStamp,
             event.localPosition,

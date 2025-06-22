@@ -9,7 +9,6 @@ class MangaPageViewOptions {
   final double spacing;
   final PageViewDirection direction;
   final Size initialPageSize;
-  final Size maxPageSize;
   final bool mainAxisOverscroll;
   final bool crossAxisOverscroll;
   final bool zoomOvershoot;
@@ -30,7 +29,6 @@ class MangaPageViewOptions {
     this.spacing = 0.0,
     this.direction = PageViewDirection.down,
     this.initialPageSize = const Size(512, 512),
-    this.maxPageSize = const Size(4096, 4096),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
     this.zoomOvershoot = true,

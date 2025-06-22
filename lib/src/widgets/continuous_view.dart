@@ -385,7 +385,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         direction: widget.options.direction,
         spacing: widget.options.spacing,
         initialPageSize: widget.options.initialPageSize,
-        maxPageSize: widget.options.maxPageSize,
         precacheAhead: widget.options.precacheAhead,
         precacheBehind: widget.options.precacheBehind,
         pageCount: widget.pageCount,
@@ -404,7 +403,6 @@ class _PageStrip extends StatefulWidget {
     required this.direction,
     required this.spacing,
     required this.initialPageSize,
-    required this.maxPageSize,
     required this.precacheAhead,
     required this.precacheBehind,
   });
@@ -412,7 +410,6 @@ class _PageStrip extends StatefulWidget {
   final PageViewDirection direction;
   final double spacing;
   final Size initialPageSize;
-  final Size maxPageSize;
   final int precacheAhead;
   final int precacheBehind;
   final int pageCount;
@@ -562,15 +559,9 @@ class _PageStripState extends State<_PageStrip> {
             return false;
           },
           child: SizeChangedLayoutNotifier(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: widget.maxPageSize.width,
-                maxHeight: widget.maxPageSize.height,
-              ),
-              child:
-                  _loadedWidgets[index] ??
-                  SizedBox.fromSize(size: widget.initialPageSize),
-            ),
+            child:
+                _loadedWidgets[index] ??
+                SizedBox.fromSize(size: widget.initialPageSize),
           ),
         );
       },

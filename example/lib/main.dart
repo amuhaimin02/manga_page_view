@@ -81,42 +81,44 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               pageCount: totalPages,
               pageBuilder: (context, index) {
                 // print('Loading page ${index + 1}');
-                // return FittedBox(
-                //   fit: BoxFit.contain,
-                //   child: RandomPage(
-                //     label: 'Page #${index + 1}',
-                //     color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                //     // width: _random.nextInt(750) + 250,
-                //     // height: _random.nextInt(750) + 250,
-                //     width: 1600,
-                //     height: 3000,
+                // return Buffered(
+                //   child: FittedBox(
+                //     fit: BoxFit.contain,
+                //     child: RandomPage(
+                //       label: 'Page #${index + 1}',
+                //       color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                //       width: _random.nextInt(750) + 250,
+                //       height: _random.nextInt(750) + 250,
+                //     ),
                 //   ),
                 // );
-                Widget loadingSpinner([double? progress]) {
-                  return Container(
-                    width: 600,
-                    height: 600,
-                    alignment: Alignment.center,
-                    child: CircularProgressIndicator(value: progress),
-                  );
-                }
 
                 return CachedNetworkImage(
                   imageUrl: 'https://picsum.photos/851/1201?c=$index',
                   placeholder: (context, url) => Container(
-                    width: 600,
-                    height: 600,
+                    // width: 600,
+                    // height: 600
+                    margin: EdgeInsets.all(64),
                     alignment: Alignment.center,
-                    child: CircularProgressIndicator(),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
-                    width: 600,
-                    height: 600,
+                    // width: 600,
+                    // height: 600,
+                    margin: EdgeInsets.all(32),
                     alignment: Alignment.center,
                     child: Icon(Icons.error),
                   ),
                 );
 
+                // Widget loadingSpinner([double? progress]) {
+                //   return Container(
+                //     width: 600,
+                //     height: 600,
+                //     alignment: Alignment.center,
+                //     child: CircularProgressIndicator(value: progress),
+                //   );
+                // }
                 // return Image.network(
                 //   'https://picsum.photos/851/1201?c=$index',
                 //   fit: BoxFit.contain,
@@ -361,10 +363,11 @@ class Buffered extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.done) {
           return child;
         } else {
-          return SizedBox(
+          return Container(
             width: 300,
             height: 300,
-            child: Center(child: CircularProgressIndicator()),
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(),
           );
         }
       },

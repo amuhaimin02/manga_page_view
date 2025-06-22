@@ -33,7 +33,15 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   void _onPageChange(int pageIndex) {
     _currentPage = pageIndex;
-    widget.onPageChange?.call(pageIndex);
+    Future.microtask(() => widget.onPageChange?.call(pageIndex));
+  }
+
+  void _onProgressChange(double progress) {
+    Future.microtask(() => widget.onProgressChange?.call(progress));
+  }
+
+  void _onZoomChange(double zoomLevel) {
+    Future.microtask(() => widget.onZoomChange?.call(zoomLevel));
   }
 
   @override
@@ -47,8 +55,8 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
-          onProgressChange: widget.onProgressChange,
-          onZoomChange: widget.onZoomChange,
+          onProgressChange: _onProgressChange,
+          onZoomChange: _onZoomChange,
         ),
         MangaPageViewMode.paged => MangaPagePagedView(
           controller: widget.controller,
@@ -57,8 +65,8 @@ class _MangaPageViewState extends State<MangaPageView> {
           pageCount: widget.pageCount,
           pageBuilder: widget.pageBuilder,
           onPageChange: _onPageChange,
-          onProgressChange: widget.onProgressChange,
-          onZoomChange: widget.onZoomChange,
+          onProgressChange: _onProgressChange,
+          onZoomChange: _onZoomChange,
         ),
       },
     );
