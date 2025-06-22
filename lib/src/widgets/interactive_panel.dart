@@ -158,8 +158,8 @@ class InteractivePanelState extends State<InteractivePanel>
     super.didUpdateWidget(oldWidget);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _stopFlinging();
       if (widget.alignment != oldWidget.alignment) {
+        _stopFlinging();
         _changeAlignmentAxis(oldWidget.alignment, widget.alignment);
       }
       _sendScrollInfo();
