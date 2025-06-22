@@ -387,6 +387,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         initialPageSize: widget.options.initialPageSize,
         precacheAhead: widget.options.precacheAhead,
         precacheBehind: widget.options.precacheBehind,
+        widthLimit: widget.options.pageWidthLimit,
+        heightLimit: widget.options.pageHeightLimit,
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
       ),
@@ -405,6 +407,8 @@ class _PageStrip extends StatefulWidget {
     required this.initialPageSize,
     required this.precacheAhead,
     required this.precacheBehind,
+    required this.widthLimit,
+    required this.heightLimit,
   });
 
   final PageViewDirection direction;
@@ -412,6 +416,8 @@ class _PageStrip extends StatefulWidget {
   final Size initialPageSize;
   final int precacheAhead;
   final int precacheBehind;
+  final double? widthLimit;
+  final double? heightLimit;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
 
@@ -526,9 +532,21 @@ class _PageStripState extends State<_PageStrip> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.direction.isVertical ? _viewportSize.width : null,
-      height: widget.direction.isHorizontal ? _viewportSize.height : null,
+    double? containerWidth = null;
+    double? containerHeight = null;
+
+    // Limit cross-axis size if specified. By default they follow viewport size
+    if (widget.direction.isVertical) {
+      containerWidth = widget.widthLimit ?? _viewportSize.width;
+    } else if (widget.direction.isHorizontal) {
+      containerHeight = widget.heightLimit ?? _viewportSize.height;
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: containerWidth ?? double.infinity,
+        maxHeight: containerHeight ?? double.infinity,
+      ),
       child: Flex(
         direction: widget.direction.isVertical
             ? Axis.vertical

@@ -77,28 +77,30 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 pageJumpGravity: _scrollGravity,
                 pageSenseGravity: _scrollGravity,
                 initialPageSize: Size(600, 600),
+                pageWidthLimit: 1000,
               ),
               pageCount: totalPages,
               pageBuilder: (context, index) {
                 // print('Loading page ${index + 1}');
-                // return Buffered(
-                //   child: FittedBox(
-                //     fit: BoxFit.contain,
-                //     child: RandomPage(
-                //       label: 'Page #${index + 1}',
-                //       color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                //       width: _random.nextInt(750) + 250,
-                //       height: _random.nextInt(750) + 250,
-                //     ),
-                //   ),
-                // );
+                return Buffered(
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: RandomPage(
+                      label: 'Page #${index + 1}',
+                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                      width: _random.nextInt(750) + 250,
+                      height: _random.nextInt(750) + 250,
+                    ),
+                  ),
+                );
 
                 return CachedNetworkImage(
+                  fit: BoxFit.contain,
                   imageUrl: 'https://picsum.photos/851/1201?c=$index',
                   placeholder: (context, url) => Container(
                     // width: 600,
                     // height: 600
-                    margin: EdgeInsets.all(64),
+                    margin: EdgeInsets.all(32),
                     alignment: Alignment.center,
                     child: Center(child: CircularProgressIndicator()),
                   ),

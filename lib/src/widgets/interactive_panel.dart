@@ -156,7 +156,6 @@ class InteractivePanelState extends State<InteractivePanel>
   @override
   void didUpdateWidget(covariant InteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _firstAppearanceAnimation.forward(from: 0);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _stopFlinging();
