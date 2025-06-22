@@ -860,6 +860,10 @@ class InteractivePanelState extends State<InteractivePanel>
           // Only detects left mouse click or touch
           if (event.buttons & kPrimaryButton == 0) return;
 
+          // Skip if pointer is not really moving
+          // Often triggers on devices with high sampling rate
+          if (event.localDelta == Offset.zero) return;
+
           _activePointers[event.device]!.addPosition(
             event.timeStamp,
             event.localPosition,
