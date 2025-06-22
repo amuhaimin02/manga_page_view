@@ -36,6 +36,14 @@ class MangaPageViewController {
   }) {
     _intents.add(ZoomChangeIntent(zoomLevel, duration, curve));
   }
+
+  void scrollBy(
+    double delta, {
+    Duration duration = Duration.zero,
+    Curve curve = Curves.easeInOut,
+  }) {
+    _intents.add(ScrollDeltaChangeIntent(delta, duration, curve));
+  }
 }
 
 sealed class ControllerChangeIntent {
@@ -56,6 +64,14 @@ class ProgressChangeIntent extends ControllerChangeIntent {
   final Curve curve;
 
   const ProgressChangeIntent(this.progress, this.duration, this.curve);
+}
+
+class ScrollDeltaChangeIntent extends ControllerChangeIntent {
+  final double delta;
+  final Duration duration;
+  final Curve curve;
+
+  const ScrollDeltaChangeIntent(this.delta, this.duration, this.curve);
 }
 
 class ZoomChangeIntent extends ControllerChangeIntent {

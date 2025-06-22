@@ -271,6 +271,24 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     },
                     icon: Icon(Icons.skip_next),
                   ),
+                  IconButton(
+                    onPressed: () {
+                      _controller.scrollBy(
+                        -60,
+                        duration: Duration(milliseconds: 300),
+                      );
+                    },
+                    icon: Icon(Icons.chevron_left),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      _controller.scrollBy(
+                        60,
+                        duration: Duration(milliseconds: 300),
+                      );
+                    },
+                    icon: Icon(Icons.chevron_right),
+                  ),
                   // Toggle view mode
                   IconButton(
                     onPressed: () {
@@ -303,10 +321,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     },
                     icon: Icon(() {
                       return switch (_scrollDirection) {
-                        PageViewDirection.right => Icons.arrow_forward,
-                        PageViewDirection.down => Icons.arrow_downward,
-                        PageViewDirection.left => Icons.arrow_back,
-                        PageViewDirection.up => Icons.arrow_upward,
+                        PageViewDirection.right => Icons.swipe_right_alt,
+                        PageViewDirection.down => Icons.swipe_down_alt,
+                        PageViewDirection.left => Icons.swipe_left_alt,
+                        PageViewDirection.up => Icons.swipe_up_alt,
                       };
                     }()),
                   ),

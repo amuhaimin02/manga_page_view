@@ -93,6 +93,18 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         } else {
           _panelState.zoomTo(zoomLevel);
         }
+      case ScrollDeltaChangeIntent(:final delta, :final duration, :final curve):
+        final targetOffset = _scrollBy(delta);
+        if (duration > Duration.zero) {
+          _panelState.animateToOffset(
+            targetOffset,
+            duration,
+            curve,
+            onEnd: _onPageChangeEnd,
+          );
+        } else {
+          _panelState.jumpToOffset(targetOffset);
+        }
     }
   }
 
@@ -162,6 +174,52 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       curve,
       onEnd: _onPageChangeEnd,
     );
+  }
+
+  Offset _scrollBy(double delta) {
+    final currentOffset = _panelState.offset;
+    final scrollableRegion = _panelState.scrollableRegion;
+    final Offset newOffset;
+
+    switch (widget.options.direction) {
+      case PageViewDirection.down:
+        newOffset = Offset(
+          currentOffset.dx,
+          (currentOffset.dy + delta).clamp(
+            scrollableRegion.top,
+            scrollableRegion.bottom,
+          ),
+        );
+        break;
+      case PageViewDirection.up:
+        newOffset = Offset(
+          currentOffset.dx,
+          (currentOffset.dy - delta).clamp(
+            scrollableRegion.bottom,
+            scrollableRegion.top,
+          ),
+        );
+        break;
+      case PageViewDirection.right:
+        newOffset = Offset(
+          (currentOffset.dx + delta).clamp(
+            scrollableRegion.left,
+            scrollableRegion.right,
+          ),
+          currentOffset.dy,
+        );
+        break;
+      case PageViewDirection.left:
+        newOffset = Offset(
+          (currentOffset.dx - delta).clamp(
+            scrollableRegion.right,
+            scrollableRegion.left,
+          ),
+          currentOffset.dy,
+        );
+        break;
+    }
+    return newOffset;
   }
 
   void _onScroll(Offset offset, double zoomLevel) {

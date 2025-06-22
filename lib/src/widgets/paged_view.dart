@@ -90,6 +90,14 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
             _carouselState.jumpToPage(targetIndex);
           }
         }
+      case ScrollDeltaChangeIntent(:final delta, :final duration, :final curve):
+        if (_activePanelState == null) return;
+        final targetOffset = _scrollBy(delta);
+        if (duration > Duration.zero) {
+          _activePanelState!.animateToOffset(targetOffset, duration, curve);
+        } else {
+          _activePanelState!.jumpToOffset(targetOffset);
+        }
     }
   }
 
@@ -102,6 +110,52 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       0,
       widget.pageCount - 1,
     );
+  }
+
+  Offset _scrollBy(double delta) {
+    final currentOffset = _activePanelState!.offset;
+    final scrollableRegion = _activePanelState!.scrollableRegion;
+    final Offset newOffset;
+
+    switch (widget.options.direction) {
+      case PageViewDirection.down:
+        newOffset = Offset(
+          currentOffset.dx,
+          (currentOffset.dy + delta).clamp(
+            scrollableRegion.top,
+            scrollableRegion.bottom,
+          ),
+        );
+        break;
+      case PageViewDirection.up:
+        newOffset = Offset(
+          currentOffset.dx,
+          (currentOffset.dy - delta).clamp(
+            scrollableRegion.bottom,
+            scrollableRegion.top,
+          ),
+        );
+        break;
+      case PageViewDirection.right:
+        newOffset = Offset(
+          (currentOffset.dx + delta).clamp(
+            scrollableRegion.left,
+            scrollableRegion.right,
+          ),
+          currentOffset.dy,
+        );
+        break;
+      case PageViewDirection.left:
+        newOffset = Offset(
+          (currentOffset.dx - delta).clamp(
+            scrollableRegion.right,
+            scrollableRegion.left,
+          ),
+          currentOffset.dy,
+        );
+        break;
+    }
+    return newOffset;
   }
 
   void _onPageChange(int index) {
