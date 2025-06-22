@@ -325,13 +325,13 @@ class InteractivePanelState extends State<InteractivePanel>
       // First time panning
       _isPanning = true;
 
-      _checkPanPossible(newOffset);
+      _checkPanPossible(newOffset, delta);
     } else {
       _offset.value = newOffset;
     }
   }
 
-  void _checkPanPossible(Offset offset) {
+  void _checkPanPossible(Offset offset, Offset delta) {
     if (_isPinching) return;
 
     bool cannotPan = false;
@@ -340,19 +340,24 @@ class InteractivePanelState extends State<InteractivePanel>
     if (axis != null) {
       // Check if user is trying to pan out of bounds
       if (axis == Axis.horizontal) {
-        if (!_isInBound(
+        final isMovingHorizontally = delta.dx.abs() > delta.dy.abs();
+        final isInBound = _isInBound(
           offset.dx,
           _scrollableRegion.left,
           _scrollableRegion.right,
-        )) {
+        );
+
+        if (isMovingHorizontally && !isInBound) {
           cannotPan = true;
         }
       } else if (axis == Axis.vertical) {
-        if (!_isInBound(
+        final isMovingVertically = delta.dy.abs() > delta.dx.abs();
+        final isInBound = !_isInBound(
           offset.dy,
           _scrollableRegion.top,
           _scrollableRegion.bottom,
-        )) {
+        );
+        if (isMovingVertically && !isInBound) {
           cannotPan = true;
         }
       }

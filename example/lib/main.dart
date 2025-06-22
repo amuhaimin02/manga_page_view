@@ -82,15 +82,15 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               pageCount: totalPages,
               pageBuilder: (context, index) {
                 // print('Loading page ${index + 1}');
-                return Buffered(
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: RandomPage(
-                      label: 'Page #${index + 1}',
-                      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-                      width: _random.nextInt(750) + 250,
-                      height: _random.nextInt(750) + 250,
-                    ),
+                return FittedBox(
+                  fit: BoxFit.contain,
+                  child: RandomPage(
+                    label: 'Page #${index + 1}',
+                    color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+                    // width: _random.nextInt(750) + 250,
+                    // height: _random.nextInt(750) + 250,
+                    width: 500,
+                    height: 2000,
                   ),
                 );
 
