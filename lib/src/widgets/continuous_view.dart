@@ -7,6 +7,7 @@ import 'package:manga_page_view/src/widgets/viewport_size.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
+import 'page_strip.dart';
 
 class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
@@ -37,7 +38,7 @@ class MangaPageContinuousView extends StatefulWidget {
 
 class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   final _interactionPanelKey = GlobalKey<InteractivePanelState>();
-  final _stripContainerKey = GlobalKey<_PageStripState>();
+  final _stripContainerKey = GlobalKey<PageStripState>();
 
   double _scrollBoundMin = 0;
   double _scrollBoundMax = 0;
@@ -47,7 +48,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   bool _isChangingPage = false;
 
   InteractivePanelState get _panelState => _interactionPanelKey.currentState!;
-  _PageStripState get _stripState => _stripContainerKey.currentState!;
+  PageStripState get _stripState => _stripContainerKey.currentState!;
 
   Size get _viewportSize => ViewportSize.of(context).value;
 
@@ -438,8 +439,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         PageViewDirection.up => InteractivePanelAlignment.bottom,
         PageViewDirection.left => InteractivePanelAlignment.right,
       },
-      panCheckAxis: null,
-      child: _PageStrip(
+      panCheckAxis: widget.options.direction.axis,
+      child: PageStrip(
         key: _stripContainerKey,
         direction: widget.options.direction,
         padding: widget.options.padding,
@@ -453,214 +454,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         pageBuilder: widget.pageBuilder,
       ),
       onScroll: _onScroll,
-    );
-  }
-}
-
-class _PageStrip extends StatefulWidget {
-  const _PageStrip({
-    super.key,
-    required this.pageCount,
-    required this.pageBuilder,
-    required this.direction,
-    required this.padding,
-    required this.spacing,
-    required this.initialPageSize,
-    required this.precacheAhead,
-    required this.precacheBehind,
-    required this.widthLimit,
-    required this.heightLimit,
-  });
-
-  final PageViewDirection direction;
-  final EdgeInsets padding;
-  final double spacing;
-  final Size initialPageSize;
-  final int precacheAhead;
-  final int precacheBehind;
-  final double? widthLimit;
-  final double? heightLimit;
-  final int pageCount;
-  final IndexedWidgetBuilder pageBuilder;
-
-  @override
-  State<_PageStrip> createState() => _PageStripState();
-}
-
-class _PageStripState extends State<_PageStrip> {
-  late Map<int, Widget> _loadedWidgets = {};
-  late List<Rect> _pageBounds;
-
-  List<Rect> get pageBounds => _pageBounds;
-
-  Size get _viewportSize => ViewportSize.of(context).value;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageBounds = List.filled(
-      widget.pageCount,
-      Offset.zero & widget.initialPageSize,
-    );
-    _updatePageBounds();
-  }
-
-  @override
-  void didUpdateWidget(covariant _PageStrip oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.direction != oldWidget.direction ||
-        widget.spacing != oldWidget.spacing) {
-      _updatePageBounds();
-    }
-  }
-
-  void _onPageSizeChanged(BuildContext context, int index) {
-    final pageSize = (context.findRenderObject() as RenderBox).size;
-    _pageBounds[index] = Offset.zero & pageSize;
-    _updatePageBounds();
-  }
-
-  void _updatePageBounds() {
-    final pageCount = widget.pageCount;
-    Offset nextPoint = switch (widget.direction) {
-      PageViewDirection.up => Offset(0, -widget.padding.bottom),
-      PageViewDirection.left => Offset(-widget.padding.right, 0),
-      PageViewDirection.down => Offset(0, widget.padding.top),
-      PageViewDirection.right => Offset(widget.padding.left, 0),
-    };
-
-    for (int i = 0; i < pageCount; i++) {
-      final pageSize = _pageBounds[i].size;
-
-      nextPoint = switch (widget.direction) {
-        PageViewDirection.up => nextPoint.translate(0, -pageSize.height),
-        PageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
-        PageViewDirection.down => nextPoint,
-        PageViewDirection.right => nextPoint,
-      };
-
-      final pageBounds = nextPoint & pageSize;
-
-      _pageBounds[i] = pageBounds;
-
-      final spacing = widget.spacing;
-      nextPoint = switch (widget.direction) {
-        PageViewDirection.up => pageBounds.topLeft.translate(0, -spacing),
-        PageViewDirection.left => pageBounds.topLeft.translate(-spacing, 0),
-        PageViewDirection.down => pageBounds.bottomLeft.translate(0, spacing),
-        PageViewDirection.right => pageBounds.topRight.translate(spacing, 0),
-      };
-    }
-  }
-
-  void glance(Rect viewRegion) {
-    final pageInView = <int>[];
-    for (int i = widget.pageCount - 1; i >= 0; i--) {
-      final pageBounds = _pageBounds[i];
-      if (pageBounds.overlaps(viewRegion)) {
-        pageInView.add(i);
-      }
-    }
-
-    if (pageInView.isNotEmpty) {
-      final pageToLoad = Set<int>();
-      for (final i in pageInView) {
-        if (!_loadedWidgets.containsKey(i)) {
-          pageToLoad.add(i);
-        }
-        // Inverted because we iterate in reverse earlier
-        final firstPageVisible = pageInView.last;
-        final lastPageVisible = pageInView.first;
-
-        for (int p = 1; p <= widget.precacheAhead; p++) {
-          final nextPage = lastPageVisible + p;
-          if (nextPage >= 0 &&
-              nextPage < widget.pageCount &&
-              !_loadedWidgets.containsKey(nextPage)) {
-            pageToLoad.add(nextPage);
-          }
-        }
-        for (int p = 1; p <= widget.precacheBehind; p++) {
-          final nextPage = firstPageVisible - p;
-          if (nextPage >= 0 &&
-              nextPage < widget.pageCount &&
-              !_loadedWidgets.containsKey(nextPage)) {
-            pageToLoad.add(nextPage);
-          }
-        }
-      }
-      if (pageToLoad.isNotEmpty) {
-        setState(() {
-          for (final index in pageToLoad) {
-            _loadedWidgets[index] = widget.pageBuilder(context, index);
-          }
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    double? containerWidth = null;
-    double? containerHeight = null;
-
-    // Limit cross-axis size if specified. By default they follow viewport size
-    if (widget.direction.isVertical) {
-      containerWidth = min(
-        widget.widthLimit ?? double.infinity,
-        _viewportSize.width,
-      );
-    } else if (widget.direction.isHorizontal) {
-      containerHeight = min(
-        widget.heightLimit ?? double.infinity,
-        _viewportSize.height,
-      );
-    }
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: containerWidth ?? double.infinity,
-        maxHeight: containerHeight ?? double.infinity,
-      ),
-      child: Padding(
-        padding: widget.padding,
-        child: Flex(
-          direction: widget.direction.isVertical
-              ? Axis.vertical
-              : Axis.horizontal,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: widget.spacing,
-          children: [
-            if (widget.direction.isReverse)
-              for (int i = widget.pageCount - 1; i >= 0; i--)
-                _buildPage(context, i)
-            else
-              for (int i = 0; i < widget.pageCount; i++) _buildPage(context, i),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPage(BuildContext context, int index) {
-    return Builder(
-      builder: (context) {
-        return NotificationListener(
-          onNotification: (event) {
-            if (event is SizeChangedLayoutNotification) {
-              _onPageSizeChanged(context, index);
-              return true;
-            }
-            return false;
-          },
-          child: SizeChangedLayoutNotifier(
-            child:
-                _loadedWidgets[index] ??
-                SizedBox.fromSize(size: widget.initialPageSize),
-          ),
-        );
-      },
     );
   }
 }

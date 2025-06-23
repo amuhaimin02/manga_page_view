@@ -46,29 +46,35 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   @override
   Widget build(BuildContext context) {
-    return ViewportSize(
-      child: switch (widget.options.mode) {
-        MangaPageViewMode.continuous => MangaPageContinuousView(
-          initialPageIndex: _currentPage,
-          controller: widget.controller,
-          options: widget.options,
-          pageCount: widget.pageCount,
-          pageBuilder: widget.pageBuilder,
-          onPageChange: _onPageChange,
-          onProgressChange: _onProgressChange,
-          onZoomChange: _onZoomChange,
-        ),
-        MangaPageViewMode.paged => MangaPagePagedView(
-          controller: widget.controller,
-          initialPageIndex: _currentPage,
-          options: widget.options,
-          pageCount: widget.pageCount,
-          pageBuilder: widget.pageBuilder,
-          onPageChange: _onPageChange,
-          onProgressChange: _onProgressChange,
-          onZoomChange: _onZoomChange,
-        ),
+    return NotificationListener(
+      onNotification: (event) {
+        print(event);
+        return false;
       },
+      child: ViewportSize(
+        child: switch (widget.options.mode) {
+          MangaPageViewMode.continuous => MangaPageContinuousView(
+            initialPageIndex: _currentPage,
+            controller: widget.controller,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            onPageChange: _onPageChange,
+            onProgressChange: _onProgressChange,
+            onZoomChange: _onZoomChange,
+          ),
+          MangaPageViewMode.paged => MangaPagePagedView(
+            controller: widget.controller,
+            initialPageIndex: _currentPage,
+            options: widget.options,
+            pageCount: widget.pageCount,
+            pageBuilder: widget.pageBuilder,
+            onPageChange: _onPageChange,
+            onProgressChange: _onProgressChange,
+            onZoomChange: _onZoomChange,
+          ),
+        },
+      ),
     );
   }
 }

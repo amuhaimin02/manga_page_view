@@ -11,9 +11,18 @@ const _trackpadDeviceId = 99;
 const _defaultZoomAnimationDuration = Duration(milliseconds: 300);
 const _defaultZoomAnimationCurve = Curves.easeInOut;
 
-enum InteractivePanelAlignment { top, bottom, left, right }
+enum InteractivePanelAlignment {
+  top,
+  bottom,
+  left,
+  right;
 
-class InteractivePanelCannotPanNotification extends Notification {}
+  bool get isReverse => this == right || this == bottom;
+}
+
+class InteractivePanelReachingEdgeNotification extends Notification {
+  const InteractivePanelReachingEdgeNotification();
+}
 
 class InteractivePanel extends StatefulWidget {
   const InteractivePanel({
@@ -334,37 +343,59 @@ class InteractivePanelState extends State<InteractivePanel>
   void _checkPanPossible(Offset offset, Offset delta) {
     if (_isPinching) return;
 
-    bool cannotPan = false;
-    final axis = widget.panCheckAxis;
+    // Distance in pixels to be considered within edge
+    const edgeCheckThreshold = 16;
 
-    if (axis != null) {
+    final checkAxis = widget.panCheckAxis;
+
+    // Check where user intends to move
+    final movingAxis = delta.dx.abs() > delta.dy.abs()
+        ? Axis.horizontal
+        : Axis.vertical;
+
+    if (checkAxis != null) {
+      double? edgeValue;
+      double? pointValue;
+
       // Check if user is trying to pan out of bounds
-      if (axis == Axis.horizontal) {
-        final isMovingHorizontally = delta.dx.abs() > delta.dy.abs();
-        final isInBound = _isInBound(
-          offset.dx,
-          _scrollableRegion.left,
-          _scrollableRegion.right,
-        );
+      if (checkAxis == Axis.horizontal && movingAxis == Axis.horizontal) {
+        pointValue = offset.dx;
 
-        if (isMovingHorizontally && !isInBound) {
-          cannotPan = true;
+        if (delta.dx > 0) {
+          // Moving left
+          edgeValue = widget.alignment.isReverse
+              ? _scrollableRegion.right
+              : _scrollableRegion.left;
+        } else if (delta.dx < 0) {
+          // Moving right
+          edgeValue = widget.alignment.isReverse
+              ? _scrollableRegion.left
+              : _scrollableRegion.right;
         }
-      } else if (axis == Axis.vertical) {
-        final isMovingVertically = delta.dy.abs() > delta.dx.abs();
-        final isInBound = _isInBound(
-          offset.dy,
-          _scrollableRegion.top,
-          _scrollableRegion.bottom,
-        );
-        if (isMovingVertically && !isInBound) {
-          cannotPan = true;
+      } else if (checkAxis == Axis.vertical && movingAxis == Axis.vertical) {
+        pointValue = offset.dy;
+
+        if (delta.dy > 0) {
+          // Moving top
+          edgeValue = widget.alignment.isReverse
+              ? _scrollableRegion.bottom
+              : _scrollableRegion.top;
+        } else if (delta.dy < 0) {
+          // Moving bottom
+          edgeValue = widget.alignment.isReverse
+              ? _scrollableRegion.top
+              : _scrollableRegion.bottom;
         }
       }
 
+      final cannotPan =
+          edgeValue != null &&
+          pointValue != null &&
+          (edgeValue - pointValue).abs() < edgeCheckThreshold;
+
       // If user is trying to pan out of bounds, lock panning and notify
       if (cannotPan) {
-        InteractivePanelCannotPanNotification().dispatch(context);
+        InteractivePanelReachingEdgeNotification().dispatch(context);
         _isPanLocked = true;
       }
     }
