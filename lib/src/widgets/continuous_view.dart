@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -441,6 +442,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       child: _PageStrip(
         key: _stripContainerKey,
         direction: widget.options.direction,
+        padding: widget.options.padding,
         spacing: widget.options.spacing,
         initialPageSize: widget.options.initialPageSize,
         precacheAhead: widget.options.precacheAhead,
@@ -461,6 +463,7 @@ class _PageStrip extends StatefulWidget {
     required this.pageCount,
     required this.pageBuilder,
     required this.direction,
+    required this.padding,
     required this.spacing,
     required this.initialPageSize,
     required this.precacheAhead,
@@ -470,6 +473,7 @@ class _PageStrip extends StatefulWidget {
   });
 
   final PageViewDirection direction;
+  final EdgeInsets padding;
   final double spacing;
   final Size initialPageSize;
   final int precacheAhead;
@@ -518,7 +522,13 @@ class _PageStripState extends State<_PageStrip> {
 
   void _updatePageBounds() {
     final pageCount = widget.pageCount;
-    Offset nextPoint = Offset.zero;
+    Offset nextPoint = switch (widget.direction) {
+      PageViewDirection.up => Offset(0, -widget.padding.bottom),
+      PageViewDirection.left => Offset(-widget.padding.right, 0),
+      PageViewDirection.down => Offset(0, widget.padding.top),
+      PageViewDirection.right => Offset(widget.padding.left, 0),
+    };
+
     for (int i = 0; i < pageCount; i++) {
       final pageSize = _pageBounds[i].size;
 
@@ -580,10 +590,11 @@ class _PageStripState extends State<_PageStrip> {
         }
       }
       if (pageToLoad.isNotEmpty) {
-        for (final index in pageToLoad) {
-          _loadedWidgets[index] = widget.pageBuilder(context, index);
-        }
-        setState(() {});
+        setState(() {
+          for (final index in pageToLoad) {
+            _loadedWidgets[index] = widget.pageBuilder(context, index);
+          }
+        });
       }
     }
   }
@@ -595,9 +606,15 @@ class _PageStripState extends State<_PageStrip> {
 
     // Limit cross-axis size if specified. By default they follow viewport size
     if (widget.direction.isVertical) {
-      containerWidth = widget.widthLimit ?? _viewportSize.width;
+      containerWidth = min(
+        widget.widthLimit ?? double.infinity,
+        _viewportSize.width,
+      );
     } else if (widget.direction.isHorizontal) {
-      containerHeight = widget.heightLimit ?? _viewportSize.height;
+      containerHeight = min(
+        widget.heightLimit ?? double.infinity,
+        _viewportSize.height,
+      );
     }
 
     return ConstrainedBox(
@@ -605,20 +622,23 @@ class _PageStripState extends State<_PageStrip> {
         maxWidth: containerWidth ?? double.infinity,
         maxHeight: containerHeight ?? double.infinity,
       ),
-      child: Flex(
-        direction: widget.direction.isVertical
-            ? Axis.vertical
-            : Axis.horizontal,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: widget.spacing,
-        children: [
-          if (widget.direction.isReverse)
-            for (int i = widget.pageCount - 1; i >= 0; i--)
-              _buildPage(context, i)
-          else
-            for (int i = 0; i < widget.pageCount; i++) _buildPage(context, i),
-        ],
+      child: Padding(
+        padding: widget.padding,
+        child: Flex(
+          direction: widget.direction.isVertical
+              ? Axis.vertical
+              : Axis.horizontal,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: widget.spacing,
+          children: [
+            if (widget.direction.isReverse)
+              for (int i = widget.pageCount - 1; i >= 0; i--)
+                _buildPage(context, i)
+            else
+              for (int i = 0; i < widget.pageCount; i++) _buildPage(context, i),
+          ],
+        ),
       ),
     );
   }

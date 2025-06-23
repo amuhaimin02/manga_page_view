@@ -246,7 +246,10 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           child: child,
         );
       },
-      child: widget.pageBuilder(context, index),
+      child: Padding(
+        padding: widget.options.padding,
+        child: widget.pageBuilder(context, index),
+      ),
     );
   }
 }
