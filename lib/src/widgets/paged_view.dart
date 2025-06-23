@@ -393,8 +393,10 @@ class _PageCarouselState extends State<_PageCarousel>
       deltaValue = delta.dy;
       fullScrollSize = _viewportSize.height;
     }
+    final reverseFactor = widget.direction.isReverse ? -1 : 1;
 
-    final progress = _scrollProgress.value - (deltaValue / fullScrollSize);
+    final progress =
+        _scrollProgress.value - (deltaValue / fullScrollSize) * reverseFactor;
     _scrollProgress.value = progress.clamp(-1.0, 1.0);
   }
 
@@ -505,6 +507,7 @@ class _PageCarouselState extends State<_PageCarousel>
             } else {
               scrollSize = _viewportSize.height;
             }
+            final reverseFactor = widget.direction.isReverse ? -1 : 1;
 
             return Stack(
               children: [
@@ -513,10 +516,14 @@ class _PageCarouselState extends State<_PageCarousel>
                     key: ValueKey(item.key),
                     offset: Offset(
                       widget.direction.isHorizontal
-                          ? (item.key - _currentIndex - progress) * scrollSize
+                          ? (item.key - _currentIndex - progress) *
+                                scrollSize *
+                                reverseFactor
                           : 0,
                       widget.direction.isVertical
-                          ? (item.key - _currentIndex - progress) * scrollSize
+                          ? (item.key - _currentIndex - progress) *
+                                scrollSize *
+                                reverseFactor
                           : 0,
                     ),
                     child: item.value,
