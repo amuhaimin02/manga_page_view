@@ -27,7 +27,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   final _currentPage = ValueNotifier(0);
   final _currentZoomLevel = ValueNotifier(1.0);
-  final totalPages = 40;
+  final _totalPages = 40;
   final _currentProgress = ValueNotifier(0.0);
 
   @override
@@ -80,10 +80,10 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                 pageWidthLimit: 1000,
                 padding: EdgeInsets.all(16),
               ),
-              pageCount: totalPages,
+              pageCount: _totalPages,
               pageBuilder: (context, index) {
                 // print('Loading page ${index + 1}');
-                return _buildRandomSizePage(context, index);
+                return _buildCachedNetworkImage(context, index);
               },
               onPageChange: (index) {
                 _currentPage.value = index;
@@ -120,7 +120,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
     );
   }
 
-  Widget _buildRandomSizePageWithBuffer(BuildContext context, int index) {
+  Widget _buildBufferedRandomSizePage(BuildContext context, int index) {
     return FutureBuilder(
       future: Future.delayed(
         Duration(milliseconds: _random.nextInt(1000) + 1000),
@@ -137,6 +137,13 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
           );
         }
       },
+    );
+  }
+
+  Widget _buildChangingRandomSizePage(BuildContext context, int index) {
+    return StreamBuilder(
+      stream: Stream.periodic(Duration(seconds: 1)),
+      builder: (context, snapshot) => _buildRandomSizePage(context, index),
     );
   }
 
@@ -209,16 +216,16 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     SizedBox(
                       width: 60,
                       child: Text(
-                        '${currentPage + 1} / $totalPages',
+                        '${currentPage + 1} / $_totalPages',
                         textAlign: TextAlign.end,
                       ),
                     ),
                     Expanded(
                       child: Slider(
                         value: currentPage.toDouble(),
-                        max: totalPages - 1,
+                        max: _totalPages - 1,
                         min: 0,
-                        divisions: totalPages - 1,
+                        divisions: _totalPages > 1 ? _totalPages - 1 : 1,
                         label: '${currentPage + 1}',
                         onChanged: (value) {
                           _controller.moveToPage(value.toInt());
@@ -294,7 +301,7 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                   IconButton(
                     onPressed: () {
                       _controller.moveToPage(
-                        min(totalPages - 1, _currentPage.value + 1),
+                        min(_totalPages - 1, _currentPage.value + 1),
                         duration: Duration(milliseconds: 300),
                       );
                     },

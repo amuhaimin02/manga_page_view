@@ -774,21 +774,9 @@ class InteractivePanelState extends State<InteractivePanel>
 
   void _onChildSizeChanged() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _updateScrollableAndSettle();
+      _updateScrollableRegion();
+      _offset.value = _limitOffsetInScrollable(_offset.value);
     });
-  }
-
-  void _updateScrollableAndSettle() {
-    // Order matters here. The scrollable region must be updated before settling the offset.
-    // Otherwise, the offset might be settled based on an outdated scrollable region.
-    final oldScrollableRegion = _scrollableRegion;
-    _updateScrollableRegion();
-    // Only settle if the scrollable region actually changed, to avoid unnecessary animations.
-    if (oldScrollableRegion != _scrollableRegion &&
-        !_isTouching &&
-        !_isFlinging) {
-      _settlePageOffset();
-    }
   }
 
   @override
