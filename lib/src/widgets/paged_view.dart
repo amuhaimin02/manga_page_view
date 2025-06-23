@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:manga_page_view/src/utils.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
@@ -116,7 +117,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     final Offset newOffset;
 
     switch (widget.options.direction) {
-      case PageViewDirection.down:
+      case AxisDirection.down:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy + delta).clamp(
@@ -125,7 +126,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           ),
         );
         break;
-      case PageViewDirection.up:
+      case AxisDirection.up:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy - delta).clamp(
@@ -134,7 +135,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           ),
         );
         break;
-      case PageViewDirection.right:
+      case AxisDirection.right:
         newOffset = Offset(
           (currentOffset.dx + delta).clamp(
             scrollableRegion.left,
@@ -143,7 +144,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           currentOffset.dy,
         );
         break;
-      case PageViewDirection.left:
+      case AxisDirection.left:
         newOffset = Offset(
           (currentOffset.dx - delta).clamp(
             scrollableRegion.right,
@@ -223,10 +224,10 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           widget.options.direction.isVertical &&
               widget.options.crossAxisOverscroll,
       alignment: switch (widget.options.direction) {
-        PageViewDirection.down => InteractivePanelAlignment.top,
-        PageViewDirection.right => InteractivePanelAlignment.left,
-        PageViewDirection.up => InteractivePanelAlignment.bottom,
-        PageViewDirection.left => InteractivePanelAlignment.right,
+        AxisDirection.down => InteractivePanelAlignment.top,
+        AxisDirection.right => InteractivePanelAlignment.left,
+        AxisDirection.up => InteractivePanelAlignment.bottom,
+        AxisDirection.left => InteractivePanelAlignment.right,
       },
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,

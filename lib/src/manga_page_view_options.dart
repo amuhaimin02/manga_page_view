@@ -8,7 +8,7 @@ class MangaPageViewOptions {
   final List<double> presetZoomLevels;
   final EdgeInsets padding;
   final double spacing;
-  final PageViewDirection direction;
+  final AxisDirection direction;
   final Size initialPageSize;
   final bool mainAxisOverscroll;
   final bool crossAxisOverscroll;
@@ -17,8 +17,8 @@ class MangaPageViewOptions {
   final int precacheBehind;
   final double? pageWidthLimit;
   final double? pageHeightLimit;
-  final PageViewGravity pageSenseGravity;
-  final PageViewGravity pageJumpGravity;
+  final Gravity pageSenseGravity;
+  final Gravity pageJumpGravity;
   final bool zoomOnFocalPoint;
   final Duration initialFadeInDuration;
   final Curve initialFadeInCurve;
@@ -31,7 +31,7 @@ class MangaPageViewOptions {
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
     this.padding = EdgeInsets.zero,
     this.spacing = 0.0,
-    this.direction = PageViewDirection.down,
+    this.direction = AxisDirection.down,
     this.initialPageSize = const Size(512, 512),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
@@ -40,8 +40,8 @@ class MangaPageViewOptions {
     this.precacheBehind = 0,
     this.pageWidthLimit = null,
     this.pageHeightLimit = null,
-    this.pageSenseGravity = PageViewGravity.center,
-    this.pageJumpGravity = PageViewGravity.start,
+    this.pageSenseGravity = Gravity.center,
+    this.pageJumpGravity = Gravity.start,
     this.zoomOnFocalPoint = true,
     this.initialFadeInDuration = const Duration(milliseconds: 300),
     this.initialFadeInCurve = Curves.linear,
@@ -50,29 +50,16 @@ class MangaPageViewOptions {
 
 enum MangaPageViewMode { continuous, paged }
 
-enum PageViewDirection {
-  up,
-  down,
-  left,
-  right;
-
-  bool get isVertical => this == up || this == down;
-  bool get isHorizontal => this == left || this == right;
-  bool get isReverse => this == up || this == left;
-
-  Axis get axis => isVertical ? Axis.vertical : Axis.horizontal;
-}
-
-enum PageViewGravity {
+enum Gravity {
   start,
   center,
   end;
 
   T select<T>({required T start, required T center, required T end}) {
     return switch (this) {
-      PageViewGravity.start => start,
-      PageViewGravity.center => center,
-      PageViewGravity.end => end,
+      Gravity.start => start,
+      Gravity.center => center,
+      Gravity.end => end,
     };
   }
 }

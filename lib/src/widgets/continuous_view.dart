@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
+import 'package:manga_page_view/src/utils.dart';
 import 'package:manga_page_view/src/widgets/viewport_size.dart';
 
 import '../../manga_page_view.dart';
@@ -125,22 +126,22 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final viewportCenter = viewport.center(Offset.zero);
 
     return switch (widget.options.direction) {
-      PageViewDirection.down => gravity.select(
+      AxisDirection.down => gravity.select(
         start: bounds.topCenter,
         center: bounds.center.translate(0, -viewportCenter.dy),
         end: bounds.bottomCenter.translate(0, -viewport.height),
       ),
-      PageViewDirection.up => gravity.select(
+      AxisDirection.up => gravity.select(
         start: bounds.bottomCenter,
         center: bounds.center.translate(0, viewportCenter.dy),
         end: bounds.topCenter.translate(0, viewport.height),
       ),
-      PageViewDirection.right => gravity.select(
+      AxisDirection.right => gravity.select(
         start: bounds.centerLeft,
         center: bounds.center.translate(-viewportCenter.dx, 0),
         end: bounds.centerRight.translate(-viewport.width, 0),
       ),
-      PageViewDirection.left => gravity.select(
+      AxisDirection.left => gravity.select(
         start: bounds.centerRight,
         center: bounds.center.translate(viewportCenter.dx, 0),
         end: bounds.centerLeft.translate(viewport.width, 0),
@@ -184,7 +185,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final Offset newOffset;
 
     switch (widget.options.direction) {
-      case PageViewDirection.down:
+      case AxisDirection.down:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy + delta).clamp(
@@ -193,7 +194,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
           ),
         );
         break;
-      case PageViewDirection.up:
+      case AxisDirection.up:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy - delta).clamp(
@@ -202,7 +203,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
           ),
         );
         break;
-      case PageViewDirection.right:
+      case AxisDirection.right:
         newOffset = Offset(
           (currentOffset.dx + delta).clamp(
             scrollableRegion.left,
@@ -211,7 +212,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
           currentOffset.dy,
         );
         break;
-      case PageViewDirection.left:
+      case AxisDirection.left:
         newOffset = Offset(
           (currentOffset.dx - delta).clamp(
             scrollableRegion.right,
@@ -227,16 +228,16 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void _onScroll(Offset offset, double zoomLevel) {
     final scrollableRegion = _panelState.scrollableRegion;
     switch (widget.options.direction) {
-      case PageViewDirection.up:
+      case AxisDirection.up:
         _scrollBoundMin = scrollableRegion.bottom;
         _scrollBoundMax = scrollableRegion.top;
-      case PageViewDirection.down:
+      case AxisDirection.down:
         _scrollBoundMin = scrollableRegion.top;
         _scrollBoundMax = scrollableRegion.bottom;
-      case PageViewDirection.left:
+      case AxisDirection.left:
         _scrollBoundMin = scrollableRegion.right;
         _scrollBoundMax = scrollableRegion.left;
-      case PageViewDirection.right:
+      case AxisDirection.right:
         _scrollBoundMin = scrollableRegion.left;
         _scrollBoundMax = scrollableRegion.right;
     }
@@ -278,32 +279,32 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final gravity = widget.options.pageSenseGravity;
 
     final screenEdge = switch (widget.options.direction) {
-      PageViewDirection.down => gravity.select(
+      AxisDirection.down => gravity.select(
         start: viewRegion.top,
         center: viewRegion.center.dy,
         end: viewRegion.bottom,
       ),
-      PageViewDirection.up => gravity.select(
+      AxisDirection.up => gravity.select(
         start: -viewRegion.bottom,
         center: -viewRegion.center.dy,
         end: -viewRegion.top,
       ),
-      PageViewDirection.left => gravity.select(
+      AxisDirection.left => gravity.select(
         start: -viewRegion.right,
         center: -viewRegion.center.dx,
         end: -viewRegion.left,
       ),
-      PageViewDirection.right => gravity.select(
+      AxisDirection.right => gravity.select(
         start: viewRegion.left,
         center: viewRegion.center.dx,
         end: viewRegion.right,
       ),
     };
     final pageEdge = switch (widget.options.direction) {
-      PageViewDirection.down => (Rect b) => b.top,
-      PageViewDirection.up => (Rect b) => -b.bottom,
-      PageViewDirection.left => (Rect b) => -b.right,
-      PageViewDirection.right => (Rect b) => b.left,
+      AxisDirection.down => (Rect b) => b.top,
+      AxisDirection.up => (Rect b) => -b.bottom,
+      AxisDirection.left => (Rect b) => -b.right,
+      AxisDirection.right => (Rect b) => b.left,
     };
 
     int checkIndex = -1;
@@ -330,22 +331,22 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final double max;
 
     switch (widget.options.direction) {
-      case PageViewDirection.up:
+      case AxisDirection.up:
         current = offset.dy;
         min = _scrollBoundMax;
         max = _scrollBoundMin;
         break;
-      case PageViewDirection.down:
+      case AxisDirection.down:
         current = offset.dy;
         min = _scrollBoundMin;
         max = _scrollBoundMax;
         break;
-      case PageViewDirection.left:
+      case AxisDirection.left:
         current = offset.dx;
         min = _scrollBoundMax;
         max = _scrollBoundMin;
         break;
-      case PageViewDirection.right:
+      case AxisDirection.right:
         current = offset.dx;
         min = _scrollBoundMin;
         max = _scrollBoundMax;
@@ -363,13 +364,13 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final double max;
 
     switch (widget.options.direction) {
-      case PageViewDirection.up:
-      case PageViewDirection.left:
+      case AxisDirection.up:
+      case AxisDirection.left:
         min = _scrollBoundMax;
         max = _scrollBoundMin;
         break;
-      case PageViewDirection.down:
-      case PageViewDirection.right:
+      case AxisDirection.down:
+      case AxisDirection.right:
         min = _scrollBoundMin;
         max = _scrollBoundMax;
         break;
@@ -377,10 +378,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     target = min + (max - min) * fraction;
 
     return switch (widget.options.direction) {
-      PageViewDirection.up ||
-      PageViewDirection.down => Offset(_currentOffset.dx, target),
-      PageViewDirection.left ||
-      PageViewDirection.right => Offset(target, _currentOffset.dy),
+      AxisDirection.up ||
+      AxisDirection.down => Offset(_currentOffset.dx, target),
+      AxisDirection.left ||
+      AxisDirection.right => Offset(target, _currentOffset.dy),
     };
   }
 
@@ -404,10 +405,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     // Adjust window on left and up direction mode
     return switch (widget.options.direction) {
-      PageViewDirection.up => visibleRect.translate(0, -viewportSize.height),
-      PageViewDirection.down => visibleRect,
-      PageViewDirection.left => visibleRect.translate(-viewportSize.width, 0),
-      PageViewDirection.right => visibleRect,
+      AxisDirection.up => visibleRect.translate(0, -viewportSize.height),
+      AxisDirection.down => visibleRect,
+      AxisDirection.left => visibleRect.translate(-viewportSize.width, 0),
+      AxisDirection.right => visibleRect,
     };
   }
 
@@ -434,10 +435,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
           widget.options.direction.isVertical &&
               widget.options.crossAxisOverscroll,
       alignment: switch (widget.options.direction) {
-        PageViewDirection.down => InteractivePanelAlignment.top,
-        PageViewDirection.right => InteractivePanelAlignment.left,
-        PageViewDirection.up => InteractivePanelAlignment.bottom,
-        PageViewDirection.left => InteractivePanelAlignment.right,
+        AxisDirection.down => InteractivePanelAlignment.top,
+        AxisDirection.right => InteractivePanelAlignment.left,
+        AxisDirection.up => InteractivePanelAlignment.bottom,
+        AxisDirection.left => InteractivePanelAlignment.right,
       },
       panCheckAxis: widget.options.direction.axis,
       child: PageStrip(

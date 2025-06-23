@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+import 'package:manga_page_view/src/utils.dart';
 
 import '../manga_page_view_options.dart';
 import 'viewport_size.dart';
@@ -20,7 +21,7 @@ class PageStrip extends StatefulWidget {
     required this.heightLimit,
   });
 
-  final PageViewDirection direction;
+  final AxisDirection direction;
   final EdgeInsets padding;
   final double spacing;
   final Size initialPageSize;
@@ -71,20 +72,20 @@ class PageStripState extends State<PageStrip> {
   void _updatePageBounds() {
     final pageCount = widget.pageCount;
     Offset nextPoint = switch (widget.direction) {
-      PageViewDirection.up => Offset(0, -widget.padding.bottom),
-      PageViewDirection.left => Offset(-widget.padding.right, 0),
-      PageViewDirection.down => Offset(0, widget.padding.top),
-      PageViewDirection.right => Offset(widget.padding.left, 0),
+      AxisDirection.up => Offset(0, -widget.padding.bottom),
+      AxisDirection.left => Offset(-widget.padding.right, 0),
+      AxisDirection.down => Offset(0, widget.padding.top),
+      AxisDirection.right => Offset(widget.padding.left, 0),
     };
 
     for (int i = 0; i < pageCount; i++) {
       final pageSize = _pageBounds[i].size;
 
       nextPoint = switch (widget.direction) {
-        PageViewDirection.up => nextPoint.translate(0, -pageSize.height),
-        PageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
-        PageViewDirection.down => nextPoint,
-        PageViewDirection.right => nextPoint,
+        AxisDirection.up => nextPoint.translate(0, -pageSize.height),
+        AxisDirection.left => nextPoint.translate(-pageSize.width, 0),
+        AxisDirection.down => nextPoint,
+        AxisDirection.right => nextPoint,
       };
 
       final pageBounds = nextPoint & pageSize;
@@ -93,10 +94,10 @@ class PageStripState extends State<PageStrip> {
 
       final spacing = widget.spacing;
       nextPoint = switch (widget.direction) {
-        PageViewDirection.up => pageBounds.topLeft.translate(0, -spacing),
-        PageViewDirection.left => pageBounds.topLeft.translate(-spacing, 0),
-        PageViewDirection.down => pageBounds.bottomLeft.translate(0, spacing),
-        PageViewDirection.right => pageBounds.topRight.translate(spacing, 0),
+        AxisDirection.up => pageBounds.topLeft.translate(0, -spacing),
+        AxisDirection.left => pageBounds.topLeft.translate(-spacing, 0),
+        AxisDirection.down => pageBounds.bottomLeft.translate(0, spacing),
+        AxisDirection.right => pageBounds.topRight.translate(spacing, 0),
       };
     }
   }

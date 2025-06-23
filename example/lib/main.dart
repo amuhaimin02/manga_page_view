@@ -18,10 +18,10 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  late PageViewDirection _scrollDirection;
+  late AxisDirection _scrollDirection;
   MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
-  PageViewGravity _scrollGravity = PageViewGravity.center;
+  Gravity _scrollGravity = Gravity.center;
 
   late final _controller = MangaPageViewController();
 
@@ -40,8 +40,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
     super.didChangeDependencies();
     _scrollDirection =
         MediaQuery.of(context).orientation == Orientation.portrait
-        ? PageViewDirection.down
-        : PageViewDirection.right;
+        ? AxisDirection.down
+        : AxisDirection.right;
   }
 
   @override
@@ -348,19 +348,19 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     onPressed: () {
                       setState(() {
                         _scrollDirection = switch (_scrollDirection) {
-                          PageViewDirection.right => PageViewDirection.down,
-                          PageViewDirection.down => PageViewDirection.left,
-                          PageViewDirection.left => PageViewDirection.up,
-                          PageViewDirection.up => PageViewDirection.right,
+                          AxisDirection.right => AxisDirection.down,
+                          AxisDirection.down => AxisDirection.left,
+                          AxisDirection.left => AxisDirection.up,
+                          AxisDirection.up => AxisDirection.right,
                         };
                       });
                     },
                     icon: Icon(() {
                       return switch (_scrollDirection) {
-                        PageViewDirection.right => Icons.swipe_right_alt,
-                        PageViewDirection.down => Icons.swipe_down_alt,
-                        PageViewDirection.left => Icons.swipe_left_alt,
-                        PageViewDirection.up => Icons.swipe_up_alt,
+                        AxisDirection.right => Icons.swipe_right_alt,
+                        AxisDirection.down => Icons.swipe_down_alt,
+                        AxisDirection.left => Icons.swipe_left_alt,
+                        AxisDirection.up => Icons.swipe_up_alt,
                       };
                     }()),
                   ),
@@ -380,17 +380,17 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     onPressed: () {
                       setState(() {
                         _scrollGravity = switch (_scrollGravity) {
-                          PageViewGravity.start => PageViewGravity.center,
-                          PageViewGravity.center => PageViewGravity.end,
-                          PageViewGravity.end => PageViewGravity.start,
+                          Gravity.start => Gravity.center,
+                          Gravity.center => Gravity.end,
+                          Gravity.end => Gravity.start,
                         };
                       });
                     },
                     icon: Icon(() {
                       return switch (_scrollGravity) {
-                        PageViewGravity.start => Icons.align_vertical_top,
-                        PageViewGravity.center => Icons.align_vertical_center,
-                        PageViewGravity.end => Icons.align_vertical_bottom,
+                        Gravity.start => Icons.align_vertical_top,
+                        Gravity.center => Icons.align_vertical_center,
+                        Gravity.end => Icons.align_vertical_bottom,
                       };
                     }()),
                   ),
