@@ -352,7 +352,7 @@ class InteractivePanelState extends State<InteractivePanel>
         }
       } else if (axis == Axis.vertical) {
         final isMovingVertically = delta.dy.abs() > delta.dx.abs();
-        final isInBound = !_isInBound(
+        final isInBound = _isInBound(
           offset.dy,
           _scrollableRegion.top,
           _scrollableRegion.bottom,
@@ -363,7 +363,6 @@ class InteractivePanelState extends State<InteractivePanel>
       }
 
       // If user is trying to pan out of bounds, lock panning and notify
-
       if (cannotPan) {
         InteractivePanelCannotPanNotification().dispatch(context);
         _isPanLocked = true;
