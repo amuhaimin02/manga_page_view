@@ -454,6 +454,8 @@ class InteractivePanelState extends State<InteractivePanel>
   void _handlePinch(Offset focalPoint, double scale) {
     if (_isPanLocked) return;
 
+    _stopFlinging();
+
     final currentZoom = _zoomLevel.value;
     double newZoom = _startZoomLevel! * scale;
 
@@ -790,7 +792,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
           _activePointers[event.device] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
-          ;
+
           _activePositions[event.device] = event.localPosition;
 
           _handleTouch();
