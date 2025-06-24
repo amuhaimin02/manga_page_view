@@ -6,14 +6,6 @@ import 'package:manga_page_view/src/widgets/page_carousel.dart';
 
 import 'viewport_size.dart';
 
-typedef PageEndGestureIndicatorBuilder =
-    Widget Function(
-      BuildContext context,
-      MangaPageViewEdge edge,
-      double progress,
-      bool triggered,
-    );
-
 class PageEndGestureWrapper extends StatefulWidget {
   const PageEndGestureWrapper({
     super.key,
@@ -28,7 +20,8 @@ class PageEndGestureWrapper extends StatefulWidget {
   final MangaPageViewDirection direction;
   final Widget child;
   final double indicatorSize;
-  final PageEndGestureIndicatorBuilder indicatorBuilder;
+  final Widget Function(BuildContext context, MangaPageViewEdgeGestureInfo info)
+  indicatorBuilder;
   final VoidCallback? onStartEdgeDrag;
   final VoidCallback? onEndEdgeDrag;
 
@@ -165,6 +158,34 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     return c + (drag - c) / (1 + (drag - c) / a);
   }
 
+  MangaPageViewEdgeGestureSide _determineEdgeSide(
+    MangaPageViewDirection direction,
+    MangaPageViewEdge edge,
+  ) {
+    switch ((direction, edge)) {
+      case (MangaPageViewDirection.down, MangaPageViewEdge.top):
+        return MangaPageViewEdgeGestureSide.start;
+      case (MangaPageViewDirection.down, MangaPageViewEdge.bottom):
+        return MangaPageViewEdgeGestureSide.end;
+      case (MangaPageViewDirection.up, MangaPageViewEdge.top):
+        return MangaPageViewEdgeGestureSide.end;
+      case (MangaPageViewDirection.up, MangaPageViewEdge.bottom):
+        return MangaPageViewEdgeGestureSide.start;
+      case (MangaPageViewDirection.left, MangaPageViewEdge.right):
+        return MangaPageViewEdgeGestureSide.start;
+      case (MangaPageViewDirection.left, MangaPageViewEdge.left):
+        return MangaPageViewEdgeGestureSide.end;
+      case (MangaPageViewDirection.right, MangaPageViewEdge.right):
+        return MangaPageViewEdgeGestureSide.end;
+      case (MangaPageViewDirection.right, MangaPageViewEdge.left):
+        return MangaPageViewEdgeGestureSide.start;
+      default:
+        throw new AssertionError(
+          "Invalid edge and direction combination: ${direction}, ${edge}",
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Listener(
@@ -265,9 +286,12 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
                         rect: indicatorRect,
                         child: widget.indicatorBuilder(
                           context,
-                          edge,
-                          (distance / indicatorSize).clamp(0, 1),
-                          _isTriggered,
+                          MangaPageViewEdgeGestureInfo(
+                            edge: edge,
+                            progress: (distance / indicatorSize).clamp(0, 1),
+                            isTriggered: _isTriggered,
+                            side: _determineEdgeSide(widget.direction, edge),
+                          ),
                         ),
                       ),
                   ],

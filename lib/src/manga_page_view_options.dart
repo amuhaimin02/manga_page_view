@@ -107,3 +107,19 @@ enum MangaPageViewEdge {
   bool get isVertical => axis == Axis.vertical;
   bool get isHorizontal => axis == Axis.horizontal;
 }
+
+enum MangaPageViewEdgeGestureSide { start, end }
+
+class MangaPageViewEdgeGestureInfo {
+  MangaPageViewEdgeGestureInfo({
+    required this.edge,
+    required this.progress,
+    required this.isTriggered,
+    required this.side,
+  });
+
+  final MangaPageViewEdge edge;
+  final double progress;
+  final bool isTriggered;
+  final MangaPageViewEdgeGestureSide side;
+}

@@ -106,32 +106,44 @@ class _MangaPageViewExampleScreenState
             onProgressChange: (progress) {
               _currentProgress.value = progress;
             },
-            pageEndGestureIndicatorBuilder:
-                (context, edge, progress, triggered) {
-                  return Center(
-                    child: AnimatedOpacity(
-                      opacity: progress,
-                      duration: Duration.zero,
-                      child: Container(
+            pageEndGestureIndicatorBuilder: (context, info) {
+              return Center(
+                child: AnimatedOpacity(
+                  opacity: info.progress,
+                  duration: Duration.zero,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 8,
+                    children: [
+                      Container(
                         decoration: ShapeDecoration(
                           shape: CircleBorder(),
-                          color: triggered ? Colors.red : Colors.transparent,
+                          color: info.isTriggered
+                              ? Colors.red
+                              : Colors.transparent,
                         ),
                         padding: EdgeInsets.all(8),
                         child: Icon(
-                          switch (edge) {
+                          switch (info.edge) {
                             MangaPageViewEdge.top => Icons.arrow_upward,
                             MangaPageViewEdge.bottom => Icons.arrow_downward,
                             MangaPageViewEdge.left => Icons.arrow_back,
                             MangaPageViewEdge.right => Icons.arrow_forward,
                           },
-                          color: triggered ? Colors.black : Colors.white,
+                          color: info.isTriggered ? Colors.black : Colors.white,
                           size: 48,
                         ),
                       ),
-                    ),
-                  );
-                },
+                      Text(
+                        info.side == MangaPageViewEdgeGestureSide.start
+                            ? "Prev. chapter"
+                            : "Next chapter",
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
             onStartEdgeDrag: () {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(

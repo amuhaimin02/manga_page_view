@@ -34,7 +34,11 @@ class MangaPageView extends StatefulWidget {
   final Function(int index)? onPageChange;
   final Function(double zoomLevel)? onZoomChange;
   final Function(double progress)? onProgressChange;
-  final PageEndGestureIndicatorBuilder? pageEndGestureIndicatorBuilder;
+  final Widget Function(
+    BuildContext context,
+    MangaPageViewEdgeGestureInfo info,
+  )?
+  pageEndGestureIndicatorBuilder;
   final VoidCallback? onStartEdgeDrag;
   final VoidCallback? onEndEdgeDrag;
 
