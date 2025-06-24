@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:manga_page_view/manga_page_view.dart';
 import 'dart:math' as math;
 
 import 'double_tap_detector.dart';
@@ -10,15 +11,6 @@ import 'viewport_size.dart';
 const _trackpadDeviceId = 99;
 const _defaultZoomAnimationDuration = Duration(milliseconds: 300);
 const _defaultZoomAnimationCurve = Curves.easeInOut;
-
-enum InteractivePanelAlignment {
-  top,
-  bottom,
-  left,
-  right;
-
-  bool get isReverse => this == right || this == bottom;
-}
 
 class InteractivePanelReachingEdgeNotification extends Notification {
   const InteractivePanelReachingEdgeNotification();
@@ -36,7 +28,7 @@ class InteractivePanel extends StatefulWidget {
     required this.presetZoomLevels,
     required this.verticalOverscroll,
     required this.horizontalOverscroll,
-    required this.alignment,
+    required this.anchor,
     required this.zoomOnFocalPoint,
     required this.zoomOvershoot,
     required this.panCheckAxis,
@@ -52,7 +44,7 @@ class InteractivePanel extends StatefulWidget {
   final List<double> presetZoomLevels;
   final bool verticalOverscroll;
   final bool horizontalOverscroll;
-  final InteractivePanelAlignment alignment;
+  final MangaPageViewEdge anchor;
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
   final Axis? panCheckAxis;
@@ -101,9 +93,6 @@ class InteractivePanelState extends State<InteractivePanel>
 
   Rect get scrollableRegion => _scrollableRegion;
 
-  bool get _isFlinging =>
-      _flingXAnimation.isAnimating || _flingYAnimation.isAnimating;
-  bool get _isTouching => _activePointers.isNotEmpty;
   bool _isPinching = false;
   bool _isPanning = false;
   bool _isPanLocked = false;
@@ -167,9 +156,9 @@ class InteractivePanelState extends State<InteractivePanel>
     super.didUpdateWidget(oldWidget);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (widget.alignment != oldWidget.alignment) {
+      if (widget.anchor != oldWidget.anchor) {
         _stopFlinging();
-        _changeAlignmentAxis(oldWidget.alignment, widget.alignment);
+        _changeAnchorEdge(oldWidget.anchor, widget.anchor);
       }
       _sendScrollInfo();
     });
@@ -218,9 +207,9 @@ class InteractivePanelState extends State<InteractivePanel>
     _offset.value = _limitOffsetInScrollable(_offset.value);
   }
 
-  void _changeAlignmentAxis(
-    InteractivePanelAlignment oldAlignment,
-    InteractivePanelAlignment newAlignment,
+  void _changeAnchorEdge(
+    MangaPageViewEdge oldAnchorEdge,
+    MangaPageViewEdge newAnchorEdge,
   ) {
     final childSize = _childSize.value;
     final viewportSize = _viewport.value;
@@ -235,15 +224,13 @@ class InteractivePanelState extends State<InteractivePanel>
       return value * (max - min) + min;
     }
 
-    final currentScrollProgress = switch (oldAlignment) {
-      InteractivePanelAlignment.left ||
-      InteractivePanelAlignment.right => fraction(
+    final currentScrollProgress = switch (oldAnchorEdge) {
+      MangaPageViewEdge.left || MangaPageViewEdge.right => fraction(
         _offset.value.dx.abs(),
         _scrollableRegion.left,
         _scrollableRegion.right,
       ),
-      InteractivePanelAlignment.top ||
-      InteractivePanelAlignment.bottom => fraction(
+      MangaPageViewEdge.top || MangaPageViewEdge.bottom => fraction(
         _offset.value.dy.abs(),
         _scrollableRegion.top,
         _scrollableRegion.bottom,
@@ -252,9 +239,8 @@ class InteractivePanelState extends State<InteractivePanel>
 
     _updateScrollableRegion();
 
-    Offset newOffset = switch (newAlignment) {
-      InteractivePanelAlignment.left ||
-      InteractivePanelAlignment.right => Offset(
+    Offset newOffset = switch (newAnchorEdge) {
+      MangaPageViewEdge.left || MangaPageViewEdge.right => Offset(
         unfraction(
           currentScrollProgress,
           _scrollableRegion.left,
@@ -262,8 +248,7 @@ class InteractivePanelState extends State<InteractivePanel>
         ),
         0,
       ),
-      InteractivePanelAlignment.top ||
-      InteractivePanelAlignment.bottom => Offset(
+      MangaPageViewEdge.top || MangaPageViewEdge.bottom => Offset(
         0,
         unfraction(
           currentScrollProgress,
@@ -272,8 +257,8 @@ class InteractivePanelState extends State<InteractivePanel>
         ),
       ),
     };
-    if (newAlignment == InteractivePanelAlignment.bottom ||
-        newAlignment == InteractivePanelAlignment.right) {
+    if (newAnchorEdge == MangaPageViewEdge.bottom ||
+        newAnchorEdge == MangaPageViewEdge.right) {
       newOffset = newOffset;
     }
 
@@ -290,14 +275,6 @@ class InteractivePanelState extends State<InteractivePanel>
       return value.clamp(limitA, limitB);
     } else {
       return value.clamp(limitB, limitA);
-    }
-  }
-
-  bool _isInBound(double value, double limitA, double limitB) {
-    if (limitA <= limitB) {
-      return value > limitA && value < limitB;
-    } else {
-      return value > limitB && value < limitA;
     }
   }
 
@@ -363,12 +340,12 @@ class InteractivePanelState extends State<InteractivePanel>
 
         if (delta.dx > 0) {
           // Moving left
-          edgeValue = widget.alignment.isReverse
+          edgeValue = widget.anchor.isReverse
               ? _scrollableRegion.right
               : _scrollableRegion.left;
         } else if (delta.dx < 0) {
           // Moving right
-          edgeValue = widget.alignment.isReverse
+          edgeValue = widget.anchor.isReverse
               ? _scrollableRegion.left
               : _scrollableRegion.right;
         }
@@ -377,12 +354,12 @@ class InteractivePanelState extends State<InteractivePanel>
 
         if (delta.dy > 0) {
           // Moving top
-          edgeValue = widget.alignment.isReverse
+          edgeValue = widget.anchor.isReverse
               ? _scrollableRegion.bottom
               : _scrollableRegion.top;
         } else if (delta.dy < 0) {
           // Moving bottom
-          edgeValue = widget.alignment.isReverse
+          edgeValue = widget.anchor.isReverse
               ? _scrollableRegion.top
               : _scrollableRegion.bottom;
         }
@@ -622,10 +599,10 @@ class InteractivePanelState extends State<InteractivePanel>
     }
 
     // Inverse coordinate system for inverted directions
-    if (widget.alignment == InteractivePanelAlignment.right) {
+    if (widget.anchor == MangaPageViewEdge.right) {
       left = -left;
       right = -right;
-    } else if (widget.alignment == InteractivePanelAlignment.bottom) {
+    } else if (widget.anchor == MangaPageViewEdge.bottom) {
       top = -top;
       bottom = -bottom;
     }
@@ -966,11 +943,11 @@ class InteractivePanelState extends State<InteractivePanel>
               child: OverflowBox(
                 maxWidth: double.infinity,
                 maxHeight: double.infinity,
-                alignment: switch (widget.alignment) {
-                  InteractivePanelAlignment.top => Alignment.topLeft,
-                  InteractivePanelAlignment.left => Alignment.topLeft,
-                  InteractivePanelAlignment.bottom => Alignment.bottomLeft,
-                  InteractivePanelAlignment.right => Alignment.topRight,
+                alignment: switch (widget.anchor) {
+                  MangaPageViewEdge.top => Alignment.topLeft,
+                  MangaPageViewEdge.left => Alignment.topLeft,
+                  MangaPageViewEdge.bottom => Alignment.bottomLeft,
+                  MangaPageViewEdge.right => Alignment.topRight,
                 },
                 child: NotificationListener(
                   onNotification: (event) {

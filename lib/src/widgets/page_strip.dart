@@ -1,9 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/src/utils.dart';
-
-import '../manga_page_view_options.dart';
+import 'package:manga_page_view/manga_page_view.dart';
 import 'viewport_size.dart';
 
 class PageStrip extends StatefulWidget {
@@ -21,7 +19,7 @@ class PageStrip extends StatefulWidget {
     required this.heightLimit,
   });
 
-  final AxisDirection direction;
+  final MangaPageViewDirection direction;
   final EdgeInsets padding;
   final double spacing;
   final Size initialPageSize;
@@ -72,20 +70,20 @@ class PageStripState extends State<PageStrip> {
   void _updatePageBounds() {
     final pageCount = widget.pageCount;
     Offset nextPoint = switch (widget.direction) {
-      AxisDirection.up => Offset(0, -widget.padding.bottom),
-      AxisDirection.left => Offset(-widget.padding.right, 0),
-      AxisDirection.down => Offset(0, widget.padding.top),
-      AxisDirection.right => Offset(widget.padding.left, 0),
+      MangaPageViewDirection.up => Offset(0, -widget.padding.bottom),
+      MangaPageViewDirection.left => Offset(-widget.padding.right, 0),
+      MangaPageViewDirection.down => Offset(0, widget.padding.top),
+      MangaPageViewDirection.right => Offset(widget.padding.left, 0),
     };
 
     for (int i = 0; i < pageCount; i++) {
       final pageSize = _pageBounds[i].size;
 
       nextPoint = switch (widget.direction) {
-        AxisDirection.up => nextPoint.translate(0, -pageSize.height),
-        AxisDirection.left => nextPoint.translate(-pageSize.width, 0),
-        AxisDirection.down => nextPoint,
-        AxisDirection.right => nextPoint,
+        MangaPageViewDirection.up => nextPoint.translate(0, -pageSize.height),
+        MangaPageViewDirection.left => nextPoint.translate(-pageSize.width, 0),
+        MangaPageViewDirection.down => nextPoint,
+        MangaPageViewDirection.right => nextPoint,
       };
 
       final pageBounds = nextPoint & pageSize;
@@ -94,10 +92,19 @@ class PageStripState extends State<PageStrip> {
 
       final spacing = widget.spacing;
       nextPoint = switch (widget.direction) {
-        AxisDirection.up => pageBounds.topLeft.translate(0, -spacing),
-        AxisDirection.left => pageBounds.topLeft.translate(-spacing, 0),
-        AxisDirection.down => pageBounds.bottomLeft.translate(0, spacing),
-        AxisDirection.right => pageBounds.topRight.translate(spacing, 0),
+        MangaPageViewDirection.up => pageBounds.topLeft.translate(0, -spacing),
+        MangaPageViewDirection.left => pageBounds.topLeft.translate(
+          -spacing,
+          0,
+        ),
+        MangaPageViewDirection.down => pageBounds.bottomLeft.translate(
+          0,
+          spacing,
+        ),
+        MangaPageViewDirection.right => pageBounds.topRight.translate(
+          spacing,
+          0,
+        ),
       };
     }
   }

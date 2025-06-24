@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/src/utils.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
@@ -117,7 +116,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     final Offset newOffset;
 
     switch (widget.options.direction) {
-      case AxisDirection.down:
+      case MangaPageViewDirection.down:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy + delta).clamp(
@@ -126,7 +125,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           ),
         );
         break;
-      case AxisDirection.up:
+      case MangaPageViewDirection.up:
         newOffset = Offset(
           currentOffset.dx,
           (currentOffset.dy - delta).clamp(
@@ -135,7 +134,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           ),
         );
         break;
-      case AxisDirection.right:
+      case MangaPageViewDirection.right:
         newOffset = Offset(
           (currentOffset.dx + delta).clamp(
             scrollableRegion.left,
@@ -144,7 +143,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           currentOffset.dy,
         );
         break;
-      case AxisDirection.left:
+      case MangaPageViewDirection.left:
         newOffset = Offset(
           (currentOffset.dx - delta).clamp(
             scrollableRegion.right,
@@ -223,11 +222,11 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
               widget.options.mainAxisOverscroll ||
           widget.options.direction.isVertical &&
               widget.options.crossAxisOverscroll,
-      alignment: switch (widget.options.direction) {
-        AxisDirection.down => InteractivePanelAlignment.top,
-        AxisDirection.right => InteractivePanelAlignment.left,
-        AxisDirection.up => InteractivePanelAlignment.bottom,
-        AxisDirection.left => InteractivePanelAlignment.right,
+      anchor: switch (widget.options.direction) {
+        MangaPageViewDirection.down => MangaPageViewEdge.top,
+        MangaPageViewDirection.right => MangaPageViewEdge.left,
+        MangaPageViewDirection.up => MangaPageViewEdge.bottom,
+        MangaPageViewDirection.left => MangaPageViewEdge.right,
       },
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,

@@ -1,8 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/src/utils.dart';
+import 'package:manga_page_view/manga_page_view.dart';
 
-import '../manga_page_view_options.dart';
 import 'interactive_panel.dart';
 import 'viewport_size.dart';
 
@@ -25,7 +24,7 @@ class PageCarousel extends StatefulWidget {
   final int initialIndex;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
-  final AxisDirection direction;
+  final MangaPageViewDirection direction;
   final Function(int index)? onPageChange;
 
   @override

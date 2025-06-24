@@ -18,10 +18,10 @@ class MangaPagesExampleApp extends StatefulWidget {
 }
 
 class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
-  late AxisDirection _scrollDirection;
+  late MangaPageViewDirection _scrollDirection;
   MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
-  Gravity _scrollGravity = Gravity.center;
+  MangaPageViewGravity _scrollGravity = MangaPageViewGravity.center;
 
   late final _controller = MangaPageViewController();
 
@@ -40,8 +40,8 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
     super.didChangeDependencies();
     _scrollDirection =
         MediaQuery.of(context).orientation == Orientation.portrait
-        ? AxisDirection.down
-        : AxisDirection.right;
+        ? MangaPageViewDirection.down
+        : MangaPageViewDirection.right;
   }
 
   @override
@@ -64,9 +64,9 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
         body: Stack(
           children: [
             MangaPageView(
+              mode: _mode,
               controller: _controller,
               options: MangaPageViewOptions(
-                mode: _mode,
                 direction: _scrollDirection,
                 mainAxisOverscroll: _overshoot,
                 crossAxisOverscroll: _overshoot,
@@ -94,6 +94,32 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
               onProgressChange: (progress) {
                 _currentProgress.value = progress;
               },
+              pageEndGestureIndicatorBuilder:
+                  (context, edge, progress, triggered) {
+                    return Center(
+                      child: AnimatedOpacity(
+                        opacity: progress,
+                        duration: Duration.zero,
+                        child: Container(
+                          decoration: ShapeDecoration(
+                            shape: CircleBorder(),
+                            color: triggered ? Colors.red : Colors.transparent,
+                          ),
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            switch (edge) {
+                              MangaPageViewEdge.top => Icons.arrow_upward,
+                              MangaPageViewEdge.bottom => Icons.arrow_downward,
+                              MangaPageViewEdge.left => Icons.arrow_back,
+                              MangaPageViewEdge.right => Icons.arrow_forward,
+                            },
+                            color: triggered ? Colors.black : Colors.white,
+                            size: 48,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
             ),
             _buildDebugPanel(context),
           ],
@@ -348,19 +374,23 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     onPressed: () {
                       setState(() {
                         _scrollDirection = switch (_scrollDirection) {
-                          AxisDirection.right => AxisDirection.down,
-                          AxisDirection.down => AxisDirection.left,
-                          AxisDirection.left => AxisDirection.up,
-                          AxisDirection.up => AxisDirection.right,
+                          MangaPageViewDirection.right =>
+                            MangaPageViewDirection.down,
+                          MangaPageViewDirection.down =>
+                            MangaPageViewDirection.left,
+                          MangaPageViewDirection.left =>
+                            MangaPageViewDirection.up,
+                          MangaPageViewDirection.up =>
+                            MangaPageViewDirection.right,
                         };
                       });
                     },
                     icon: Icon(() {
                       return switch (_scrollDirection) {
-                        AxisDirection.right => Icons.swipe_right_alt,
-                        AxisDirection.down => Icons.swipe_down_alt,
-                        AxisDirection.left => Icons.swipe_left_alt,
-                        AxisDirection.up => Icons.swipe_up_alt,
+                        MangaPageViewDirection.right => Icons.swipe_right_alt,
+                        MangaPageViewDirection.down => Icons.swipe_down_alt,
+                        MangaPageViewDirection.left => Icons.swipe_left_alt,
+                        MangaPageViewDirection.up => Icons.swipe_up_alt,
                       };
                     }()),
                   ),
@@ -380,17 +410,21 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
                     onPressed: () {
                       setState(() {
                         _scrollGravity = switch (_scrollGravity) {
-                          Gravity.start => Gravity.center,
-                          Gravity.center => Gravity.end,
-                          Gravity.end => Gravity.start,
+                          MangaPageViewGravity.start =>
+                            MangaPageViewGravity.center,
+                          MangaPageViewGravity.center =>
+                            MangaPageViewGravity.end,
+                          MangaPageViewGravity.end =>
+                            MangaPageViewGravity.start,
                         };
                       });
                     },
                     icon: Icon(() {
                       return switch (_scrollGravity) {
-                        Gravity.start => Icons.align_vertical_top,
-                        Gravity.center => Icons.align_vertical_center,
-                        Gravity.end => Icons.align_vertical_bottom,
+                        MangaPageViewGravity.start => Icons.align_vertical_top,
+                        MangaPageViewGravity.center =>
+                          Icons.align_vertical_center,
+                        MangaPageViewGravity.end => Icons.align_vertical_bottom,
                       };
                     }()),
                   ),
