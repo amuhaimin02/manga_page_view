@@ -1,8 +1,8 @@
-import 'dart:ui';
+import 'package:flutter/gestures.dart';
 
 class DoubleTapDetector {
-  static const _durationThreshold = Duration(milliseconds: 300);
-  static const _distanceThreshold = 40.0;
+  static const _durationThreshold = kDoubleTapTimeout;
+  static const _distanceThreshold = kDoubleTapSlop;
 
   Duration? _firstTapTimestamp;
   Offset? _firstTapPosition;

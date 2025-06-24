@@ -18,11 +18,11 @@ class MangaPageViewOptions {
     this.pageWidthLimit,
     this.pageHeightLimit,
     this.pageSenseGravity = MangaPageViewGravity.center,
-    this.pageJumpGravity = MangaPageViewGravity.start,
+    this.pageJumpGravity = MangaPageViewGravity.center,
     this.zoomOnFocalPoint = true,
     this.initialFadeInDuration = const Duration(milliseconds: 300),
     this.initialFadeInCurve = Curves.linear,
-    this.edgeIndicatorContainerSize = 250,
+    this.edgeIndicatorContainerSize = 200,
   });
   final double minZoomLevel;
   final double maxZoomLevel;
