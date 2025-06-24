@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/src/widgets/viewport_size.dart';
+import 'viewport_size.dart';
 
 import '../../manga_page_view.dart';
 import 'interactive_panel.dart';
@@ -445,6 +445,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         MangaPageViewDirection.left => MangaPageViewEdge.right,
       },
       panCheckAxis: widget.options.direction.axis,
+      onScroll: _onScroll,
       child: PageStrip(
         key: _stripContainerKey,
         direction: widget.options.direction,
@@ -458,7 +459,6 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
       ),
-      onScroll: _onScroll,
     );
   }
 }

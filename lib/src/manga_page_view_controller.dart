@@ -51,33 +51,29 @@ sealed class ControllerChangeIntent {
 }
 
 class PageChangeIntent extends ControllerChangeIntent {
+  const PageChangeIntent(this.index, this.duration, this.curve);
   final int index;
   final Duration duration;
   final Curve curve;
-
-  const PageChangeIntent(this.index, this.duration, this.curve);
 }
 
 class ProgressChangeIntent extends ControllerChangeIntent {
+  const ProgressChangeIntent(this.progress, this.duration, this.curve);
   final double progress;
   final Duration duration;
   final Curve curve;
-
-  const ProgressChangeIntent(this.progress, this.duration, this.curve);
 }
 
 class ScrollDeltaChangeIntent extends ControllerChangeIntent {
+  const ScrollDeltaChangeIntent(this.delta, this.duration, this.curve);
   final double delta;
   final Duration duration;
   final Curve curve;
-
-  const ScrollDeltaChangeIntent(this.delta, this.duration, this.curve);
 }
 
 class ZoomChangeIntent extends ControllerChangeIntent {
+  const ZoomChangeIntent(this.zoomLevel, this.duration, this.curve);
   final double zoomLevel;
   final Duration duration;
   final Curve curve;
-
-  const ZoomChangeIntent(this.zoomLevel, this.duration, this.curve);
 }

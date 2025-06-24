@@ -200,7 +200,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     // Create keys for panel if not exists. We need them to manipulate the panel states later on.
     final panelKey = _panelKeys.putIfAbsent(
       index,
-      () => GlobalKey<InteractivePanelState>(),
+      GlobalKey<InteractivePanelState>.new,
     );
     return InteractivePanel(
       key: panelKey,

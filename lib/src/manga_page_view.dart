@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/manga_page_view.dart';
-import 'package:manga_page_view/src/widgets/page_end_gesture_wrapper.dart';
+import '../manga_page_view.dart';
+import 'widgets/page_end_gesture_wrapper.dart';
 import 'widgets/continuous_view.dart';
 import 'widgets/paged_view.dart';
 import 'widgets/viewport_size.dart';

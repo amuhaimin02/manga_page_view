@@ -1,6 +1,29 @@
 import 'package:flutter/widgets.dart';
 
 class MangaPageViewOptions {
+  const MangaPageViewOptions({
+    this.minZoomLevel = 0.5,
+    this.maxZoomLevel = 4.0,
+    this.initialZoomLevel = 1.0,
+    this.presetZoomLevels = const [1.0, 2.0, 4.0],
+    this.padding = EdgeInsets.zero,
+    this.spacing = 0.0,
+    this.direction = MangaPageViewDirection.down,
+    this.initialPageSize = const Size(512, 512),
+    this.mainAxisOverscroll = true,
+    this.crossAxisOverscroll = true,
+    this.zoomOvershoot = true,
+    this.precacheAhead = 0,
+    this.precacheBehind = 0,
+    this.pageWidthLimit,
+    this.pageHeightLimit,
+    this.pageSenseGravity = MangaPageViewGravity.center,
+    this.pageJumpGravity = MangaPageViewGravity.start,
+    this.zoomOnFocalPoint = true,
+    this.initialFadeInDuration = const Duration(milliseconds: 300),
+    this.initialFadeInCurve = Curves.linear,
+    this.edgeIndicatorContainerSize = 250,
+  });
   final double minZoomLevel;
   final double maxZoomLevel;
   final double initialZoomLevel;
@@ -22,30 +45,6 @@ class MangaPageViewOptions {
   final Duration initialFadeInDuration;
   final Curve initialFadeInCurve;
   final double edgeIndicatorContainerSize;
-
-  const MangaPageViewOptions({
-    this.minZoomLevel = 0.5,
-    this.maxZoomLevel = 4.0,
-    this.initialZoomLevel = 1.0,
-    this.presetZoomLevels = const [1.0, 2.0, 4.0],
-    this.padding = EdgeInsets.zero,
-    this.spacing = 0.0,
-    this.direction = MangaPageViewDirection.down,
-    this.initialPageSize = const Size(512, 512),
-    this.mainAxisOverscroll = true,
-    this.crossAxisOverscroll = true,
-    this.zoomOvershoot = true,
-    this.precacheAhead = 0,
-    this.precacheBehind = 0,
-    this.pageWidthLimit = null,
-    this.pageHeightLimit = null,
-    this.pageSenseGravity = MangaPageViewGravity.center,
-    this.pageJumpGravity = MangaPageViewGravity.start,
-    this.zoomOnFocalPoint = true,
-    this.initialFadeInDuration = const Duration(milliseconds: 300),
-    this.initialFadeInCurve = Curves.linear,
-    this.edgeIndicatorContainerSize = 250,
-  });
 }
 
 enum MangaPageViewMode { continuous, paged }

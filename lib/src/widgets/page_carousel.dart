@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/manga_page_view.dart';
+import '../../manga_page_view.dart';
 
 import '../utils.dart';
 import 'interactive_panel.dart';
@@ -118,27 +118,27 @@ class PageCarouselState extends State<PageCarousel>
   }
 
   void _updatePageContents() {
-    Map<int, Widget> _newLoadedWidgets = {};
+    final newLoadedWidgets = <int, Widget>{};
 
-    _newLoadedWidgets[_currentIndex] =
+    newLoadedWidgets[_currentIndex] =
         _loadedWidgets[_currentIndex] ??
         widget.itemBuilder(context, _currentIndex);
 
     for (int i = 1; i <= 3; i++) {
       final previousIndex = _currentIndex - i;
       if (previousIndex >= 0) {
-        _newLoadedWidgets[previousIndex] =
+        newLoadedWidgets[previousIndex] =
             _loadedWidgets[previousIndex] ??
             widget.itemBuilder(context, previousIndex);
       }
       final nextIndex = _currentIndex + i;
       if (nextIndex < widget.itemCount) {
-        _newLoadedWidgets[nextIndex] =
+        newLoadedWidgets[nextIndex] =
             _loadedWidgets[nextIndex] ?? widget.itemBuilder(context, nextIndex);
       }
     }
     setState(() {
-      _loadedWidgets = _newLoadedWidgets;
+      _loadedWidgets = newLoadedWidgets;
     });
   }
 
@@ -162,7 +162,7 @@ class PageCarouselState extends State<PageCarousel>
     // Check if on edge
     if (_currentIndex == 0 && progress < 0 ||
         _currentIndex == widget.itemCount - 1 && progress > 0) {
-      PageCarouselReachingEdgeNotification().dispatch(context);
+      const PageCarouselReachingEdgeNotification().dispatch(context);
       _panLocked = true;
       progress = 0;
     }

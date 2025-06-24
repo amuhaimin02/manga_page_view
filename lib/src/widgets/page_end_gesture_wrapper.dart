@@ -1,12 +1,9 @@
-import 'dart:ui';
-
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/manga_page_view.dart';
-import 'package:manga_page_view/src/utils.dart';
-import 'package:manga_page_view/src/widgets/interactive_panel.dart';
-import 'package:manga_page_view/src/widgets/page_carousel.dart';
+import '../../manga_page_view.dart';
+import '../utils.dart';
+import 'interactive_panel.dart';
+import 'page_carousel.dart';
 
 import 'viewport_size.dart';
 
@@ -37,7 +34,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     with SingleTickerProviderStateMixin {
   late final _swipeAnimationController = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: 250),
+    duration: const Duration(milliseconds: 250),
   );
 
   Animation<double>? _swipeAnimation;
@@ -184,8 +181,8 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
       case (MangaPageViewDirection.right, MangaPageViewEdge.left):
         return MangaPageViewEdgeGestureSide.start;
       default:
-        throw new AssertionError(
-          "Invalid edge and direction combination: ${direction}, ${edge}",
+        throw AssertionError(
+          "Invalid edge and direction combination: $direction, $edge",
         );
     }
   }

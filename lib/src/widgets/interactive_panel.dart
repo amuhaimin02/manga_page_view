@@ -2,8 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/manga_page_view.dart';
-import 'package:manga_page_view/src/utils.dart';
+import '../../manga_page_view.dart';
+import '../utils.dart';
 import 'dart:math' as math;
 
 import 'double_tap_detector.dart';
@@ -113,26 +113,26 @@ class InteractivePanelState extends State<InteractivePanel>
   @override
   void dispose() {
     _viewportSizeProvider.removeListener(_onViewportChanged);
-    _scrollRegionChange..removeListener(_updateScrollableRegion);
+    _scrollRegionChange.removeListener(_updateScrollableRegion);
     _offset
       ..removeListener(_sendScrollInfo)
       ..dispose();
     _zoomLevel
       ..removeListener(_sendScrollInfo)
       ..dispose();
-    _viewport..dispose();
+    _viewport.dispose();
     _childSize
       ..removeListener(_onChildSizeChanged)
       ..dispose();
-    _flingXAnimation..dispose();
-    _flingYAnimation..dispose();
+    _flingXAnimation.dispose();
+    _flingYAnimation.dispose();
     _zoomAnimation
       ..removeListener(_onAnimateZoomUpdate)
       ..dispose();
     _offsetAnimation
       ..removeListener(_onAnimateOffsetUpdate)
       ..dispose();
-    _firstAppearanceAnimation..dispose();
+    _firstAppearanceAnimation.dispose();
 
     super.dispose();
   }
@@ -373,7 +373,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
       // If user is trying to pan out of bounds, lock panning and notify
       if (cannotPan) {
-        InteractivePanelReachingEdgeNotification().dispatch(context);
+        const InteractivePanelReachingEdgeNotification().dispatch(context);
         _isPanLocked = true;
       }
     }
@@ -513,7 +513,7 @@ class InteractivePanelState extends State<InteractivePanel>
       return;
     }
 
-    double nextZoomLevel = presetZoomLevels.firstWhere(
+    final nextZoomLevel = presetZoomLevels.firstWhere(
       (level) => level > _zoomLevel.value,
       orElse: () => presetZoomLevels.first,
     );
@@ -661,7 +661,6 @@ class InteractivePanelState extends State<InteractivePanel>
           stiffness: 100.0,
           ratio: 1.1,
         ),
-        tolerance: Tolerance.defaultTolerance,
       );
 
       flingAnimation
@@ -710,7 +709,7 @@ class InteractivePanelState extends State<InteractivePanel>
     Duration duration,
     Curve curve, {
     bool handleOffset = true,
-    Offset? focalPoint = null,
+    Offset? focalPoint,
   }) {
     final currentLevel = _zoomLevel.value;
     final zoomTween = Tween<double>(
@@ -798,8 +797,9 @@ class InteractivePanelState extends State<InteractivePanel>
         onPointerDown: (event) {
           // Only detects left mouse click or touch
           if (event.kind == PointerDeviceKind.mouse &&
-              !GestureUtils.isLeftClicking(event))
+              !GestureUtils.isLeftClicking(event)) {
             return;
+          }
 
           _activePointers[event.device] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
@@ -863,8 +863,9 @@ class InteractivePanelState extends State<InteractivePanel>
         onPointerMove: (event) {
           // Only detects left mouse click or touch
           if (event.kind == PointerDeviceKind.mouse &&
-              !GestureUtils.isLeftClicking(event))
+              !GestureUtils.isLeftClicking(event)) {
             return;
+          }
 
           // Skip if pointer is not really moving
           // Often triggers on devices with high sampling rate

@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
-import 'package:manga_page_view/manga_page_view.dart';
+import '../../manga_page_view.dart';
 import 'viewport_size.dart';
 
 class PageStrip extends StatefulWidget {
@@ -35,7 +35,7 @@ class PageStrip extends StatefulWidget {
 }
 
 class PageStripState extends State<PageStrip> {
-  late Map<int, Widget> _loadedWidgets = {};
+  late final Map<int, Widget> _loadedWidgets = {};
   late List<Rect> _pageBounds;
 
   List<Rect> get pageBounds => _pageBounds;
@@ -119,7 +119,7 @@ class PageStripState extends State<PageStrip> {
     }
 
     if (pageInView.isNotEmpty) {
-      final pageToLoad = Set<int>();
+      final pageToLoad = <int>{};
       for (final i in pageInView) {
         if (!_loadedWidgets.containsKey(i)) {
           pageToLoad.add(i);
@@ -157,8 +157,8 @@ class PageStripState extends State<PageStrip> {
 
   @override
   Widget build(BuildContext context) {
-    double? containerWidth = null;
-    double? containerHeight = null;
+    double? containerWidth;
+    double? containerHeight;
 
     // Limit cross-axis size if specified. By default they follow viewport size
     if (widget.direction.isVertical) {
