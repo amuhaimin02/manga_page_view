@@ -211,7 +211,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
         _handleTouch();
       },
       onPointerPanZoomUpdate: (event) {
-        _handleSwipe(event.localDelta);
+        _handleSwipe(event.localPanDelta);
       },
       onPointerPanZoomEnd: (event) {
         _handleLift();
