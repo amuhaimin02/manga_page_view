@@ -21,6 +21,7 @@ class MangaPageViewOptions {
   final bool zoomOnFocalPoint;
   final Duration initialFadeInDuration;
   final Curve initialFadeInCurve;
+  final double edgeIndicatorContainerSize;
 
   const MangaPageViewOptions({
     this.minZoomLevel = 0.5,
@@ -43,6 +44,7 @@ class MangaPageViewOptions {
     this.zoomOnFocalPoint = true,
     this.initialFadeInDuration = const Duration(milliseconds: 300),
     this.initialFadeInCurve = Curves.linear,
+    this.edgeIndicatorContainerSize = 250,
   });
 }
 
@@ -100,7 +102,7 @@ enum MangaPageViewEdge {
   }
 
   bool get isReverse =>
-      this == MangaPageViewEdge.right || this == MangaPageViewEdge.top;
+      this == MangaPageViewEdge.right || this == MangaPageViewEdge.bottom;
 
   bool get isVertical => axis == Axis.vertical;
   bool get isHorizontal => axis == Axis.horizontal;
