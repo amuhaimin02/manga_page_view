@@ -195,19 +195,19 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleTouch();
       },
       onPointerMove: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleSwipe(event.localDelta);
       },
       onPointerUp: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleLift();
       },
       onPointerCancel: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleLift();
       },
       onPointerPanZoomStart: (event) {

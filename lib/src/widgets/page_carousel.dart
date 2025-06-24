@@ -222,24 +222,24 @@ class PageCarouselState extends State<PageCarousel>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
 
         _velocityTracker = VelocityTracker.withKind(event.kind);
       },
       onPointerMove: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
         if (!_canMove) return;
 
         _velocityTracker?.addPosition(event.timeStamp, event.localPosition);
         _updatePan(event.localDelta);
       },
       onPointerUp: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
 
         _snapToNearest(_velocityTracker!.getVelocity());
       },
       onPointerCancel: (event) {
-        if (!isPrimaryPointer(event)) return;
+        if (!GestureUtils.isPrimaryPointer(event)) return;
 
         _snapToNearest(Velocity.zero);
       },

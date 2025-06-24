@@ -797,7 +797,9 @@ class InteractivePanelState extends State<InteractivePanel>
         behavior: HitTestBehavior.translucent,
         onPointerDown: (event) {
           // Only detects left mouse click or touch
-          if (!isLeftClicking(event)) return;
+          if (event.kind == PointerDeviceKind.mouse &&
+              !GestureUtils.isLeftClicking(event))
+            return;
 
           _activePointers[event.device] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
@@ -860,7 +862,9 @@ class InteractivePanelState extends State<InteractivePanel>
         },
         onPointerMove: (event) {
           // Only detects left mouse click or touch
-          if (!isLeftClicking(event)) return;
+          if (event.kind == PointerDeviceKind.mouse &&
+              !GestureUtils.isLeftClicking(event))
+            return;
 
           // Skip if pointer is not really moving
           // Often triggers on devices with high sampling rate
