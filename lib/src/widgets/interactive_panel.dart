@@ -158,6 +158,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (widget.anchor != oldWidget.anchor) {
+        _firstAppearanceAnimation.forward(from: 0);
         _stopFlinging();
         _changeAnchorEdge(oldWidget.anchor, widget.anchor);
       }
@@ -949,25 +950,28 @@ class InteractivePanelState extends State<InteractivePanel>
                 parent: _firstAppearanceAnimation,
                 curve: widget.initialFadeInCurve,
               ),
-              child: OverflowBox(
-                maxWidth: double.infinity,
-                maxHeight: double.infinity,
-                alignment: switch (widget.anchor) {
-                  MangaPageViewEdge.top => Alignment.topLeft,
-                  MangaPageViewEdge.left => Alignment.topLeft,
-                  MangaPageViewEdge.bottom => Alignment.bottomLeft,
-                  MangaPageViewEdge.right => Alignment.topRight,
-                },
-                child: NotificationListener(
-                  onNotification: (event) {
-                    if (event is SizeChangedLayoutNotification) {
-                      _updateChildSize();
-                      return true;
-                    }
-                    return false;
+              child: Center(
+                child: OverflowBox(
+                  maxWidth: double.infinity,
+                  maxHeight: double.infinity,
+                  alignment: switch (widget.anchor) {
+                    MangaPageViewEdge.top => Alignment.topLeft,
+                    MangaPageViewEdge.left => Alignment.topLeft,
+                    MangaPageViewEdge.bottom => Alignment.bottomLeft,
+                    MangaPageViewEdge.right => Alignment.topRight,
                   },
-                  child: SizeChangedLayoutNotifier(
-                    child: SizedBox(key: _childKey, child: widget.child),
+                  child: NotificationListener(
+                    onNotification: (event) {
+                      if (event is SizeChangedLayoutNotification) {
+                        _updateChildSize();
+                        return true;
+                      }
+                      return true;
+                    },
+                    child: SizeChangedLayoutNotifier(
+                      key: _childKey,
+                      child: widget.child,
+                    ),
                   ),
                 ),
               ),
