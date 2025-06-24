@@ -351,6 +351,7 @@ class _MangaPageViewExampleScreenState
                 spacing: 16,
                 children: [
                   IconButton(
+                    tooltip: 'Previous page',
                     onPressed: () {
                       _controller.moveToPage(
                         max(0, _currentPage.value - 1),
@@ -360,6 +361,7 @@ class _MangaPageViewExampleScreenState
                     icon: Icon(Icons.skip_previous),
                   ),
                   IconButton(
+                    tooltip: 'Next page',
                     onPressed: () {
                       _controller.moveToPage(
                         min(_totalPages - 1, _currentPage.value + 1),
@@ -369,6 +371,7 @@ class _MangaPageViewExampleScreenState
                     icon: Icon(Icons.skip_next),
                   ),
                   IconButton(
+                    tooltip: 'Scroll backward',
                     onPressed: () {
                       _controller.scrollBy(
                         -60,
@@ -378,6 +381,7 @@ class _MangaPageViewExampleScreenState
                     icon: Icon(Icons.chevron_left),
                   ),
                   IconButton(
+                    tooltip: 'Scroll forward',
                     onPressed: () {
                       _controller.scrollBy(
                         60,
@@ -388,6 +392,7 @@ class _MangaPageViewExampleScreenState
                   ),
                   // Toggle view mode
                   IconButton(
+                    tooltip: 'Toggle view mode (paged/continuous)',
                     onPressed: () {
                       setState(() {
                         _mode = switch (_mode) {
@@ -406,6 +411,7 @@ class _MangaPageViewExampleScreenState
                   ),
                   // Toggle scroll direction
                   IconButton(
+                    tooltip: 'Scroll direction',
                     onPressed: () {
                       setState(() {
                         _scrollDirection = switch (_scrollDirection) {
@@ -429,8 +435,8 @@ class _MangaPageViewExampleScreenState
                       };
                     }()),
                   ),
-                  // Toggle overscroll
                   IconButton(
+                    tooltip: 'Toggle overshoot/constrained',
                     onPressed: () {
                       setState(() {
                         _overshoot = !_overshoot;
@@ -440,8 +446,8 @@ class _MangaPageViewExampleScreenState
                       _overshoot ? Icons.swipe_vertical : Icons.crop_free,
                     ),
                   ),
-                  // Toggle scroll gravity
                   IconButton(
+                    tooltip: 'Page detection/jump gravity',
                     onPressed: () {
                       setState(() {
                         _scrollGravity = switch (_scrollGravity) {
