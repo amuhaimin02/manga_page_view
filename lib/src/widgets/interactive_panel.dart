@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
+import 'package:manga_page_view/src/utils.dart';
 import 'dart:math' as math;
 
 import 'double_tap_detector.dart';
@@ -796,7 +797,7 @@ class InteractivePanelState extends State<InteractivePanel>
         behavior: HitTestBehavior.translucent,
         onPointerDown: (event) {
           // Only detects left mouse click or touch
-          if (event.buttons & kPrimaryButton == 0) return;
+          if (!isLeftClicking(event)) return;
 
           _activePointers[event.device] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
@@ -805,7 +806,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
           _handleTouch();
 
-          if (event.device == 0) {
+          if (event.device <= 0) {
             // Primary touch
             _doubleTapDetector.registerTap(
               event.timeStamp,
@@ -859,7 +860,7 @@ class InteractivePanelState extends State<InteractivePanel>
         },
         onPointerMove: (event) {
           // Only detects left mouse click or touch
-          if (event.buttons & kPrimaryButton == 0) return;
+          if (!isLeftClicking(event)) return;
 
           // Skip if pointer is not really moving
           // Often triggers on devices with high sampling rate

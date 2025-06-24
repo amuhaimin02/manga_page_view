@@ -1,6 +1,10 @@
+import 'dart:ui';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
+import 'package:manga_page_view/src/utils.dart';
 import 'package:manga_page_view/src/widgets/interactive_panel.dart';
 import 'package:manga_page_view/src/widgets/page_carousel.dart';
 
@@ -191,19 +195,19 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        if (event.device != 0) return;
+        if (!isPrimaryPointer(event)) return;
         _handleTouch();
       },
       onPointerMove: (event) {
-        if (event.device != 0) return;
+        if (!isPrimaryPointer(event)) return;
         _handleSwipe(event.localDelta);
       },
       onPointerUp: (event) {
-        if (event.device != 0) return;
+        if (!isPrimaryPointer(event)) return;
         _handleLift();
       },
       onPointerCancel: (event) {
-        if (event.device != 0) return;
+        if (!isPrimaryPointer(event)) return;
         _handleLift();
       },
       onPointerPanZoomStart: (event) {

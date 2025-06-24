@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
+import '../utils.dart';
 import 'interactive_panel.dart';
 import 'viewport_size.dart';
 
@@ -221,28 +222,25 @@ class PageCarouselState extends State<PageCarousel>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        if (event.device == 0) {
-          // Primary touch
-          _velocityTracker = VelocityTracker.withKind(event.kind);
-        }
+        if (!isPrimaryPointer(event)) return;
+
+        _velocityTracker = VelocityTracker.withKind(event.kind);
       },
       onPointerMove: (event) {
-        if (!_canMove) {
-          return;
-        }
+        if (!isPrimaryPointer(event)) return;
+        if (!_canMove) return;
 
-        if (event.device == 0) {
-          // Primary touch
-          _velocityTracker?.addPosition(event.timeStamp, event.localPosition);
-          _updatePan(event.localDelta);
-        }
+        _velocityTracker?.addPosition(event.timeStamp, event.localPosition);
+        _updatePan(event.localDelta);
       },
       onPointerUp: (event) {
-        if (event.device == 0) {
-          _snapToNearest(_velocityTracker!.getVelocity());
-        }
+        if (!isPrimaryPointer(event)) return;
+
+        _snapToNearest(_velocityTracker!.getVelocity());
       },
       onPointerCancel: (event) {
+        if (!isPrimaryPointer(event)) return;
+
         _snapToNearest(Velocity.zero);
       },
       // Trackpad
