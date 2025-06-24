@@ -312,6 +312,9 @@ class InteractivePanelState extends State<InteractivePanel>
       // First time panning
       _isPanning = true;
 
+      // Invalidate double taps
+      _doubleTapDetector.reset();
+
       _checkPanPossible(newOffset, delta);
     } else {
       _offset.value = newOffset;
