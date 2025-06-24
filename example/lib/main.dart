@@ -5,19 +5,39 @@ import 'package:flutter/material.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
-  runApp(const MangaPagesExampleApp());
+  runApp(const MangaPageViewExampleApp());
 }
 
 final _random = Random();
 
-class MangaPagesExampleApp extends StatefulWidget {
-  const MangaPagesExampleApp({super.key});
+class MangaPageViewExampleApp extends StatelessWidget {
+  const MangaPageViewExampleApp({super.key});
 
   @override
-  State<MangaPagesExampleApp> createState() => _MangaPagesExampleAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Manga Page View Example',
+      theme: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: MangaPageViewExampleScreen(),
+    );
+  }
 }
 
-class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
+class MangaPageViewExampleScreen extends StatefulWidget {
+  const MangaPageViewExampleScreen({super.key});
+
+  @override
+  State<MangaPageViewExampleScreen> createState() =>
+      _MangaPageViewExampleScreenState();
+}
+
+class _MangaPageViewExampleScreenState
+    extends State<MangaPageViewExampleScreen> {
   late MangaPageViewDirection _scrollDirection;
   MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
@@ -52,78 +72,81 @@ class _MangaPagesExampleAppState extends State<MangaPagesExampleApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Manga Pages Example',
-      theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: Scaffold(
-        body: Stack(
-          children: [
-            MangaPageView(
-              mode: _mode,
-              controller: _controller,
-              options: MangaPageViewOptions(
-                direction: _scrollDirection,
-                mainAxisOverscroll: _overshoot,
-                crossAxisOverscroll: _overshoot,
-                maxZoomLevel: 8,
-                precacheAhead: 2,
-                precacheBehind: 2,
-                zoomOvershoot: _overshoot,
-                pageJumpGravity: _scrollGravity,
-                pageSenseGravity: _scrollGravity,
-                initialPageSize: Size(600, 600),
-                pageWidthLimit: 1000,
-                padding: EdgeInsets.all(16),
-              ),
-              pageCount: _totalPages,
-              pageBuilder: (context, index) {
-                // print('Loading page ${index + 1}');
-                return _buildCachedNetworkImage(context, index);
-              },
-              onPageChange: (index) {
-                _currentPage.value = index;
-              },
-              onZoomChange: (zoomLevel) {
-                _currentZoomLevel.value = zoomLevel;
-              },
-              onProgressChange: (progress) {
-                _currentProgress.value = progress;
-              },
-              pageEndGestureIndicatorBuilder:
-                  (context, edge, progress, triggered) {
-                    return Center(
-                      child: AnimatedOpacity(
-                        opacity: progress,
-                        duration: Duration.zero,
-                        child: Container(
-                          decoration: ShapeDecoration(
-                            shape: CircleBorder(),
-                            color: triggered ? Colors.red : Colors.transparent,
-                          ),
-                          padding: EdgeInsets.all(8),
-                          child: Icon(
-                            switch (edge) {
-                              MangaPageViewEdge.top => Icons.arrow_upward,
-                              MangaPageViewEdge.bottom => Icons.arrow_downward,
-                              MangaPageViewEdge.left => Icons.arrow_back,
-                              MangaPageViewEdge.right => Icons.arrow_forward,
-                            },
-                            color: triggered ? Colors.black : Colors.white,
-                            size: 48,
-                          ),
+    return Scaffold(
+      body: Stack(
+        children: [
+          MangaPageView(
+            mode: _mode,
+            controller: _controller,
+            options: MangaPageViewOptions(
+              direction: _scrollDirection,
+              mainAxisOverscroll: _overshoot,
+              crossAxisOverscroll: _overshoot,
+              maxZoomLevel: 8,
+              precacheAhead: 2,
+              precacheBehind: 2,
+              zoomOvershoot: _overshoot,
+              pageJumpGravity: _scrollGravity,
+              pageSenseGravity: _scrollGravity,
+              initialPageSize: Size(600, 600),
+              pageWidthLimit: 1000,
+              padding: EdgeInsets.all(16),
+            ),
+            pageCount: _totalPages,
+            pageBuilder: (context, index) {
+              // print('Loading page ${index + 1}');
+              return _buildCachedNetworkImage(context, index);
+            },
+            onPageChange: (index) {
+              _currentPage.value = index;
+            },
+            onZoomChange: (zoomLevel) {
+              _currentZoomLevel.value = zoomLevel;
+            },
+            onProgressChange: (progress) {
+              _currentProgress.value = progress;
+            },
+            pageEndGestureIndicatorBuilder:
+                (context, edge, progress, triggered) {
+                  return Center(
+                    child: AnimatedOpacity(
+                      opacity: progress,
+                      duration: Duration.zero,
+                      child: Container(
+                        decoration: ShapeDecoration(
+                          shape: CircleBorder(),
+                          color: triggered ? Colors.red : Colors.transparent,
+                        ),
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          switch (edge) {
+                            MangaPageViewEdge.top => Icons.arrow_upward,
+                            MangaPageViewEdge.bottom => Icons.arrow_downward,
+                            MangaPageViewEdge.left => Icons.arrow_back,
+                            MangaPageViewEdge.right => Icons.arrow_forward,
+                          },
+                          color: triggered ? Colors.black : Colors.white,
+                          size: 48,
                         ),
                       ),
-                    );
-                  },
-            ),
-            _buildDebugPanel(context),
-          ],
-        ),
+                    ),
+                  );
+                },
+            onStartEdgeDrag: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Going to previous chapter')),
+              );
+            },
+            onEndEdgeDrag: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Going to next chapter')));
+            },
+          ),
+          _buildDebugPanel(context),
+        ],
       ),
     );
   }

@@ -18,15 +18,19 @@ class PageEndGestureWrapper extends StatefulWidget {
   const PageEndGestureWrapper({
     super.key,
     required this.child,
-    required this.detectionAxis,
+    required this.direction,
     required this.indicatorSize,
     required this.indicatorBuilder,
+    required this.onStartEdgeDrag,
+    required this.onEndEdgeDrag,
   });
 
-  final Axis detectionAxis;
+  final MangaPageViewDirection direction;
   final Widget child;
   final double indicatorSize;
-  final PageEndGestureIndicatorBuilder? indicatorBuilder;
+  final PageEndGestureIndicatorBuilder indicatorBuilder;
+  final VoidCallback? onStartEdgeDrag;
+  final VoidCallback? onEndEdgeDrag;
 
   @override
   State<PageEndGestureWrapper> createState() => _PageEndGestureWrapperState();
@@ -69,18 +73,19 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
   void _handleSwipe(Offset delta) {
     // Determine which edge user swipes from
     if (_canMove && _activeEdge == null) {
-      if (widget.detectionAxis == Axis.vertical) {
-        if (delta.dy > 0) {
-          _activeEdge = MangaPageViewEdge.top;
-        } else if (delta.dy < 0) {
-          _activeEdge = MangaPageViewEdge.bottom;
-        }
-      } else if (widget.detectionAxis == Axis.horizontal) {
-        if (delta.dx > 0) {
-          _activeEdge = MangaPageViewEdge.left;
-        } else if (delta.dx < 0) {
-          _activeEdge = MangaPageViewEdge.right;
-        }
+      switch (widget.direction.axis) {
+        case Axis.vertical:
+          if (delta.dy > 0) {
+            _activeEdge = MangaPageViewEdge.top;
+          } else if (delta.dy < 0) {
+            _activeEdge = MangaPageViewEdge.bottom;
+          }
+        case Axis.horizontal:
+          if (delta.dx > 0) {
+            _activeEdge = MangaPageViewEdge.left;
+          } else if (delta.dx < 0) {
+            _activeEdge = MangaPageViewEdge.right;
+          }
       }
     }
 
@@ -117,6 +122,35 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
       CurvedAnimation(parent: _swipeAnimationController, curve: Curves.easeOut),
     );
     _swipeAnimationController.forward(from: 0);
+
+    if (_isTriggered) {
+      switch (widget.direction) {
+        case MangaPageViewDirection.down:
+          if (_activeEdge == MangaPageViewEdge.top) {
+            widget.onStartEdgeDrag?.call();
+          } else if (_activeEdge == MangaPageViewEdge.bottom) {
+            widget.onEndEdgeDrag?.call();
+          }
+        case MangaPageViewDirection.up:
+          if (_activeEdge == MangaPageViewEdge.top) {
+            widget.onEndEdgeDrag?.call();
+          } else if (_activeEdge == MangaPageViewEdge.bottom) {
+            widget.onStartEdgeDrag?.call();
+          }
+        case MangaPageViewDirection.right:
+          if (_activeEdge == MangaPageViewEdge.left) {
+            widget.onStartEdgeDrag?.call();
+          } else if (_activeEdge == MangaPageViewEdge.right) {
+            widget.onEndEdgeDrag?.call();
+          }
+        case MangaPageViewDirection.left:
+          if (_activeEdge == MangaPageViewEdge.left) {
+            widget.onEndEdgeDrag?.call();
+          } else if (_activeEdge == MangaPageViewEdge.right) {
+            widget.onStartEdgeDrag?.call();
+          }
+      }
+    }
   }
 
   void _onSwipeEnd() {
@@ -229,7 +263,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
                     if (distance > 0 && edge != null)
                       Positioned.fromRect(
                         rect: indicatorRect,
-                        child: widget.indicatorBuilder!(
+                        child: widget.indicatorBuilder(
                           context,
                           edge,
                           (distance / indicatorSize).clamp(0, 1),

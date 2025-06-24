@@ -17,7 +17,14 @@ class MangaPageView extends StatefulWidget {
     this.onZoomChange,
     this.onProgressChange,
     this.pageEndGestureIndicatorBuilder,
-  });
+    this.onStartEdgeDrag,
+    this.onEndEdgeDrag,
+  }) : assert(
+         (onStartEdgeDrag != null || onEndEdgeDrag != null)
+             ? pageEndGestureIndicatorBuilder != null
+             : true,
+         "When using edge drag gestures, pageEndGestureIndicatorBuilder must not be null",
+       );
 
   final MangaPageViewMode mode;
   final MangaPageViewController? controller;
@@ -28,6 +35,8 @@ class MangaPageView extends StatefulWidget {
   final Function(double zoomLevel)? onZoomChange;
   final Function(double progress)? onProgressChange;
   final PageEndGestureIndicatorBuilder? pageEndGestureIndicatorBuilder;
+  final VoidCallback? onStartEdgeDrag;
+  final VoidCallback? onEndEdgeDrag;
 
   @override
   State<MangaPageView> createState() => _MangaPageViewState();
@@ -56,6 +65,9 @@ class _MangaPageViewState extends State<MangaPageView> {
     _defaultController.dispose();
   }
 
+  bool get isEdgeGesturesEnabled =>
+      widget.onStartEdgeDrag != null || widget.onEndEdgeDrag != null;
+
   void _onPageChange(int pageIndex) {
     _currentPage = pageIndex;
     Future.microtask(() => widget.onPageChange?.call(pageIndex));
@@ -71,40 +83,40 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener(
-      onNotification: (event) {
-        print(event);
-        return false;
-      },
-      child: ViewportSize(
-        child: PageEndGestureWrapper(
-          detectionAxis: widget.options.direction.axis,
-          indicatorSize: 250,
-          indicatorBuilder: widget.pageEndGestureIndicatorBuilder,
-          child: switch (widget.mode) {
-            MangaPageViewMode.continuous => MangaPageContinuousView(
-              initialPageIndex: _currentPage,
-              controller: _controller,
-              options: widget.options,
-              pageCount: widget.pageCount,
-              pageBuilder: widget.pageBuilder,
-              onPageChange: _onPageChange,
-              onProgressChange: _onProgressChange,
-              onZoomChange: _onZoomChange,
-            ),
-            MangaPageViewMode.paged => MangaPagePagedView(
-              controller: _controller,
-              initialPageIndex: _currentPage,
-              options: widget.options,
-              pageCount: widget.pageCount,
-              pageBuilder: widget.pageBuilder,
-              onPageChange: _onPageChange,
-              onProgressChange: _onProgressChange,
-              onZoomChange: _onZoomChange,
-            ),
-          },
-        ),
+    Widget child = switch (widget.mode) {
+      MangaPageViewMode.continuous => MangaPageContinuousView(
+        initialPageIndex: _currentPage,
+        controller: _controller,
+        options: widget.options,
+        pageCount: widget.pageCount,
+        pageBuilder: widget.pageBuilder,
+        onPageChange: _onPageChange,
+        onProgressChange: _onProgressChange,
+        onZoomChange: _onZoomChange,
       ),
-    );
+      MangaPageViewMode.paged => MangaPagePagedView(
+        controller: _controller,
+        initialPageIndex: _currentPage,
+        options: widget.options,
+        pageCount: widget.pageCount,
+        pageBuilder: widget.pageBuilder,
+        onPageChange: _onPageChange,
+        onProgressChange: _onProgressChange,
+        onZoomChange: _onZoomChange,
+      ),
+    };
+
+    if (isEdgeGesturesEnabled) {
+      child = PageEndGestureWrapper(
+        direction: widget.options.direction,
+        indicatorSize: widget.options.edgeIndicatorContainerSize,
+        indicatorBuilder: widget.pageEndGestureIndicatorBuilder!,
+        onStartEdgeDrag: widget.onStartEdgeDrag,
+        onEndEdgeDrag: widget.onEndEdgeDrag,
+        child: child,
+      );
+    }
+
+    return ViewportSize(child: child);
   }
 }
