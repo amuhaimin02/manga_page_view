@@ -4,7 +4,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import '../utils.dart';
@@ -21,7 +20,6 @@ class InteractivePanelReachingEdgeNotification extends Notification {
 }
 
 /// Custom widget that enables advanced panning and zooming capabilities to its child
-@internal
 class InteractivePanel extends StatefulWidget {
   const InteractivePanel({
     super.key,
@@ -87,6 +85,7 @@ class InteractivePanelState extends State<InteractivePanel>
   late final _zoomLevel = ValueNotifier(widget.initialZoomLevel);
 
   Offset get offset => _offset.value;
+
   double get zoomLevel => _zoomLevel.value;
 
   late final _childSize = ValueNotifier(Size.zero);

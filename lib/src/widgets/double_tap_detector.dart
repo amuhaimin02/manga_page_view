@@ -1,8 +1,6 @@
 import 'package:flutter/gestures.dart';
-import 'package:meta/meta.dart';
 
 /// Helper class to determine whether a pointer event is potentially a double tap
-@internal
 class DoubleTapDetector {
   static const _durationThreshold = kDoubleTapTimeout;
   static const _distanceThreshold = kDoubleTapSlop;

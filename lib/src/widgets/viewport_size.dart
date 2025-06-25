@@ -1,11 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 /// Provider class to provide viewport size to child widgets.
 /// Also reacts to size changes especially on desktop mode.
-@internal
 class ViewportSize extends StatefulWidget {
   const ViewportSize({super.key, required this.child});
+
   final Widget child;
 
   @override

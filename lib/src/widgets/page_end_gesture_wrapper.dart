@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import '../utils.dart';
@@ -9,7 +8,6 @@ import 'page_carousel.dart';
 import 'viewport_size.dart';
 
 /// Wrapper for detecting page edge gestures typically used for navigating to previous or next chapter
-@internal
 class PageEndGestureWrapper extends StatefulWidget {
   const PageEndGestureWrapper({
     super.key,

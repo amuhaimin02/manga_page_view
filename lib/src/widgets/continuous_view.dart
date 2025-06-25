@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import '../manga_page_view_controller.dart';
@@ -11,7 +10,6 @@ import 'page_strip.dart';
 import 'viewport_size.dart';
 
 /// Base widget for continuous view
-@internal
 class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
     super.key,
@@ -53,6 +51,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   bool _isChangingPage = false;
 
   InteractivePanelState get _panelState => _interactionPanelKey.currentState!;
+
   PageStripState get _stripState => _stripContainerKey.currentState!;
 
   Size get _viewportSize => ViewportSize.of(context).value;

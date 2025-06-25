@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/animation.dart';
-import 'package:meta/meta.dart';
 
 import '../manga_page_view.dart';
 
@@ -14,7 +13,6 @@ class MangaPageViewController {
 
   final _intents = StreamController<ControllerChangeIntent>.broadcast();
 
-  @internal
   Stream<ControllerChangeIntent> get intents => _intents.stream;
 
   /// Disposes the controller.
@@ -86,12 +84,10 @@ class MangaPageViewController {
   }
 }
 
-@internal
 sealed class ControllerChangeIntent {
   const ControllerChangeIntent();
 }
 
-@internal
 class PageChangeIntent extends ControllerChangeIntent {
   const PageChangeIntent(this.index, this.duration, this.curve);
 
@@ -102,7 +98,6 @@ class PageChangeIntent extends ControllerChangeIntent {
   final Curve curve;
 }
 
-@internal
 class ProgressChangeIntent extends ControllerChangeIntent {
   const ProgressChangeIntent(this.progress, this.duration, this.curve);
 
@@ -113,7 +108,6 @@ class ProgressChangeIntent extends ControllerChangeIntent {
   final Curve curve;
 }
 
-@internal
 class ScrollDeltaChangeIntent extends ControllerChangeIntent {
   const ScrollDeltaChangeIntent(this.delta, this.duration, this.curve);
 
@@ -124,7 +118,6 @@ class ScrollDeltaChangeIntent extends ControllerChangeIntent {
   final Curve curve;
 }
 
-@internal
 class ZoomChangeIntent extends ControllerChangeIntent {
   const ZoomChangeIntent(this.zoomLevel, this.duration, this.curve);
 

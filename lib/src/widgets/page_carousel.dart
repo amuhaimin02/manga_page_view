@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import '../utils.dart';
@@ -17,7 +16,6 @@ class PageCarouselReachingEdgeNotification extends Notification {
 
 /// Widget that lays its page on book-like view. One page is visible on the screen at a time
 /// Used on paged mode
-@internal
 class PageCarousel extends StatefulWidget {
   const PageCarousel({
     super.key,

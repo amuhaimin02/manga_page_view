@@ -1,14 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import 'viewport_size.dart';
 
 /// Contents of page arranged as a long strip, vertically or horizontally
 /// Used on continuous mode
-@internal
 class PageStrip extends StatefulWidget {
   const PageStrip({
     super.key,

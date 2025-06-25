@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
 import '../manga_page_view_controller.dart';
@@ -11,7 +10,6 @@ import 'page_carousel.dart';
 import 'viewport_size.dart';
 
 /// Base widget for paged view
-@internal
 class MangaPagePagedView extends StatefulWidget {
   const MangaPagePagedView({
     super.key,
@@ -45,6 +43,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   final Map<int, GlobalKey<InteractivePanelState>> _panelKeys = {};
 
   PageCarouselState get _carouselState => _carouselKey.currentState!;
+
   InteractivePanelState? get _activePanelState =>
       _panelKeys[_currentPage]?.currentState;
 
