@@ -108,7 +108,7 @@ class MangaPageView extends StatefulWidget {
 }
 
 class _MangaPageViewState extends State<MangaPageView> {
-  late int _currentPage = 0;
+  int? _currentPage;
   late final _defaultController = MangaPageViewController();
   late MangaPageViewController _controller;
 

@@ -27,7 +27,7 @@ class MangaPageContinuousView extends StatefulWidget {
   final MangaPageViewController controller;
   final MangaPageViewDirection direction;
   final MangaPageViewOptions options;
-  final int initialPageIndex;
+  final int? initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
@@ -64,7 +64,19 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _controllerIntentStream = widget.controller.intents.listen(
       _onControllerIntent,
     );
-    _goToPage(widget.initialPageIndex);
+    if (widget.initialPageIndex != null) {
+      _goToPage(widget.initialPageIndex!);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MangaPageContinuousView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.direction != oldWidget.direction) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _goToPage(_currentPage);
+      });
+    }
   }
 
   @override

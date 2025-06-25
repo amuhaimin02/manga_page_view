@@ -10,8 +10,6 @@ void main() {
   runApp(const MangaPageViewExampleApp());
 }
 
-final _random = Random();
-
 class MangaPageViewExampleApp extends StatelessWidget {
   const MangaPageViewExampleApp({super.key});
 
@@ -170,18 +168,20 @@ class _MangaPageViewExampleScreenState
   }
 
   Widget _buildRandomSizePage(BuildContext context, int index) {
+    // Use predefined random seed for consistency
     return RandomPage(
       label: 'Page #${index + 1}',
-      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
-      width: _random.nextInt(750) + 250,
-      height: _random.nextInt(750) + 250,
+      color: Color(0xFF000000 | Random(index).nextInt(0xFFFFFF)),
+      width: Random(index).nextInt(750) + 250,
+      height: Random(index).nextInt(750) + 250,
     );
   }
 
   Widget _buildLongPage(BuildContext context, int index) {
+    // Use predefined random seed for consistency
     return RandomPage(
       label: 'Page #${index + 1}',
-      color: Color(0xFF000000 | _random.nextInt(0xFFFFFF)),
+      color: Color(0xFF000000 | Random(index).nextInt(0xFFFFFF)),
       width: 500,
       height: 2000,
     );
@@ -190,7 +190,7 @@ class _MangaPageViewExampleScreenState
   Widget _buildBufferedRandomSizePage(BuildContext context, int index) {
     return FutureBuilder(
       future: Future.delayed(
-        Duration(milliseconds: _random.nextInt(1000) + 1000),
+        Duration(milliseconds: Random(index).nextInt(1000) + 1000),
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {

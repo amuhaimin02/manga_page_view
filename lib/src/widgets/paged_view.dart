@@ -27,7 +27,7 @@ class MangaPagePagedView extends StatefulWidget {
   final MangaPageViewController controller;
   final MangaPageViewDirection direction;
   final MangaPageViewOptions options;
-  final int initialPageIndex;
+  final int? initialPageIndex;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
   final Function(int index)? onPageChange;
@@ -49,7 +49,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
 
   Size get _viewportSize => ViewportSize.of(context).value;
 
-  late int _currentPage = widget.initialPageIndex;
+  late int _currentPage = widget.initialPageIndex ?? 0;
   late double _currentProgress = _pageIndexToProgress(_currentPage);
 
   StreamSubscription<ControllerChangeIntent>? _controllerIntentStream;
@@ -193,7 +193,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   Widget build(BuildContext context) {
     return PageCarousel(
       key: _carouselKey,
-      initialIndex: widget.initialPageIndex,
+      initialIndex: widget.initialPageIndex ?? 0,
       direction: widget.direction,
       itemCount: widget.pageCount,
       onPageChange: _onPageChange,

@@ -160,14 +160,14 @@ class InteractivePanelState extends State<InteractivePanel>
   void didUpdateWidget(covariant InteractivePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (widget.anchor != oldWidget.anchor) {
+    if (widget.anchor != oldWidget.anchor) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         _firstAppearanceAnimation.forward(from: 0);
         _stopFlinging();
-        _changeAnchorEdge(oldWidget.anchor, widget.anchor);
-      }
-      _sendScrollInfo();
-    });
+        _updateScrollableRegion();
+        _offset.value = _limitOffsetInScrollable(_offset.value);
+      });
+    }
   }
 
   void _onViewportChanged() {
@@ -211,64 +211,6 @@ class InteractivePanelState extends State<InteractivePanel>
     _updateChildSize();
     _updateScrollableRegion();
     _offset.value = _limitOffsetInScrollable(_offset.value);
-  }
-
-  void _changeAnchorEdge(
-    MangaPageViewEdge oldAnchorEdge,
-    MangaPageViewEdge newAnchorEdge,
-  ) {
-    final childSize = _childSize.value;
-    final viewportSize = _viewport.value;
-
-    if (childSize.isEmpty || viewportSize.isEmpty) return;
-
-    double fraction(double value, double min, double max) {
-      return (value - min) / (max - min);
-    }
-
-    double unfraction(double value, double min, double max) {
-      return value * (max - min) + min;
-    }
-
-    final currentScrollProgress = switch (oldAnchorEdge) {
-      MangaPageViewEdge.left || MangaPageViewEdge.right => fraction(
-        _offset.value.dx.abs(),
-        _scrollableRegion.left,
-        _scrollableRegion.right,
-      ),
-      MangaPageViewEdge.top || MangaPageViewEdge.bottom => fraction(
-        _offset.value.dy.abs(),
-        _scrollableRegion.top,
-        _scrollableRegion.bottom,
-      ),
-    }.abs().clamp(0.0, 1.0);
-
-    _updateScrollableRegion();
-
-    Offset newOffset = switch (newAnchorEdge) {
-      MangaPageViewEdge.left || MangaPageViewEdge.right => Offset(
-        unfraction(
-          currentScrollProgress,
-          _scrollableRegion.left,
-          _scrollableRegion.right,
-        ),
-        0,
-      ),
-      MangaPageViewEdge.top || MangaPageViewEdge.bottom => Offset(
-        0,
-        unfraction(
-          currentScrollProgress,
-          _scrollableRegion.top,
-          _scrollableRegion.bottom,
-        ),
-      ),
-    };
-    if (newAnchorEdge == MangaPageViewEdge.bottom ||
-        newAnchorEdge == MangaPageViewEdge.right) {
-      newOffset = newOffset;
-    }
-
-    _offset.value = _limitOffsetInScrollable(newOffset);
   }
 
   void _sendScrollInfo() {
