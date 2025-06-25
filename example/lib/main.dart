@@ -93,11 +93,16 @@ class _MangaPageViewExampleScreenState
               initialPageSize: Size(600, 600),
               pageWidthLimit: 1000,
               padding: EdgeInsets.all(16),
+              spacing: 16,
             ),
             pageCount: _totalPages,
             pageBuilder: (context, index) {
-              // print('Loading page ${index + 1}');
-              return _buildCachedNetworkImage(context, index);
+              // TODO: Uncomment one of the lines to change the contents
+              // return _buildBufferedRandomSizePage(context, index);
+              // return _buildChangingRandomSizePage(context, index);
+              // return _buildLongPage(context, index);
+              // return _buildCachedNetworkImage(context, index);
+              return _buildNetworkImage(context, index);
             },
             onPageChange: (index) {
               _currentPage.value = index;
