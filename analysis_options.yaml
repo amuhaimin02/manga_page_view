@@ -26,3 +26,4 @@ linter:
     prefer_final_in_for_each: true
     avoid_redundant_argument_values: true
     unnecessary_lambdas: true
+    depend_on_referenced_packages: false
