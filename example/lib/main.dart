@@ -41,7 +41,7 @@ class MangaPageViewExampleScreen extends StatefulWidget {
 class _MangaPageViewExampleScreenState
     extends State<MangaPageViewExampleScreen> {
   late MangaPageViewDirection _scrollDirection;
-  MangaPageViewMode _mode = MangaPageViewMode.paged;
+  MangaPageViewMode _mode = MangaPageViewMode.continuous;
   bool _overshoot = true;
   MangaPageViewGravity _scrollGravity = MangaPageViewGravity.center;
 
@@ -76,7 +76,7 @@ class _MangaPageViewExampleScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        children: [_buildPageView(context) /* _buildDebugPanel(context) */],
+        children: [_buildPageView(context), _buildDebugPanel(context)],
       ),
     );
   }
