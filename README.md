@@ -5,10 +5,10 @@ A Flutter widget designed to display comic and manga pages with intuitive naviga
 ## Showcase
 
 - Continuous mode
-![Continuous mode](showcase/continuous1.gif)
+![Continuous mode](https://github.com/amuhaimin02/manga_page_view/raw/main/showcase/continuous1.gif)
 
 - Paged mode
-![Paged mode](showcase/paged1.gif)
+![Paged mode](https://github.com/amuhaimin02/manga_page_view/raw/main/showcase/paged1.gif)
 
 ## Features
 
@@ -132,4 +132,4 @@ MangaPageView(
 ```
 
 ## More info
-Feel free to check the documentation and examples for detailed usage.
+Consult the documentation and examples for detailed usage.
