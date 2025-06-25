@@ -137,23 +137,26 @@ class _MangaPageViewState extends State<MangaPageView> {
   /// Handles page changes and invokes the [onPageChange] callback.
   void _onPageChange(int pageIndex) {
     _currentPage = pageIndex;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => widget.onPageChange?.call(pageIndex),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onPageChange?.call(pageIndex);
+      _controller.notifyPageChange(pageIndex);
+    });
   }
 
   /// Handles progress changes and invokes the [onProgressChange] callback.
   void _onProgressChange(double progress) {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => widget.onProgressChange?.call(progress),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onProgressChange?.call(progress);
+      _controller.notifyProgressChange(progress);
+    });
   }
 
   /// Handles zoom level changes and invokes the [onZoomChange] callback.
   void _onZoomChange(double zoomLevel) {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => widget.onZoomChange?.call(zoomLevel),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onZoomChange?.call(zoomLevel);
+      _controller.notifyZoomChange(zoomLevel);
+    });
   }
 
   /// Builds the widget tree for the [MangaPageView].

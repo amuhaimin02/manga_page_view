@@ -13,7 +13,12 @@ class MangaPageViewController {
 
   final _intents = StreamController<ControllerChangeIntent>.broadcast();
 
+  /// For internal use.
   Stream<ControllerChangeIntent> get intents => _intents.stream;
+
+  late final _pageChangeListeners = EventListener<int>();
+  late final _progressChangeListeners = EventListener<double>();
+  late final _zoomChangeListeners = EventListener<double>();
 
   /// Disposes the controller.
   ///
@@ -82,6 +87,63 @@ class MangaPageViewController {
   }) {
     _intents.add(ScrollDeltaChangeIntent(delta, duration, curve));
   }
+
+  /// Add a listener that is called when the page changes.
+  ///
+  /// The listener is called with the new page index.
+  void addPageChangeListener(Function(int) listener) {
+    _pageChangeListeners.addListener(listener);
+  }
+
+  /// Remove a listener that was previously added with [addPageChangeListener].
+  void removePageChangeListener(Function(int) listener) {
+    _pageChangeListeners.removeListener(listener);
+  }
+
+  /// Add a listener that is called when the progress changes.
+  ///
+  /// The listener is called with the new progress value.
+  void addProgressChangeListener(Function(double) listener) {
+    _progressChangeListeners.addListener(listener);
+  }
+
+  /// Remove a listener that was previously added with [addProgressChangeListener].
+  void removeProgressChangeListener(Function(double) listener) {
+    _progressChangeListeners.removeListener(listener);
+  }
+
+  /// Add a listener that is called when the zoom level changes.
+  ///
+  /// The listener is called with the new zoom level.
+  void addZoomChangeListener(Function(double) listener) {
+    _zoomChangeListeners.addListener(listener);
+  }
+
+  /// Remove a listener that was previously added with [addZoomChangeListener].
+  void removeZoomChangeListener(Function(double) listener) {
+    _zoomChangeListeners.removeListener(listener);
+  }
+
+  /// For internal use.
+  ///
+  /// Notifies the listeners that the page has changed.
+  void notifyPageChange(int index) {
+    _pageChangeListeners.emit(index);
+  }
+
+  /// For internal use.
+  ///
+  /// Notifies the listeners that the progress has changed.
+  void notifyProgressChange(double progress) {
+    _progressChangeListeners.emit(progress);
+  }
+
+  /// For internal use.
+  ///
+  /// Notifies the listeners that the zoom level has changed.
+  void notifyZoomChange(double zoomLevel) {
+    _zoomChangeListeners.emit(zoomLevel);
+  }
 }
 
 sealed class ControllerChangeIntent {
@@ -126,4 +188,24 @@ class ZoomChangeIntent extends ControllerChangeIntent {
   final Duration duration;
 
   final Curve curve;
+}
+
+typedef EventListenerCallback<T> = Function(T event);
+
+class EventListener<T> {
+  final listeners = <EventListenerCallback<T>>[];
+
+  void addListener(EventListenerCallback<T> listener) {
+    listeners.add(listener);
+  }
+
+  void removeListener(EventListenerCallback<T> listener) {
+    listeners.remove(listener);
+  }
+
+  void emit(T event) {
+    for (final listener in listeners) {
+      listener(event);
+    }
+  }
 }
