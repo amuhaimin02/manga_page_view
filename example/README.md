@@ -1,16 +1,26 @@
-# example
+# MangaPageView example app
 
-A new Flutter project.
+This directory contains a demo or showcase app demonstrating what `MangaPageView` can do.
 
-## Getting Started
+## Prerequisites
 
-This project is a starting point for a Flutter application.
+Be sure to run:
 
-A few resources to get you started if this is your first Flutter project:
+```shell
+flutter create .
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+under this directory to set up native platform files for the first time.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+If you are running the example that needs image taken from network, be sure to enable internet permissions on the specific platform files.
+ 
+Example:
+- On Android: add this line inside `app/src/.../AndroidManifest.xml`
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+- On macOS: add these lines under `Runner/DebugProfile.entitlements` or `Runner/Release.entitlements`
+```xml
+<key>com.apple.security.network.client</key>
+<true/>
+```

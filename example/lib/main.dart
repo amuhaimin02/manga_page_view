@@ -41,7 +41,7 @@ class MangaPageViewExampleScreen extends StatefulWidget {
 class _MangaPageViewExampleScreenState
     extends State<MangaPageViewExampleScreen> {
   late MangaPageViewDirection _scrollDirection;
-  MangaPageViewMode _mode = MangaPageViewMode.continuous;
+  MangaPageViewMode _mode = MangaPageViewMode.paged;
   bool _overshoot = true;
   MangaPageViewGravity _scrollGravity = MangaPageViewGravity.center;
 
@@ -76,97 +76,96 @@ class _MangaPageViewExampleScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        children: [
-          MangaPageView(
-            mode: _mode,
-            direction: _scrollDirection,
-            controller: _controller,
-            options: MangaPageViewOptions(
-              mainAxisOverscroll: _overshoot,
-              crossAxisOverscroll: _overshoot,
-              maxZoomLevel: 8,
-              precacheAhead: 2,
-              precacheBehind: 2,
-              zoomOvershoot: _overshoot,
-              pageJumpGravity: _scrollGravity,
-              pageSenseGravity: _scrollGravity,
-              initialPageSize: Size(600, 600),
-              pageWidthLimit: 1000,
-              padding: EdgeInsets.all(16),
-              spacing: 16,
-            ),
-            pageCount: _totalPages,
-            pageBuilder: (context, index) {
-              // TODO: Uncomment one of the lines to change the contents
-              // return _buildBufferedRandomSizePage(context, index);
-              // return _buildChangingRandomSizePage(context, index);
-              // return _buildLongPage(context, index);
-              // return _buildCachedNetworkImage(context, index);
-              return _buildNetworkImage(context, index);
-            },
-            onPageChange: (index) {
-              _currentPage.value = index;
-            },
-            onZoomChange: (zoomLevel) {
-              _currentZoomLevel.value = zoomLevel;
-            },
-            onProgressChange: (progress) {
-              _currentProgress.value = progress;
-            },
-            pageEndGestureIndicatorBuilder: (context, info) {
-              return Center(
-                child: AnimatedOpacity(
-                  opacity: info.progress,
-                  duration: Duration.zero,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 8,
-                    children: [
-                      Container(
-                        decoration: ShapeDecoration(
-                          shape: CircleBorder(),
-                          color: info.isTriggered
-                              ? Colors.red
-                              : Colors.transparent,
-                        ),
-                        padding: EdgeInsets.all(8),
-                        child: Icon(
-                          switch (info.edge) {
-                            MangaPageViewEdge.top => Icons.arrow_upward,
-                            MangaPageViewEdge.bottom => Icons.arrow_downward,
-                            MangaPageViewEdge.left => Icons.arrow_back,
-                            MangaPageViewEdge.right => Icons.arrow_forward,
-                          },
-                          color: info.isTriggered ? Colors.black : Colors.white,
-                          size: 48,
-                        ),
-                      ),
-                      Text(
-                        info.side == MangaPageViewEdgeGestureSide.start
-                            ? "Prev. chapter"
-                            : "Next chapter",
-                      ),
-                    ],
+        children: [_buildPageView(context) /* _buildDebugPanel(context) */],
+      ),
+    );
+  }
+
+  Widget _buildPageView(BuildContext context) {
+    return MangaPageView(
+      mode: _mode,
+      direction: _scrollDirection,
+      controller: _controller,
+      options: MangaPageViewOptions(
+        mainAxisOverscroll: _overshoot,
+        crossAxisOverscroll: _overshoot,
+        maxZoomLevel: 8,
+        precacheAhead: 2,
+        precacheBehind: 2,
+        zoomOvershoot: _overshoot,
+        pageJumpGravity: _scrollGravity,
+        pageSenseGravity: _scrollGravity,
+        initialPageSize: Size(600, 600),
+        pageWidthLimit: 1000,
+        padding: EdgeInsets.all(16),
+        spacing: 16,
+      ),
+      pageCount: _totalPages,
+      pageBuilder: (context, index) {
+        // TODO: Uncomment one of the lines to change the contents
+        return _buildBufferedRandomSizePage(context, index);
+        // return _buildChangingRandomSizePage(context, index);
+        // return _buildLongPage(context, index);
+        // return _buildCachedNetworkImage(context, index);
+        // return _buildNetworkImage(context, index);
+      },
+      onPageChange: (index) {
+        _currentPage.value = index;
+      },
+      onZoomChange: (zoomLevel) {
+        _currentZoomLevel.value = zoomLevel;
+      },
+      onProgressChange: (progress) {
+        _currentProgress.value = progress;
+      },
+      pageEndGestureIndicatorBuilder: (context, info) {
+        return Center(
+          child: AnimatedOpacity(
+            opacity: info.progress,
+            duration: Duration.zero,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 8,
+              children: [
+                Container(
+                  decoration: ShapeDecoration(
+                    shape: CircleBorder(),
+                    color: info.isTriggered ? Colors.red : Colors.transparent,
+                  ),
+                  padding: EdgeInsets.all(8),
+                  child: Icon(
+                    switch (info.edge) {
+                      MangaPageViewEdge.top => Icons.arrow_upward,
+                      MangaPageViewEdge.bottom => Icons.arrow_downward,
+                      MangaPageViewEdge.left => Icons.arrow_back,
+                      MangaPageViewEdge.right => Icons.arrow_forward,
+                    },
+                    color: info.isTriggered ? Colors.black : Colors.white,
+                    size: 48,
                   ),
                 ),
-              );
-            },
-            onStartEdgeDrag: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Going to previous chapter')),
-              );
-            },
-            onEndEdgeDrag: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Going to next chapter')));
-            },
+                Text(
+                  info.side == MangaPageViewEdgeGestureSide.start
+                      ? "Prev. chapter"
+                      : "Next chapter",
+                ),
+              ],
+            ),
           ),
-          _buildDebugPanel(context),
-        ],
-      ),
+        );
+      },
+      onStartEdgeDrag: () {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Going to previous chapter')));
+      },
+      onEndEdgeDrag: () {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Going to next chapter')));
+      },
     );
   }
 
@@ -226,7 +225,7 @@ class _MangaPageViewExampleScreenState
     }
 
     return Image.network(
-      'https://picsum.photos/851/1201?c=$index',
+      'https://picsum.photos/850/1200?c=$index',
       fit: BoxFit.contain,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (wasSynchronouslyLoaded || frame != null) {
@@ -253,7 +252,7 @@ class _MangaPageViewExampleScreenState
   Widget _buildCachedNetworkImage(BuildContext context, int index) {
     return CachedNetworkImage(
       fit: BoxFit.contain,
-      imageUrl: 'https://picsum.photos/851/1201?c=$index',
+      imageUrl: 'https://picsum.photos/850/1200?c=$index',
       placeholder: (context, url) => Container(
         margin: EdgeInsets.all(32),
         alignment: Alignment.center,
