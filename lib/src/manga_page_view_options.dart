@@ -11,7 +11,6 @@ class MangaPageViewOptions {
     this.presetZoomLevels = const [1.0, 2.0, 4.0],
     this.padding = EdgeInsets.zero,
     this.spacing = 0.0,
-    this.direction = MangaPageViewDirection.down,
     this.initialPageSize = const Size(512, 512),
     this.mainAxisOverscroll = true,
     this.crossAxisOverscroll = true,
@@ -68,16 +67,6 @@ class MangaPageViewOptions {
   ///
   /// Only applicable on [MangaPageViewMode.continuous] mode. No effect on [MangaPageViewMode.paged] mode.
   final double spacing;
-
-  /// The direction in which pages are laid out and scrolled.
-  ///
-  /// Direction indicates which way the user should scroll in order to move forward to view the next page.
-  ///
-  /// - For top-down traditional view, use [MangaPageViewDirection.down]
-  /// - For left-to-right reading, use [MangaPageViewDirection.right]
-  /// - For right-to-left reading, use [MangaPageViewDirection.left]
-  /// - For bottom-up reading, use [MangaPageViewDirection.up]
-  final MangaPageViewDirection direction;
 
   /// The initial size assumed for pages before they are loaded.
   ///

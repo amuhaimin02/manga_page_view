@@ -27,6 +27,7 @@ class MangaPageView extends StatefulWidget {
   const MangaPageView({
     super.key,
     required this.mode,
+    required this.direction,
     this.options = const MangaPageViewOptions(),
     this.controller,
     required this.pageCount,
@@ -49,6 +50,16 @@ class MangaPageView extends StatefulWidget {
   ///
   /// See [MangaPageViewMode] for available options.
   final MangaPageViewMode mode;
+
+  /// The direction in which pages are laid out and scrolled.
+  ///
+  /// Direction indicates which way the user should scroll in order to move forward to view the next page.
+  ///
+  /// - For top-down traditional view, use [MangaPageViewDirection.down]
+  /// - For left-to-right reading, use [MangaPageViewDirection.right]
+  /// - For right-to-left reading, use [MangaPageViewDirection.left]
+  /// - For bottom-up reading, use [MangaPageViewDirection.up]
+  final MangaPageViewDirection direction;
 
   /// An optional controller for managing the state of the [MangaPageView].
   final MangaPageViewController? controller;
@@ -153,6 +164,7 @@ class _MangaPageViewState extends State<MangaPageView> {
       MangaPageViewMode.continuous => MangaPageContinuousView(
         initialPageIndex: _currentPage,
         controller: _controller,
+        direction: widget.direction,
         options: widget.options,
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
@@ -163,6 +175,7 @@ class _MangaPageViewState extends State<MangaPageView> {
       MangaPageViewMode.paged => MangaPagePagedView(
         controller: _controller,
         initialPageIndex: _currentPage,
+        direction: widget.direction,
         options: widget.options,
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
@@ -174,7 +187,7 @@ class _MangaPageViewState extends State<MangaPageView> {
 
     if (_isEdgeGesturesEnabled) {
       child = PageEndGestureWrapper(
-        direction: widget.options.direction,
+        direction: widget.direction,
         indicatorSize: widget.options.edgeIndicatorContainerSize,
         indicatorBuilder: widget.pageEndGestureIndicatorBuilder!,
         onStartEdgeDrag: widget.onStartEdgeDrag,

@@ -79,9 +79,9 @@ class _MangaPageViewExampleScreenState
         children: [
           MangaPageView(
             mode: _mode,
+            direction: _scrollDirection,
             controller: _controller,
             options: MangaPageViewOptions(
-              direction: _scrollDirection,
               mainAxisOverscroll: _overshoot,
               crossAxisOverscroll: _overshoot,
               maxZoomLevel: 8,

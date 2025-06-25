@@ -16,6 +16,7 @@ class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
     super.key,
     required this.controller,
+    required this.direction,
     required this.options,
     required this.initialPageIndex,
     required this.pageCount,
@@ -26,6 +27,7 @@ class MangaPageContinuousView extends StatefulWidget {
   });
 
   final MangaPageViewController controller;
+  final MangaPageViewDirection direction;
   final MangaPageViewOptions options;
   final int initialPageIndex;
   final int pageCount;
@@ -127,7 +129,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final gravity = widget.options.pageJumpGravity;
     final viewportCenter = viewport.center(Offset.zero);
 
-    return switch (widget.options.direction) {
+    return switch (widget.direction) {
       MangaPageViewDirection.down => gravity.select(
         start: bounds.topCenter,
         center: bounds.center.translate(0, -viewportCenter.dy),
@@ -186,7 +188,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final scrollableRegion = _panelState.scrollableRegion;
     final Offset newOffset;
 
-    switch (widget.options.direction) {
+    switch (widget.direction) {
       case MangaPageViewDirection.down:
         newOffset = Offset(
           currentOffset.dx,
@@ -229,7 +231,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _onScroll(Offset offset, double zoomLevel) {
     final scrollableRegion = _panelState.scrollableRegion;
-    switch (widget.options.direction) {
+    switch (widget.direction) {
       case MangaPageViewDirection.up:
         _scrollBoundMin = scrollableRegion.bottom;
         _scrollBoundMax = scrollableRegion.top;
@@ -280,7 +282,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final bounds = _stripState.pageBounds;
     final gravity = widget.options.pageSenseGravity;
 
-    final screenEdge = switch (widget.options.direction) {
+    final screenEdge = switch (widget.direction) {
       MangaPageViewDirection.down => gravity.select(
         start: viewRegion.top,
         center: viewRegion.center.dy,
@@ -302,7 +304,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         end: viewRegion.right,
       ),
     };
-    final pageEdge = switch (widget.options.direction) {
+    final pageEdge = switch (widget.direction) {
       MangaPageViewDirection.down => (Rect b) => b.top,
       MangaPageViewDirection.up => (Rect b) => -b.bottom,
       MangaPageViewDirection.left => (Rect b) => -b.right,
@@ -332,7 +334,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final double min;
     final double max;
 
-    switch (widget.options.direction) {
+    switch (widget.direction) {
       case MangaPageViewDirection.up:
         current = offset.dy;
         min = _scrollBoundMax;
@@ -365,7 +367,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final double min;
     final double max;
 
-    switch (widget.options.direction) {
+    switch (widget.direction) {
       case MangaPageViewDirection.up:
       case MangaPageViewDirection.left:
         min = _scrollBoundMax;
@@ -379,7 +381,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     }
     target = min + (max - min) * fraction;
 
-    return switch (widget.options.direction) {
+    return switch (widget.direction) {
       MangaPageViewDirection.up ||
       MangaPageViewDirection.down => Offset(_currentOffset.dx, target),
       MangaPageViewDirection.left ||
@@ -406,7 +408,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final visibleRect = topLeft & size;
 
     // Adjust window on left and up direction mode
-    return switch (widget.options.direction) {
+    return switch (widget.direction) {
       MangaPageViewDirection.up => visibleRect.translate(
         0,
         -viewportSize.height,
@@ -433,26 +435,22 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
       verticalOverscroll:
-          widget.options.direction.isVertical &&
-              widget.options.mainAxisOverscroll ||
-          widget.options.direction.isHorizontal &&
-              widget.options.crossAxisOverscroll,
+          widget.direction.isVertical && widget.options.mainAxisOverscroll ||
+          widget.direction.isHorizontal && widget.options.crossAxisOverscroll,
       horizontalOverscroll:
-          widget.options.direction.isHorizontal &&
-              widget.options.mainAxisOverscroll ||
-          widget.options.direction.isVertical &&
-              widget.options.crossAxisOverscroll,
-      anchor: switch (widget.options.direction) {
+          widget.direction.isHorizontal && widget.options.mainAxisOverscroll ||
+          widget.direction.isVertical && widget.options.crossAxisOverscroll,
+      anchor: switch (widget.direction) {
         MangaPageViewDirection.down => MangaPageViewEdge.top,
         MangaPageViewDirection.right => MangaPageViewEdge.left,
         MangaPageViewDirection.up => MangaPageViewEdge.bottom,
         MangaPageViewDirection.left => MangaPageViewEdge.right,
       },
-      panCheckAxis: widget.options.direction.axis,
+      panCheckAxis: widget.direction.axis,
       onScroll: _onScroll,
       child: PageStrip(
         key: _stripContainerKey,
-        direction: widget.options.direction,
+        direction: widget.direction,
         padding: widget.options.padding,
         spacing: widget.options.spacing,
         initialPageSize: widget.options.initialPageSize,

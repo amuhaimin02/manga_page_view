@@ -16,6 +16,7 @@ class MangaPagePagedView extends StatefulWidget {
   const MangaPagePagedView({
     super.key,
     required this.options,
+    required this.direction,
     required this.controller,
     required this.pageCount,
     required this.pageBuilder,
@@ -26,6 +27,7 @@ class MangaPagePagedView extends StatefulWidget {
   });
 
   final MangaPageViewController controller;
+  final MangaPageViewDirection direction;
   final MangaPageViewOptions options;
   final int initialPageIndex;
   final int pageCount;
@@ -119,7 +121,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     final scrollableRegion = _activePanelState!.scrollableRegion;
     final Offset newOffset;
 
-    switch (widget.options.direction) {
+    switch (widget.direction) {
       case MangaPageViewDirection.down:
         newOffset = Offset(
           currentOffset.dx,
@@ -193,7 +195,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
     return PageCarousel(
       key: _carouselKey,
       initialIndex: widget.initialPageIndex,
-      direction: widget.options.direction,
+      direction: widget.direction,
       itemCount: widget.pageCount,
       onPageChange: _onPageChange,
       itemBuilder: _buildPanel,
@@ -217,16 +219,12 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
           .where((z) => z >= 1)
           .toList(),
       verticalOverscroll:
-          widget.options.direction.isVertical &&
-              widget.options.mainAxisOverscroll ||
-          widget.options.direction.isHorizontal &&
-              widget.options.crossAxisOverscroll,
+          widget.direction.isVertical && widget.options.mainAxisOverscroll ||
+          widget.direction.isHorizontal && widget.options.crossAxisOverscroll,
       horizontalOverscroll:
-          widget.options.direction.isHorizontal &&
-              widget.options.mainAxisOverscroll ||
-          widget.options.direction.isVertical &&
-              widget.options.crossAxisOverscroll,
-      anchor: switch (widget.options.direction) {
+          widget.direction.isHorizontal && widget.options.mainAxisOverscroll ||
+          widget.direction.isVertical && widget.options.crossAxisOverscroll,
+      anchor: switch (widget.direction) {
         MangaPageViewDirection.down => MangaPageViewEdge.top,
         MangaPageViewDirection.right => MangaPageViewEdge.left,
         MangaPageViewDirection.up => MangaPageViewEdge.bottom,
@@ -234,7 +232,7 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       },
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
-      panCheckAxis: widget.options.direction.axis,
+      panCheckAxis: widget.direction.axis,
       onScroll: (offset, zoomLevel) => _onPanelScroll(index, offset, zoomLevel),
       child: _buildPage(context, index),
     );
