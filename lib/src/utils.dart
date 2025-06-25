@@ -1,5 +1,8 @@
 import 'package:flutter/gestures.dart';
+import 'package:meta/meta.dart';
 
+/// Extra utilities for gesture-related handling
+@internal
 class GestureUtils {
   static bool isPrimaryPointer(PointerEvent event) {
     return isPrimaryTouch(event) || isLeftClicking(event);

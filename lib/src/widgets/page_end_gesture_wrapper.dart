@@ -1,12 +1,15 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
+
 import '../../manga_page_view.dart';
 import '../utils.dart';
 import 'interactive_panel.dart';
 import 'page_carousel.dart';
-
 import 'viewport_size.dart';
 
+/// Wrapper for detecting page edge gestures typically used for navigating to previous or next chapter
+@internal
 class PageEndGestureWrapper extends StatefulWidget {
   const PageEndGestureWrapper({
     super.key,
@@ -61,8 +64,6 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     _swipeAnimationController.dispose();
     super.dispose();
   }
-
-  void _handleTouch() {}
 
   void _handleSwipe(Offset delta) {
     // Determine which edge user swipes from
@@ -191,10 +192,6 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) {
-        if (!GestureUtils.isPrimaryPointer(event)) return;
-        _handleTouch();
-      },
       onPointerMove: (event) {
         if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleSwipe(event.localDelta);
@@ -207,9 +204,6 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
         if (!GestureUtils.isPrimaryPointer(event)) return;
         _handleLift();
       },
-      onPointerPanZoomStart: (event) {
-        _handleTouch();
-      },
       onPointerPanZoomUpdate: (event) {
         _handleSwipe(event.localPanDelta);
       },
@@ -220,6 +214,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
         onNotification: (event) {
           if (event is InteractivePanelReachingEdgeNotification ||
               event is PageCarouselReachingEdgeNotification) {
+            // Listen to contents like InteractivePanel, only react when they cannot move further
             _canMove = true;
             return true;
           }
@@ -233,6 +228,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
               builder: (context, distance, child) {
                 final indicatorSize = widget.indicatorSize;
 
+                // Simulate spring effect when overstretch
                 final resolvedDistance = _applyDrag(
                   distance,
                   indicatorSize,
@@ -240,6 +236,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
                 );
                 final edge = _activeEdge;
 
+                // Region for main content
                 final childRect = Rect.fromLTWH(
                   switch (edge) {
                     MangaPageViewEdge.left => resolvedDistance,
@@ -255,6 +252,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
                   viewportSize.height,
                 );
 
+                // Region for indicator content
                 final Rect indicatorRect;
 
                 if (edge != null) {

@@ -1,22 +1,27 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
+
 import '../../manga_page_view.dart';
 import '../utils.dart';
-import 'dart:math' as math;
-
 import 'double_tap_detector.dart';
 import 'viewport_size.dart';
 
-const _trackpadDeviceId = 99;
-const _defaultZoomAnimationDuration = Duration(milliseconds: 300);
-const _defaultZoomAnimationCurve = Curves.easeInOut;
+const trackpadDeviceId = 99;
+const defaultZoomAnimationDuration = Duration(milliseconds: 300);
+const defaultZoomAnimationCurve = Curves.easeInOut;
 
+/// Notification that indicates the scrolling attempts already reaches the edge
 class InteractivePanelReachingEdgeNotification extends Notification {
   const InteractivePanelReachingEdgeNotification();
 }
 
+/// Custom widget that enables advanced panning and zooming capabilities to its child
+@internal
 class InteractivePanel extends StatefulWidget {
   const InteractivePanel({
     super.key,
@@ -383,6 +388,7 @@ class InteractivePanelState extends State<InteractivePanel>
     }
   }
 
+  // Apply spring-like resistance when zooming beyond range (min or max)
   double _resistZoomOvershoot(double currentZoom) {
     final minZoom = widget.minZoomLevel;
     final maxZoom = widget.maxZoomLevel;
@@ -510,13 +516,14 @@ class InteractivePanelState extends State<InteractivePanel>
       // Default behavior if no preset levels are defined
       _animateZoomChange(
         1.0,
-        _defaultZoomAnimationDuration,
-        _defaultZoomAnimationCurve,
+        defaultZoomAnimationDuration,
+        defaultZoomAnimationCurve,
         focalPoint: touchPoint,
       );
       return;
     }
 
+    // Find next zoom level or rollback to the first one if not found
     final nextZoomLevel = presetZoomLevels.firstWhere(
       (level) => level > _zoomLevel.value,
       orElse: () => presetZoomLevels.first,
@@ -524,13 +531,14 @@ class InteractivePanelState extends State<InteractivePanel>
 
     _animateZoomChange(
       nextZoomLevel,
-      _defaultZoomAnimationDuration,
-      _defaultZoomAnimationCurve,
+      defaultZoomAnimationDuration,
+      defaultZoomAnimationCurve,
       focalPoint: touchPoint,
     );
   }
 
   void _handleMouseWheel(Offset focalPoint, Offset delta) {
+    // Ctrl + wheel modifies zoom level
     // TODO: Handle macOS convention
     if (HardwareKeyboard.instance.isControlPressed) {
       final currentZoom = _zoomLevel.value;
@@ -554,6 +562,7 @@ class InteractivePanelState extends State<InteractivePanel>
     }
 
     // Handle offset movement
+    // Shift + wheel always scrolls horizontally
     final newOffset = switch (HardwareKeyboard.instance.isShiftPressed) {
       true => _offset.value.translate(
         delta.dy,
@@ -624,6 +633,7 @@ class InteractivePanelState extends State<InteractivePanel>
     );
   }
 
+  // Slowly moves zoom to target level
   void _settleZoom() {
     final settledZoomLevel = _zoomLevel.value.clamp(
       widget.minZoomLevel,
@@ -631,12 +641,13 @@ class InteractivePanelState extends State<InteractivePanel>
     );
     _animateZoomChange(
       settledZoomLevel,
-      _defaultZoomAnimationDuration,
-      _defaultZoomAnimationCurve,
+      defaultZoomAnimationDuration,
+      defaultZoomAnimationCurve,
       handleOffset: false,
     );
   }
 
+  // Slowly moves or restores page offset to target position
   void _settlePageOffset({
     Offset velocity = Offset.zero,
     bool forceAllowOverscroll = false,
@@ -912,7 +923,7 @@ class InteractivePanelState extends State<InteractivePanel>
           }
         },
         onPointerPanZoomStart: (event) {
-          _activePointers[_trackpadDeviceId] = VelocityTracker.withKind(
+          _activePointers[trackpadDeviceId] = VelocityTracker.withKind(
             event.kind,
           );
           _handleTouch();
@@ -923,15 +934,15 @@ class InteractivePanelState extends State<InteractivePanel>
             _handlePinch(event.localPosition, event.scale);
           }
 
-          _activePointers[_trackpadDeviceId]!.addPosition(
+          _activePointers[trackpadDeviceId]!.addPosition(
             event.timeStamp,
             event.localPan,
           );
           _handlePanDrag(event.localPanDelta);
         },
         onPointerPanZoomEnd: (event) {
-          final tracker = _activePointers[_trackpadDeviceId]!;
-          _activePointers.remove(_trackpadDeviceId);
+          final tracker = _activePointers[trackpadDeviceId]!;
+          _activePointers.remove(trackpadDeviceId);
           _handleLift();
           _handleFling(tracker.getVelocity());
         },

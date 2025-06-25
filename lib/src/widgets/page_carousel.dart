@@ -1,17 +1,23 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import '../../manga_page_view.dart';
+import 'package:meta/meta.dart';
 
+import '../../manga_page_view.dart';
 import '../utils.dart';
 import 'interactive_panel.dart';
 import 'viewport_size.dart';
 
 const flingVelocityThreshold = 500;
 
+/// Notification that indicates scrolling attempt already reaches
+/// either start or end of the page and cannot go further
 class PageCarouselReachingEdgeNotification extends Notification {
   const PageCarouselReachingEdgeNotification();
 }
 
+/// Widget that lays its page on book-like view. One page is visible on the screen at a time
+/// Used on paged mode
+@internal
 class PageCarousel extends StatefulWidget {
   const PageCarousel({
     super.key,

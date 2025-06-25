@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'viewport_size.dart';
+import 'package:meta/meta.dart';
 
 import '../../manga_page_view.dart';
+import '../manga_page_view_controller.dart';
 import 'interactive_panel.dart';
 import 'page_strip.dart';
+import 'viewport_size.dart';
 
+/// Base widget for continuous view
+@internal
 class MangaPageContinuousView extends StatefulWidget {
   const MangaPageContinuousView({
     super.key,
