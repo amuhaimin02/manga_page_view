@@ -950,26 +950,26 @@ class InteractivePanelState extends State<InteractivePanel>
           builder: (context, zoomLevel, child) {
             return Transform.scale(scale: zoomLevel, child: child);
           },
-          child: ValueListenableBuilder(
-            valueListenable: _offset,
-            builder: (context, offset, child) {
-              return Transform.translate(offset: -offset, child: child);
-            },
-            child: FadeTransition(
-              opacity: CurvedAnimation(
-                parent: _firstAppearanceAnimation,
-                curve: widget.initialFadeInCurve,
-              ),
-              child: Center(
-                child: OverflowBox(
-                  maxWidth: double.infinity,
-                  maxHeight: double.infinity,
-                  alignment: switch (widget.anchor) {
-                    MangaPageViewEdge.top => Alignment.topLeft,
-                    MangaPageViewEdge.left => Alignment.topLeft,
-                    MangaPageViewEdge.bottom => Alignment.bottomLeft,
-                    MangaPageViewEdge.right => Alignment.topRight,
-                  },
+          child: Center(
+            child: OverflowBox(
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              alignment: switch (widget.anchor) {
+                MangaPageViewEdge.top => Alignment.topLeft,
+                MangaPageViewEdge.left => Alignment.topLeft,
+                MangaPageViewEdge.bottom => Alignment.bottomLeft,
+                MangaPageViewEdge.right => Alignment.topRight,
+              },
+              child: ValueListenableBuilder(
+                valueListenable: _offset,
+                builder: (context, offset, child) {
+                  return Transform.translate(offset: -offset, child: child);
+                },
+                child: FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: _firstAppearanceAnimation,
+                    curve: widget.initialFadeInCurve,
+                  ),
                   child: NotificationListener(
                     onNotification: (event) {
                       if (event is SizeChangedLayoutNotification) {
