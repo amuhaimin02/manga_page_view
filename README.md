@@ -12,18 +12,18 @@ A Flutter widget designed to display comic and manga pages with intuitive naviga
 
 ## Features
 
-* Two modes: continuous (webtoon, strip) or paged
+* Two modes: continuous (webtoon, long strip) or paged
 * Four way reading direction: top-down, bottom-up, left-to-right, right-to-left
 * Common pan and zoom gestures
   * Double tap to zoom
   * Pinch to zoom
   * Double tap and drag to zoom in/out
-* Mouse and trackpad support (mouse wheel, pan, pinch)
+* Mouse and trackpad support (mouse wheel, two-finger-swipe pan, pinch on trackpad)
 * Edge gestures (previous/next chapters, etc)
 * Toggleable overscroll options (vertical, horizontal, zooming)
-* Internal widget cache
-* Simplistic widget setup (using `pageBuilder`)
-* Usable on all Flutter-supported platforms
+* Internal widget precache
+* Simplistic widget setup using `pageCount` and `pageBuilder`
+* Usable on all Flutter-supported platforms (mobile, web, desktop)
 
 ## Examples
 
@@ -72,8 +72,8 @@ MangaPageView(
       800,
     ), // Space to occupy when page widget not loaded yet
     pageWidthLimit: 1000, // Page width never exceeds this amount of width
-    spacing: 16.0,
-    padding: EdgeInsets.all(8.0),
+    spacing: 16.0, // Spaces between pages
+    padding: EdgeInsets.all(8.0), // Spaces around pages
     precacheAhead: 3, // Always load 3 page ahead from current
     precacheBehind: 3, // Always load 3 page behind from current
     mainAxisOverscroll:
@@ -83,14 +83,16 @@ MangaPageView(
     zoomOvershoot: true, // Overshoot when zooming gives fluidity
     zoomOnFocalPoint: true,
   ),
-  controller: MangaPageViewController(), // For programmatic control
-  pageCount: 20, // Replace with your actual page count
+  controller:
+      MangaPageViewController(), // For programmatic control. Best to put it as a field
+  pageCount: 20,
   pageBuilder: (context, index) {
     // Replace with your actual page widget, perhaps an Image
     // Tips: always provide sizes or padding to your loading and error widgets, if available
     return Image.network(
       'https://picsum.photos/600/800?t=$index',
-      fit: BoxFit.contain, // Confine images to page size, no cropping
+      fit: BoxFit
+          .contain, // Try to fit and constrain image to available size
       loadingBuilder: (context, child, loadingProgress) => Container(
         padding: EdgeInsets.all(24),
         alignment: Alignment.center,
@@ -107,29 +109,30 @@ MangaPageView(
   onProgressChange: (progress) {
     print('Scroll progress: $progress');
   },
-  pageEndGestureIndicatorBuilder: (context, info) {
-    // Custom widget for edge gesture indicator
+  startEdgeDragIndicatorBuilder: (context, info) {
+    // Previous chapter indicator
     return Container(
       color: Colors.black54,
       alignment: Alignment.center,
-      child: Text(
-        info.side == MangaPageViewEdgeGestureSide.end
-            ? 'Next Chapter'
-            : 'Previous Chapter',
-        style: TextStyle(color: Colors.white),
-      ),
+      child: Icon(Icons.skip_previous, size: 48),
+    );
+  },
+  endEdgeDragIndicatorBuilder: (context, info) {
+    // Next chapter indicator
+    return Container(
+      color: Colors.black54,
+      alignment: Alignment.center,
+      child: Icon(Icons.skip_next, size: 48),
     );
   },
   onStartEdgeDrag: () {
     print('Dragging from the start edge');
-    // Potentially navigate to the previous chapter
   },
   onEndEdgeDrag: () {
     print('Dragging from the end edge');
-    // Potentially navigate to the next chapter
   },
 );
 ```
 
 ## More info
-Consult the documentation and examples for detailed usage.
+Refer to the documentation and examples for more information and detailed usage.
