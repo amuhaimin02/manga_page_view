@@ -7,14 +7,22 @@ import 'interactive_panel.dart';
 import 'page_carousel.dart';
 import 'viewport_size.dart';
 
+/// A builder function for edge gesture indicators.
+typedef EdgeDragGestureIndicatorBuilder =
+    Widget Function(BuildContext context, MangaPageViewEdgeGestureInfo info);
+
+// Whether the gestures correspond to start or end of the page
+enum EdgeDragGestureSide { start, end }
+
 /// Wrapper for detecting page edge gestures typically used for navigating to previous or next chapter
-class PageEndGestureWrapper extends StatefulWidget {
-  const PageEndGestureWrapper({
+class EdgeDragGestureWrapper extends StatefulWidget {
+  const EdgeDragGestureWrapper({
     super.key,
     required this.child,
     required this.direction,
     required this.indicatorSize,
-    required this.indicatorBuilder,
+    required this.startEdgeBuilder,
+    required this.endEdgeBuilder,
     required this.onStartEdgeDrag,
     required this.onEndEdgeDrag,
   });
@@ -22,16 +30,16 @@ class PageEndGestureWrapper extends StatefulWidget {
   final MangaPageViewDirection direction;
   final Widget child;
   final double indicatorSize;
-  final Widget Function(BuildContext context, MangaPageViewEdgeGestureInfo info)
-  indicatorBuilder;
+  final EdgeDragGestureIndicatorBuilder? startEdgeBuilder;
+  final EdgeDragGestureIndicatorBuilder? endEdgeBuilder;
   final VoidCallback? onStartEdgeDrag;
   final VoidCallback? onEndEdgeDrag;
 
   @override
-  State<PageEndGestureWrapper> createState() => _PageEndGestureWrapperState();
+  State<EdgeDragGestureWrapper> createState() => _EdgeDragGestureWrapperState();
 }
 
-class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
+class _EdgeDragGestureWrapperState extends State<EdgeDragGestureWrapper>
     with SingleTickerProviderStateMixin {
   late final _swipeAnimationController = AnimationController(
     vsync: this,
@@ -42,6 +50,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
 
   bool _canMove = false;
   MangaPageViewEdge? _activeEdge;
+  EdgeDragGestureSide? _activeSide;
   final _swipeDistance = ValueNotifier(0.0);
 
   bool _isTriggered = false;
@@ -66,20 +75,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
   void _handleSwipe(Offset delta) {
     // Determine which edge user swipes from
     if (_canMove && _activeEdge == null) {
-      switch (widget.direction.axis) {
-        case Axis.vertical:
-          if (delta.dy > 0) {
-            _activeEdge = MangaPageViewEdge.top;
-          } else if (delta.dy < 0) {
-            _activeEdge = MangaPageViewEdge.bottom;
-          }
-        case Axis.horizontal:
-          if (delta.dx > 0) {
-            _activeEdge = MangaPageViewEdge.left;
-          } else if (delta.dx < 0) {
-            _activeEdge = MangaPageViewEdge.right;
-          }
-      }
+      _handleActivation(delta);
     }
 
     // Update scrolling distance based on input
@@ -97,16 +93,65 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
 
       // Check is passing trigger point
       if (!_isTriggered && _swipeDistance.value > widget.indicatorSize) {
+        // Check if the edge callback exists. Do not trigger if no callback
+        if (_activeSide == EdgeDragGestureSide.start &&
+            widget.onStartEdgeDrag == null) {
+          return;
+        }
+        if (_activeSide == EdgeDragGestureSide.end &&
+            widget.onEndEdgeDrag == null) {
+          return;
+        }
+
         HapticFeedback.heavyImpact();
         setState(() {
           _isTriggered = true;
         });
       } else if (_isTriggered && _swipeDistance.value < widget.indicatorSize) {
+        // Undo trigger is user drags back
         setState(() {
           _isTriggered = false;
         });
       }
     }
+  }
+
+  void _handleActivation(Offset delta) {
+    MangaPageViewEdge? newActiveEdge;
+    switch (widget.direction.axis) {
+      case Axis.vertical:
+        if (delta.dy > 0) {
+          newActiveEdge = MangaPageViewEdge.top;
+        } else if (delta.dy < 0) {
+          newActiveEdge = MangaPageViewEdge.bottom;
+        }
+        break;
+      case Axis.horizontal:
+        if (delta.dx > 0) {
+          newActiveEdge = MangaPageViewEdge.left;
+        } else if (delta.dx < 0) {
+          newActiveEdge = MangaPageViewEdge.right;
+        }
+        break;
+    }
+
+    if (newActiveEdge == null) return;
+
+    _activeSide = _determineEdgeSide(widget.direction, newActiveEdge);
+
+    // Do not move if no callback set
+    if (_activeSide == EdgeDragGestureSide.start &&
+        widget.startEdgeBuilder == null) {
+      _canMove = false;
+      return;
+    }
+    if (_activeSide == EdgeDragGestureSide.end &&
+        widget.endEdgeBuilder == null) {
+      _canMove = false;
+      return;
+    }
+
+    _activeEdge = newActiveEdge;
   }
 
   void _handleLift() {
@@ -149,6 +194,7 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
   void _onSwipeEnd() {
     _canMove = false;
     _activeEdge = null;
+    _activeSide = null;
     _isTriggered = false;
   }
 
@@ -158,27 +204,27 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
     return c + (drag - c) / (1 + (drag - c) / a);
   }
 
-  MangaPageViewEdgeGestureSide _determineEdgeSide(
+  EdgeDragGestureSide _determineEdgeSide(
     MangaPageViewDirection direction,
     MangaPageViewEdge edge,
   ) {
     switch ((direction, edge)) {
       case (MangaPageViewDirection.down, MangaPageViewEdge.top):
-        return MangaPageViewEdgeGestureSide.start;
+        return EdgeDragGestureSide.start;
       case (MangaPageViewDirection.down, MangaPageViewEdge.bottom):
-        return MangaPageViewEdgeGestureSide.end;
+        return EdgeDragGestureSide.end;
       case (MangaPageViewDirection.up, MangaPageViewEdge.top):
-        return MangaPageViewEdgeGestureSide.end;
+        return EdgeDragGestureSide.end;
       case (MangaPageViewDirection.up, MangaPageViewEdge.bottom):
-        return MangaPageViewEdgeGestureSide.start;
+        return EdgeDragGestureSide.start;
       case (MangaPageViewDirection.left, MangaPageViewEdge.right):
-        return MangaPageViewEdgeGestureSide.start;
+        return EdgeDragGestureSide.start;
       case (MangaPageViewDirection.left, MangaPageViewEdge.left):
-        return MangaPageViewEdgeGestureSide.end;
+        return EdgeDragGestureSide.end;
       case (MangaPageViewDirection.right, MangaPageViewEdge.right):
-        return MangaPageViewEdgeGestureSide.end;
+        return EdgeDragGestureSide.end;
       case (MangaPageViewDirection.right, MangaPageViewEdge.left):
-        return MangaPageViewEdgeGestureSide.start;
+        return EdgeDragGestureSide.start;
       default:
         throw AssertionError(
           "Invalid edge and direction combination: $direction, $edge",
@@ -275,22 +321,38 @@ class _PageEndGestureWrapperState extends State<PageEndGestureWrapper>
                   indicatorRect = Rect.zero;
                 }
 
+                Widget? indicatorWidget;
+
+                if (distance > 0 && edge != null) {
+                  final info = MangaPageViewEdgeGestureInfo(
+                    edge: edge,
+                    progress: (distance / indicatorSize).clamp(0, 1),
+                    isTriggered: _isTriggered,
+                  );
+
+                  final side = _determineEdgeSide(widget.direction, edge);
+
+                  final content = switch (side) {
+                    EdgeDragGestureSide.start => widget.startEdgeBuilder!(
+                      context,
+                      info,
+                    ),
+                    EdgeDragGestureSide.end => widget.endEdgeBuilder!(
+                      context,
+                      info,
+                    ),
+                  };
+
+                  indicatorWidget = Positioned.fromRect(
+                    rect: indicatorRect,
+                    child: content,
+                  );
+                }
+
                 return Stack(
                   children: [
                     Positioned.fromRect(rect: childRect, child: widget.child),
-                    if (distance > 0 && edge != null)
-                      Positioned.fromRect(
-                        rect: indicatorRect,
-                        child: widget.indicatorBuilder(
-                          context,
-                          MangaPageViewEdgeGestureInfo(
-                            edge: edge,
-                            progress: (distance / indicatorSize).clamp(0, 1),
-                            isTriggered: _isTriggered,
-                            side: _determineEdgeSide(widget.direction, edge),
-                          ),
-                        ),
-                      ),
+                    if (indicatorWidget != null) indicatorWidget,
                   ],
                 );
               },

@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../manga_page_view.dart';
 import 'widgets/continuous_view.dart';
-import 'widgets/page_end_gesture_wrapper.dart';
+import 'widgets/edge_drag_gesture_wrapper.dart';
 import 'widgets/paged_view.dart';
 import 'widgets/viewport_size.dart';
 
@@ -35,14 +35,17 @@ class MangaPageView extends StatefulWidget {
     this.onPageChange,
     this.onZoomChange,
     this.onProgressChange,
-    this.pageEndGestureIndicatorBuilder,
+    this.startEdgeDragIndicatorBuilder,
+    this.endEdgeDragIndicatorBuilder,
     this.onStartEdgeDrag,
     this.onEndEdgeDrag,
   }) : assert(
-         (onStartEdgeDrag != null || onEndEdgeDrag != null)
-             ? pageEndGestureIndicatorBuilder != null
-             : true,
-         "When using edge drag gestures, pageEndGestureIndicatorBuilder must not be null",
+         onStartEdgeDrag != null ? startEdgeDragIndicatorBuilder != null : true,
+         "When using edge drag gestures, indicatorBuilder must not be null",
+       ),
+       assert(
+         onEndEdgeDrag != null ? endEdgeDragIndicatorBuilder != null : true,
+         "When using edge drag gestures, indicatorBuilder must not be null",
        ),
        assert(pageCount > 0, "pageCount must be greater than 0");
 
@@ -85,22 +88,30 @@ class MangaPageView extends StatefulWidget {
   /// Value will be between 0.0 and 1.0 inclusive, for start and end, respectively
   final Function(double progress)? onProgressChange;
 
-  /// A builder function for the indicator displayed during edge gestures.
+  /// A builder function for the indicator displayed when dragging from the start edge.
+  /// This is typically used to show a "previous chapter" or similar indicator.
   ///
-  /// This is only used if [onStartEdgeDrag] or [onEndEdgeDrag] is provided.
-  /// Therefore, if either one of the callbacks is provided, this builder should not be null.
-  final Widget Function(
-    BuildContext context,
-    MangaPageViewEdgeGestureInfo info,
-  )?
-  pageEndGestureIndicatorBuilder;
+  /// This builder will be called even if [onStartEdgeDrag] is null,
+  /// but the drag gesture itself will never trigger.
+  final EdgeDragGestureIndicatorBuilder? startEdgeDragIndicatorBuilder;
 
-  /// A callback function that is invoked when an edge gesture starts from the
-  /// beginning of the page.
+  /// A builder function for the indicator displayed when dragging from the end edge.
+  /// This is typically used to show a "next chapter" or similar indicator.
+  ///
+  /// This builder will be called even if [onEndEdgeDrag] is null,
+  /// but the drag gesture itself will never trigger.
+  final EdgeDragGestureIndicatorBuilder? endEdgeDragIndicatorBuilder;
+
+  /// A callback function that is invoked when a drag gesture from the start edge is completed.
+  /// This can be used to trigger navigation to a previous chapter or section.
+  ///
+  /// When this callback is set, [startEdgeDragIndicatorBuilder] must not be null.
   final VoidCallback? onStartEdgeDrag;
 
-  /// A callback function that is invoked when an edge gesture starts from the
-  /// end of the page.
+  /// A callback function that is invoked when a drag gesture from the end edge is completed.
+  /// This can be used to trigger navigation to a next chapter or section.
+  ///
+  /// When this callback is set, [endEdgeDragIndicatorBuilder] must not be null.
   final VoidCallback? onEndEdgeDrag;
 
   @override
@@ -189,10 +200,11 @@ class _MangaPageViewState extends State<MangaPageView> {
     };
 
     if (_isEdgeGesturesEnabled) {
-      child = PageEndGestureWrapper(
+      child = EdgeDragGestureWrapper(
         direction: widget.direction,
         indicatorSize: widget.options.edgeIndicatorContainerSize,
-        indicatorBuilder: widget.pageEndGestureIndicatorBuilder!,
+        startEdgeBuilder: widget.startEdgeDragIndicatorBuilder,
+        endEdgeBuilder: widget.endEdgeDragIndicatorBuilder,
         onStartEdgeDrag: widget.onStartEdgeDrag,
         onEndEdgeDrag: widget.onEndEdgeDrag,
         child: child,
