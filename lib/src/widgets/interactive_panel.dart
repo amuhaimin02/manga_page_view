@@ -10,9 +10,20 @@ import '../utils.dart';
 import 'double_tap_detector.dart';
 import 'viewport_size.dart';
 
+/// Distance in pixels to be considered within edge
+const edgeCheckThreshold = 16;
+
+/// Unique custom ID for trackpad devices so as to not conflict with ordinary pointers
 const trackpadDeviceId = 99;
+
+/// Animation properties when animating zoom change
 const defaultZoomAnimationDuration = Duration(milliseconds: 300);
 const defaultZoomAnimationCurve = Curves.easeInOut;
+
+const mouseWheelZoomSensitivity = 0.002;
+const dragZoomSensitivity = 1.005;
+
+typedef ScrollInfoCallback = Function(Offset offset, double zoomLevel);
 
 /// Notification that indicates the scrolling attempts already reaches the edge
 class InteractivePanelReachingEdgeNotification extends Notification {
@@ -52,7 +63,7 @@ class InteractivePanel extends StatefulWidget {
   final bool zoomOnFocalPoint;
   final bool zoomOvershoot;
   final Axis? panCheckAxis;
-  final Function(Offset offset, double zoomLevel)? onScroll;
+  final ScrollInfoCallback? onScroll;
 
   @override
   State<InteractivePanel> createState() => InteractivePanelState();
@@ -171,9 +182,10 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _onViewportChanged() {
-    _viewport.value = _viewportSizeProvider.value;
-    _updateScrollableRegion();
-    _offset.value = _limitOffsetInScrollable(_offset.value);
+    // TODO: Is this still needed?
+    // _viewport.value = _viewportSizeProvider.value;
+    // _updateScrollableRegion();
+    // _offset.value = _limitOffsetInScrollable(_offset.value);
   }
 
   void jumpToOffset(Offset offset) {
@@ -270,9 +282,6 @@ class InteractivePanelState extends State<InteractivePanel>
 
   void _checkPanPossible(Offset offset, Offset delta) {
     if (_isPinching) return;
-
-    // Distance in pixels to be considered within edge
-    const edgeCheckThreshold = 16;
 
     final checkAxis = widget.panCheckAxis;
 
@@ -380,8 +389,8 @@ class InteractivePanelState extends State<InteractivePanel>
     final difference = position.dy - _startTouchPoint!.dy;
 
     // Compute proposed zoom level
-    final zoomSensitivity = 1.005;
-    double newZoom = _startZoomLevel! * math.pow(zoomSensitivity, difference);
+    double newZoom =
+        _startZoomLevel! * math.pow(dragZoomSensitivity, difference);
 
     if (!widget.zoomOvershoot) {
       // Hard clamp if overshoot disabled
@@ -451,7 +460,12 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _handleZoomDoubleTap(Offset touchPoint) {
-    final presetZoomLevels = [...widget.presetZoomLevels]..sort();
+    // Sort and constrain zoom levels
+    final presetZoomLevels = [
+      ...widget.presetZoomLevels.where(
+        (z) => z >= widget.minZoomLevel && z <= widget.maxZoomLevel,
+      ),
+    ]..sort();
 
     if (presetZoomLevels.isEmpty) {
       // Default behavior if no preset levels are defined
@@ -483,21 +497,24 @@ class InteractivePanelState extends State<InteractivePanel>
     // TODO: Handle macOS convention
     if (HardwareKeyboard.instance.isControlPressed) {
       final currentZoom = _zoomLevel.value;
-      final scrollAmount = -delta.dy * 0.002;
+      final scrollAmount = -delta.dy * mouseWheelZoomSensitivity;
       final newZoom = (_zoomLevel.value + scrollAmount);
-      _zoomLevel.value = newZoom.clamp(
-        widget.minZoomLevel,
-        widget.maxZoomLevel,
-      );
 
-      if (widget.zoomOnFocalPoint) {
-        _offset.value = _calculateOffsetAfterZoom(
-          focalPoint,
-          currentZoom,
-          newZoom,
+      if (newZoom >= widget.minZoomLevel && newZoom <= widget.maxZoomLevel) {
+        _zoomLevel.value = newZoom.clamp(
+          widget.minZoomLevel,
+          widget.maxZoomLevel,
         );
-      } else {
-        _offset.value = _limitOffsetInScrollable(_offset.value);
+
+        if (widget.zoomOnFocalPoint) {
+          _offset.value = _calculateOffsetAfterZoom(
+            focalPoint,
+            currentZoom,
+            newZoom,
+          );
+        } else {
+          _offset.value = _limitOffsetInScrollable(_offset.value);
+        }
       }
       return;
     }

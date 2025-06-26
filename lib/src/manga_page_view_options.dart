@@ -47,6 +47,7 @@ class MangaPageViewOptions {
   final double initialZoomLevel;
 
   /// A list of zoom levels that can be quickly cycled when double tapping to zoom.
+  /// Values are sorted internally, and those that fall outside min/max zoom bounds will be ignored.
   final List<double> presetZoomLevels;
 
   /// The padding around the content of the [MangaPageView].
@@ -81,8 +82,6 @@ class MangaPageViewOptions {
   ///
   /// If enabled, scrolling follows natural movement of touch or cursor and positions will settle slowly on lift.
   /// If disabled, scrolling will always constrained to the scrollable boundaries.
-  ///
-  /// Tip: If using page end gestures, it is recommended to disable this option for best user experience.
   final bool mainAxisOverscroll;
 
   /// Whether overscrolling is allowed in the cross axis.
@@ -143,12 +142,15 @@ class MangaPageViewOptions {
   /// Depending on the [MangaPageViewDirection] used, the value will mean:
   /// - width: for [MangaPageViewDirection.left] and [MangaPageViewDirection.right].
   /// - height: for [MangaPageViewDirection.up] and [MangaPageViewDirection.down].
+  ///
+  /// This value also determines how many pixels user should drag to trigger the gestures.
   final double edgeIndicatorContainerSize;
 }
 
 /// Defines the display mode of the [MangaPageView].
 enum MangaPageViewMode {
   /// Pages are laid out continuously in the reading direction as a long strip.
+  /// Orientation depends on the direction set.
   continuous,
 
   /// Pages are displayed one at a time, with gestures to navigate between them.
@@ -249,15 +251,6 @@ enum MangaPageViewEdge {
   bool get isHorizontal => axis == Axis.horizontal;
 }
 
-/// Indicates which side of an edge a gesture is originating from or interacting with.
-enum MangaPageViewEdgeGestureSide {
-  /// The start side of the edge (e.g., top of a vertical edge, left of a horizontal edge).
-  start,
-
-  /// The end side of the edge (e.g., bottom of a vertical edge, right of a horizontal edge).
-  end,
-}
-
 /// Information about a gesture occurring at the edge of the [MangaPageView].
 class MangaPageViewEdgeGestureInfo {
   /// Creates information about an edge gesture.
@@ -265,7 +258,6 @@ class MangaPageViewEdgeGestureInfo {
     required this.edge,
     required this.progress,
     required this.isTriggered,
-    required this.side,
   });
 
   /// The specific edge where the gesture is happening.
@@ -278,7 +270,4 @@ class MangaPageViewEdgeGestureInfo {
 
   /// Whether the gesture has reached a state to be considered "triggered".
   final bool isTriggered;
-
-  /// The side of the edge involved in the gesture.
-  final MangaPageViewEdgeGestureSide side;
 }

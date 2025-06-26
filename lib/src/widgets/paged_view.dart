@@ -212,11 +212,9 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       initialZoomLevel: widget.options.initialZoomLevel,
       initialFadeInDuration: widget.options.initialFadeInDuration,
       initialFadeInCurve: widget.options.initialFadeInCurve,
-      minZoomLevel: 1,
+      minZoomLevel: widget.options.minZoomLevel,
       maxZoomLevel: widget.options.maxZoomLevel,
-      presetZoomLevels: widget.options.presetZoomLevels
-          .where((z) => z >= 1)
-          .toList(),
+      presetZoomLevels: widget.options.presetZoomLevels,
       verticalOverscroll:
           widget.direction.isVertical && widget.options.mainAxisOverscroll ||
           widget.direction.isHorizontal && widget.options.crossAxisOverscroll,
