@@ -116,42 +116,10 @@ class _MangaPageViewExampleScreenState
       onProgressChange: (progress) {
         _currentProgress.value = progress;
       },
-      pageEndGestureIndicatorBuilder: (context, info) {
-        return Center(
-          child: AnimatedOpacity(
-            opacity: info.progress,
-            duration: Duration.zero,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 8,
-              children: [
-                Container(
-                  decoration: ShapeDecoration(
-                    shape: CircleBorder(),
-                    color: info.isTriggered ? Colors.red : Colors.transparent,
-                  ),
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    switch (info.edge) {
-                      MangaPageViewEdge.top => Icons.arrow_upward,
-                      MangaPageViewEdge.bottom => Icons.arrow_downward,
-                      MangaPageViewEdge.left => Icons.arrow_back,
-                      MangaPageViewEdge.right => Icons.arrow_forward,
-                    },
-                    color: info.isTriggered ? Colors.black : Colors.white,
-                    size: 48,
-                  ),
-                ),
-                Text(
-                  info.side == MangaPageViewEdgeGestureSide.start
-                      ? "Prev. chapter"
-                      : "Next chapter",
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      startEdgeDragIndicatorBuilder: (context, info) =>
+          _buildIndicator(context, info, false),
+      endEdgeDragIndicatorBuilder: (context, info) =>
+          _buildIndicator(context, info, true),
       onStartEdgeDrag: () {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(
@@ -167,16 +135,6 @@ class _MangaPageViewExampleScreenState
     );
   }
 
-  Widget _buildRandomSizePage(BuildContext context, int index) {
-    // Use predefined random seed for consistency
-    return RandomPage(
-      label: 'Page #${index + 1}',
-      color: Color(0xFF000000 | Random(index).nextInt(0xFFFFFF)),
-      width: Random(index).nextInt(750) + 250,
-      height: Random(index).nextInt(750) + 250,
-    );
-  }
-
   Widget _buildLongPage(BuildContext context, int index) {
     // Use predefined random seed for consistency
     return RandomPage(
@@ -188,13 +146,21 @@ class _MangaPageViewExampleScreenState
   }
 
   Widget _buildBufferedRandomSizePage(BuildContext context, int index) {
+    // Simulated buffering
     return FutureBuilder(
       future: Future.delayed(
         Duration(milliseconds: Random(index).nextInt(1000) + 1000),
       ),
       builder: (context, snapshot) {
+        final random = Random(index);
         if (snapshot.connectionState == ConnectionState.done) {
-          return _buildRandomSizePage(context, index);
+          // Use predefined random seed for consistency
+          return RandomPage(
+            label: 'Page #${index + 1}',
+            color: Color(0xFF000000 | random.nextInt(0xFFFFFF)),
+            width: random.nextInt(750) + 250,
+            height: random.nextInt(750) + 250,
+          );
         } else {
           return Container(
             width: 300,
@@ -208,9 +174,22 @@ class _MangaPageViewExampleScreenState
   }
 
   Widget _buildChangingRandomSizePage(BuildContext context, int index) {
+    final random = Random();
     return StreamBuilder(
       stream: Stream.periodic(Duration(seconds: 1)),
-      builder: (context, snapshot) => _buildRandomSizePage(context, index),
+      builder: (context, snapshot) {
+        // Size changes are slowly transitioning
+        return AnimatedSize(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: RandomPage(
+            label: 'Page #${index + 1}',
+            color: Color(0xFF000000 | random.nextInt(0xFFFFFF)),
+            width: random.nextInt(750) + 250,
+            height: random.nextInt(750) + 250,
+          ),
+        );
+      },
     );
   }
 
@@ -262,6 +241,43 @@ class _MangaPageViewExampleScreenState
         margin: EdgeInsets.all(32),
         alignment: Alignment.center,
         child: Icon(Icons.error),
+      ),
+    );
+  }
+
+  Widget _buildIndicator(
+    BuildContext context,
+    MangaPageViewEdgeGestureInfo info,
+    bool isNext,
+  ) {
+    return Center(
+      child: AnimatedOpacity(
+        opacity: info.progress,
+        duration: Duration.zero,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 8,
+          children: [
+            Container(
+              decoration: ShapeDecoration(
+                shape: CircleBorder(),
+                color: info.isTriggered ? Colors.red : Colors.transparent,
+              ),
+              padding: EdgeInsets.all(8),
+              child: Icon(
+                switch (info.edge) {
+                  MangaPageViewEdge.top => Icons.arrow_upward,
+                  MangaPageViewEdge.bottom => Icons.arrow_downward,
+                  MangaPageViewEdge.left => Icons.arrow_back,
+                  MangaPageViewEdge.right => Icons.arrow_forward,
+                },
+                color: info.isTriggered ? Colors.black : Colors.white,
+                size: 48,
+              ),
+            ),
+            Text(isNext ? "Next chapter" : "Prev chapter"),
+          ],
+        ),
       ),
     );
   }
@@ -351,132 +367,144 @@ class _MangaPageViewExampleScreenState
                 );
               },
             ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                spacing: 16,
-                children: [
-                  IconButton(
-                    tooltip: 'Previous page',
-                    onPressed: () {
-                      _controller.moveToPage(
-                        max(0, _currentPage.value - 1),
-                        duration: Duration(milliseconds: 300),
-                      );
-                    },
-                    icon: Icon(Icons.skip_previous),
-                  ),
-                  IconButton(
-                    tooltip: 'Next page',
-                    onPressed: () {
-                      _controller.moveToPage(
-                        min(_totalPages - 1, _currentPage.value + 1),
-                        duration: Duration(milliseconds: 300),
-                      );
-                    },
-                    icon: Icon(Icons.skip_next),
-                  ),
-                  IconButton(
-                    tooltip: 'Scroll backward',
-                    onPressed: () {
-                      _controller.scrollBy(
-                        -60,
-                        duration: Duration(milliseconds: 300),
-                      );
-                    },
-                    icon: Icon(Icons.chevron_left),
-                  ),
-                  IconButton(
-                    tooltip: 'Scroll forward',
-                    onPressed: () {
-                      _controller.scrollBy(
-                        60,
-                        duration: Duration(milliseconds: 300),
-                      );
-                    },
-                    icon: Icon(Icons.chevron_right),
-                  ),
-                  // Toggle view mode
-                  IconButton(
-                    tooltip: 'Toggle view mode (paged/continuous)',
-                    onPressed: () {
-                      setState(() {
-                        _mode = switch (_mode) {
-                          MangaPageViewMode.paged =>
-                            MangaPageViewMode.continuous,
-                          MangaPageViewMode.continuous =>
-                            MangaPageViewMode.paged,
-                        };
-                      });
-                    },
-                    icon: Icon(
-                      _mode == MangaPageViewMode.paged
-                          ? Icons.aod
-                          : Icons.import_contacts,
+            Wrap(
+              spacing: 16,
+              children: [
+                Row(
+                  spacing: 16,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Previous page',
+                      onPressed: () {
+                        _controller.moveToPage(
+                          max(0, _currentPage.value - 1),
+                          duration: Duration(milliseconds: 300),
+                        );
+                      },
+                      icon: Icon(Icons.skip_previous),
                     ),
-                  ),
-                  // Toggle scroll direction
-                  IconButton(
-                    tooltip: 'Scroll direction',
-                    onPressed: () {
-                      setState(() {
-                        _scrollDirection = switch (_scrollDirection) {
-                          MangaPageViewDirection.right =>
-                            MangaPageViewDirection.down,
-                          MangaPageViewDirection.down =>
-                            MangaPageViewDirection.left,
-                          MangaPageViewDirection.left =>
-                            MangaPageViewDirection.up,
-                          MangaPageViewDirection.up =>
-                            MangaPageViewDirection.right,
-                        };
-                      });
-                    },
-                    icon: Icon(() {
-                      return switch (_scrollDirection) {
-                        MangaPageViewDirection.right => Icons.swipe_right_alt,
-                        MangaPageViewDirection.down => Icons.swipe_down_alt,
-                        MangaPageViewDirection.left => Icons.swipe_left_alt,
-                        MangaPageViewDirection.up => Icons.swipe_up_alt,
-                      };
-                    }()),
-                  ),
-                  IconButton(
-                    tooltip: 'Toggle overshoot/constrained',
-                    onPressed: () {
-                      setState(() {
-                        _overshoot = !_overshoot;
-                      });
-                    },
-                    icon: Icon(
-                      _overshoot ? Icons.swipe_vertical : Icons.crop_free,
+
+                    IconButton(
+                      tooltip: 'Scroll backward',
+                      onPressed: () {
+                        _controller.scrollBy(
+                          -60,
+                          duration: Duration(milliseconds: 300),
+                        );
+                      },
+                      icon: Icon(Icons.chevron_left),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Page detection/jump gravity',
-                    onPressed: () {
-                      setState(() {
-                        _scrollGravity = switch (_scrollGravity) {
+                    IconButton(
+                      tooltip: 'Scroll forward',
+                      onPressed: () {
+                        _controller.scrollBy(
+                          60,
+                          duration: Duration(milliseconds: 300),
+                        );
+                      },
+                      icon: Icon(Icons.chevron_right),
+                    ),
+                    IconButton(
+                      tooltip: 'Next page',
+                      onPressed: () {
+                        _controller.moveToPage(
+                          min(_totalPages - 1, _currentPage.value + 1),
+                          duration: Duration(milliseconds: 300),
+                        );
+                      },
+                      icon: Icon(Icons.skip_next),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 16,
+                  children: [
+                    // Toggle view mode
+                    IconButton(
+                      tooltip: 'Toggle view mode (paged/continuous)',
+                      onPressed: () {
+                        setState(() {
+                          _mode = switch (_mode) {
+                            MangaPageViewMode.paged =>
+                              MangaPageViewMode.continuous,
+                            MangaPageViewMode.continuous =>
+                              MangaPageViewMode.paged,
+                          };
+                        });
+                      },
+                      icon: Icon(
+                        _mode == MangaPageViewMode.paged
+                            ? Icons.aod
+                            : Icons.import_contacts,
+                      ),
+                    ),
+                    // Toggle scroll direction
+                    IconButton(
+                      tooltip: 'Scroll direction',
+                      onPressed: () {
+                        setState(() {
+                          _scrollDirection = switch (_scrollDirection) {
+                            MangaPageViewDirection.right =>
+                              MangaPageViewDirection.down,
+                            MangaPageViewDirection.down =>
+                              MangaPageViewDirection.left,
+                            MangaPageViewDirection.left =>
+                              MangaPageViewDirection.up,
+                            MangaPageViewDirection.up =>
+                              MangaPageViewDirection.right,
+                          };
+                        });
+                      },
+                      icon: Icon(() {
+                        return switch (_scrollDirection) {
+                          MangaPageViewDirection.right => Icons.swipe_right_alt,
+                          MangaPageViewDirection.down => Icons.swipe_down_alt,
+                          MangaPageViewDirection.left => Icons.swipe_left_alt,
+                          MangaPageViewDirection.up => Icons.swipe_up_alt,
+                        };
+                      }()),
+                    ),
+                    IconButton(
+                      tooltip: 'Toggle overshoot/constrained',
+                      onPressed: () {
+                        setState(() {
+                          _overshoot = !_overshoot;
+                        });
+                      },
+                      icon: Icon(
+                        _overshoot ? Icons.swipe_vertical : Icons.crop_free,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Page detection/jump gravity',
+                      onPressed: () {
+                        setState(() {
+                          _scrollGravity = switch (_scrollGravity) {
+                            MangaPageViewGravity.start =>
+                              MangaPageViewGravity.center,
+                            MangaPageViewGravity.center =>
+                              MangaPageViewGravity.end,
+                            MangaPageViewGravity.end =>
+                              MangaPageViewGravity.start,
+                          };
+                        });
+                      },
+                      icon: Icon(() {
+                        return switch (_scrollGravity) {
                           MangaPageViewGravity.start =>
-                            MangaPageViewGravity.center,
+                            Icons.align_vertical_top,
                           MangaPageViewGravity.center =>
-                            MangaPageViewGravity.end,
+                            Icons.align_vertical_center,
                           MangaPageViewGravity.end =>
-                            MangaPageViewGravity.start,
+                            Icons.align_vertical_bottom,
                         };
-                      });
-                    },
-                    icon: Icon(() {
-                      return switch (_scrollGravity) {
-                        MangaPageViewGravity.start => Icons.align_vertical_top,
-                        MangaPageViewGravity.center =>
-                          Icons.align_vertical_center,
-                        MangaPageViewGravity.end => Icons.align_vertical_bottom,
-                      };
-                    }()),
-                  ),
-                ],
-              ),
+                      }()),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -506,42 +534,45 @@ class RandomPage extends StatelessWidget {
         ? Colors.white
         : Colors.black;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Color.lerp(color, Colors.black, 0.2)!,
-          width: 16.0,
-        ),
-      ),
-      width: width.toDouble(),
-      height: height.toDouble(),
+    return FittedBox(
+      fit: BoxFit.contain,
       child: Container(
-        color: color,
-        child: CustomPaint(
-          painter: CheckerboardPainter(
-            squareSize: 100,
-            color1: Color.lerp(color, Colors.white, 0.2)!,
-            color2: color,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Color.lerp(color, Colors.black, 0.2)!,
+            width: 16.0,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 16,
-            children: [
-              Text(
-                label,
-                style: Theme.of(
-                  context,
-                ).textTheme.displayLarge?.copyWith(color: textColor),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                '${width.round()}x${height.round()}',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: textColor.withValues(alpha: 0.7),
+        ),
+        width: width.toDouble(),
+        height: height.toDouble(),
+        child: Container(
+          color: color,
+          child: CustomPaint(
+            painter: CheckerboardPainter(
+              squareSize: 100,
+              color1: Color.lerp(color, Colors.white, 0.2)!,
+              color2: color,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 16,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.displayLarge?.copyWith(color: textColor),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                Text(
+                  '${width.round()}x${height.round()}',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: textColor.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),
