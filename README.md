@@ -2,6 +2,8 @@
 
 A Flutter widget designed to display comic and manga pages with intuitive navigation and customization options.
 
+[![pub package](https://img.shields.io/pub/v/manga_page_view.svg)](https://pub.dev/packages/manga_page_view)
+
 ## Showcase
 
 - Continuous mode
