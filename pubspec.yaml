@@ -1,5 +1,5 @@
 name: manga_page_view
-description: "A widget for comic/manga page reader"
+description: "A Flutter widget designed for comic and manga page reader"
 version: 1.0.0
 homepage: https://github.com/amuhaimin02/manga_page_view
 repository: https://github.com/amuhaimin02/manga_page_view
