@@ -110,9 +110,9 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
 
   int _progressToPageIndex(double progress) {
     return (progress * (widget.pageCount - 1)).round().clamp(
-      0,
-      widget.pageCount - 1,
-    );
+          0,
+          widget.pageCount - 1,
+        );
   }
 
   Offset _scrollBy(double delta) {
@@ -215,12 +215,12 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       minZoomLevel: widget.options.minZoomLevel,
       maxZoomLevel: widget.options.maxZoomLevel,
       presetZoomLevels: widget.options.presetZoomLevels,
-      verticalOverscroll:
-          widget.direction.isVertical && widget.options.mainAxisOverscroll ||
+      verticalOverscroll: widget.direction.isVertical &&
+              widget.options.mainAxisOverscroll ||
           widget.direction.isHorizontal && widget.options.crossAxisOverscroll,
       horizontalOverscroll:
           widget.direction.isHorizontal && widget.options.mainAxisOverscroll ||
-          widget.direction.isVertical && widget.options.crossAxisOverscroll,
+              widget.direction.isVertical && widget.options.crossAxisOverscroll,
       anchor: switch (widget.direction) {
         MangaPageViewDirection.down => MangaPageViewEdge.top,
         MangaPageViewDirection.right => MangaPageViewEdge.left,

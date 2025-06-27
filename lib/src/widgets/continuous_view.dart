@@ -142,25 +142,25 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     return switch (widget.direction) {
       MangaPageViewDirection.down => gravity.select(
-        start: bounds.topCenter,
-        center: bounds.center.translate(0, -viewportCenter.dy),
-        end: bounds.bottomCenter.translate(0, -viewport.height),
-      ),
+          start: bounds.topCenter,
+          center: bounds.center.translate(0, -viewportCenter.dy),
+          end: bounds.bottomCenter.translate(0, -viewport.height),
+        ),
       MangaPageViewDirection.up => gravity.select(
-        start: bounds.bottomCenter,
-        center: bounds.center.translate(0, viewportCenter.dy),
-        end: bounds.topCenter.translate(0, viewport.height),
-      ),
+          start: bounds.bottomCenter,
+          center: bounds.center.translate(0, viewportCenter.dy),
+          end: bounds.topCenter.translate(0, viewport.height),
+        ),
       MangaPageViewDirection.right => gravity.select(
-        start: bounds.centerLeft,
-        center: bounds.center.translate(-viewportCenter.dx, 0),
-        end: bounds.centerRight.translate(-viewport.width, 0),
-      ),
+          start: bounds.centerLeft,
+          center: bounds.center.translate(-viewportCenter.dx, 0),
+          end: bounds.centerRight.translate(-viewport.width, 0),
+        ),
       MangaPageViewDirection.left => gravity.select(
-        start: bounds.centerRight,
-        center: bounds.center.translate(viewportCenter.dx, 0),
-        end: bounds.centerLeft.translate(viewport.width, 0),
-      ),
+          start: bounds.centerRight,
+          center: bounds.center.translate(viewportCenter.dx, 0),
+          end: bounds.centerLeft.translate(viewport.width, 0),
+        ),
     };
   }
 
@@ -295,25 +295,25 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     final screenEdge = switch (widget.direction) {
       MangaPageViewDirection.down => gravity.select(
-        start: viewRegion.top,
-        center: viewRegion.center.dy,
-        end: viewRegion.bottom,
-      ),
+          start: viewRegion.top,
+          center: viewRegion.center.dy,
+          end: viewRegion.bottom,
+        ),
       MangaPageViewDirection.up => gravity.select(
-        start: -viewRegion.bottom,
-        center: -viewRegion.center.dy,
-        end: -viewRegion.top,
-      ),
+          start: -viewRegion.bottom,
+          center: -viewRegion.center.dy,
+          end: -viewRegion.top,
+        ),
       MangaPageViewDirection.left => gravity.select(
-        start: -viewRegion.right,
-        center: -viewRegion.center.dx,
-        end: -viewRegion.left,
-      ),
+          start: -viewRegion.right,
+          center: -viewRegion.center.dx,
+          end: -viewRegion.left,
+        ),
       MangaPageViewDirection.right => gravity.select(
-        start: viewRegion.left,
-        center: viewRegion.center.dx,
-        end: viewRegion.right,
-      ),
+          start: viewRegion.left,
+          center: viewRegion.center.dx,
+          end: viewRegion.right,
+        ),
     };
     final pageEdge = switch (widget.direction) {
       MangaPageViewDirection.down => (Rect b) => b.top,
@@ -394,9 +394,11 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
     return switch (widget.direction) {
       MangaPageViewDirection.up ||
-      MangaPageViewDirection.down => Offset(_currentOffset.dx, target),
+      MangaPageViewDirection.down =>
+        Offset(_currentOffset.dx, target),
       MangaPageViewDirection.left ||
-      MangaPageViewDirection.right => Offset(target, _currentOffset.dy),
+      MangaPageViewDirection.right =>
+        Offset(target, _currentOffset.dy),
     };
   }
 
@@ -421,14 +423,14 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     // Adjust window on left and up direction mode
     return switch (widget.direction) {
       MangaPageViewDirection.up => visibleRect.translate(
-        0,
-        -viewportSize.height,
-      ),
+          0,
+          -viewportSize.height,
+        ),
       MangaPageViewDirection.down => visibleRect,
       MangaPageViewDirection.left => visibleRect.translate(
-        -viewportSize.width,
-        0,
-      ),
+          -viewportSize.width,
+          0,
+        ),
       MangaPageViewDirection.right => visibleRect,
     };
   }
@@ -445,12 +447,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
       presetZoomLevels: widget.options.presetZoomLevels,
       zoomOnFocalPoint: widget.options.zoomOnFocalPoint,
       zoomOvershoot: widget.options.zoomOvershoot,
-      verticalOverscroll:
-          widget.direction.isVertical && widget.options.mainAxisOverscroll ||
+      verticalOverscroll: widget.direction.isVertical &&
+              widget.options.mainAxisOverscroll ||
           widget.direction.isHorizontal && widget.options.crossAxisOverscroll,
       horizontalOverscroll:
           widget.direction.isHorizontal && widget.options.mainAxisOverscroll ||
-          widget.direction.isVertical && widget.options.crossAxisOverscroll,
+              widget.direction.isVertical && widget.options.crossAxisOverscroll,
       anchor: switch (widget.direction) {
         MangaPageViewDirection.down => MangaPageViewEdge.top,
         MangaPageViewDirection.right => MangaPageViewEdge.left,

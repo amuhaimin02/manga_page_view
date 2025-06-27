@@ -124,15 +124,13 @@ class PageCarouselState extends State<PageCarousel>
   void _updatePageContents() {
     final newLoadedWidgets = <int, Widget>{};
 
-    newLoadedWidgets[_currentIndex] =
-        _loadedWidgets[_currentIndex] ??
+    newLoadedWidgets[_currentIndex] = _loadedWidgets[_currentIndex] ??
         widget.itemBuilder(context, _currentIndex);
 
     for (int i = 1; i <= 3; i++) {
       final previousIndex = _currentIndex - i;
       if (previousIndex >= 0) {
-        newLoadedWidgets[previousIndex] =
-            _loadedWidgets[previousIndex] ??
+        newLoadedWidgets[previousIndex] = _loadedWidgets[previousIndex] ??
             widget.itemBuilder(context, previousIndex);
       }
       final nextIndex = _currentIndex + i;
@@ -189,8 +187,7 @@ class PageCarouselState extends State<PageCarousel>
     final newIndex =
         _currentIndex + scrollProgress.sign * (scrollProgress.truncate() + 1);
 
-    final shouldSnap =
-        (moreThanHalf || isFlinging) &&
+    final shouldSnap = (moreThanHalf || isFlinging) &&
         (newIndex >= 0 && newIndex < widget.itemCount);
 
     final target = shouldSnap ? scrollProgress.sign : 0.0;
@@ -286,13 +283,13 @@ class PageCarouselState extends State<PageCarousel>
                     offset: Offset(
                       widget.direction.isHorizontal
                           ? (item.key - _currentIndex - progress) *
-                                scrollSize *
-                                reverseFactor
+                              scrollSize *
+                              reverseFactor
                           : 0,
                       widget.direction.isVertical
                           ? (item.key - _currentIndex - progress) *
-                                scrollSize *
-                                reverseFactor
+                              scrollSize *
+                              reverseFactor
                           : 0,
                     ),
                     child: item.value,

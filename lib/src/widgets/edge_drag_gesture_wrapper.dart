@@ -8,8 +8,8 @@ import 'page_carousel.dart';
 import 'viewport_size.dart';
 
 /// A builder function for edge gesture indicators.
-typedef EdgeDragGestureIndicatorBuilder =
-    Widget Function(BuildContext context, MangaPageViewEdgeGestureInfo info);
+typedef EdgeDragGestureIndicatorBuilder = Widget Function(
+    BuildContext context, MangaPageViewEdgeGestureInfo info);
 
 // Whether the gestures correspond to start or end of the page
 enum EdgeDragGestureSide { start, end }
@@ -334,13 +334,13 @@ class _EdgeDragGestureWrapperState extends State<EdgeDragGestureWrapper>
 
                   final content = switch (side) {
                     EdgeDragGestureSide.start => widget.startEdgeBuilder!(
-                      context,
-                      info,
-                    ),
+                        context,
+                        info,
+                      ),
                     EdgeDragGestureSide.end => widget.endEdgeBuilder!(
-                      context,
-                      info,
-                    ),
+                        context,
+                        info,
+                      ),
                   };
 
                   indicatorWidget = Positioned.fromRect(

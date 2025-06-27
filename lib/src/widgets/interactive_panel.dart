@@ -286,9 +286,8 @@ class InteractivePanelState extends State<InteractivePanel>
     final checkAxis = widget.panCheckAxis;
 
     // Check where user intends to move
-    final movingAxis = delta.dx.abs() > delta.dy.abs()
-        ? Axis.horizontal
-        : Axis.vertical;
+    final movingAxis =
+        delta.dx.abs() > delta.dy.abs() ? Axis.horizontal : Axis.vertical;
 
     if (checkAxis != null) {
       double? edgeValue;
@@ -325,8 +324,7 @@ class InteractivePanelState extends State<InteractivePanel>
         }
       }
 
-      final cannotPan =
-          edgeValue != null &&
+      final cannotPan = edgeValue != null &&
           pointValue != null &&
           (edgeValue - pointValue).abs() < edgeCheckThreshold;
 
@@ -346,15 +344,13 @@ class InteractivePanelState extends State<InteractivePanel>
     if (currentZoom > maxZoom) {
       final excess = currentZoom - maxZoom;
       final resistanceFactor = 1 / maxZoom;
-      final resisted =
-          maxZoom +
+      final resisted = maxZoom +
           (1 - math.exp(-excess * resistanceFactor)) / resistanceFactor;
       return resisted;
     } else if (currentZoom < minZoom) {
       final excess = minZoom - currentZoom;
       final resistanceFactor = 1 / minZoom;
-      final resisted =
-          minZoom -
+      final resisted = minZoom -
           (1 - math.exp(-excess * resistanceFactor)) / resistanceFactor;
       return resisted;
     } else {
@@ -372,8 +368,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
     final zoomDifference = finalZoom - initialZoom;
 
-    final moveOffset =
-        Offset(
+    final moveOffset = Offset(
           focalPointFromCenter.dx * zoomDifference,
           focalPointFromCenter.dy * zoomDifference,
         ) /
@@ -523,9 +518,9 @@ class InteractivePanelState extends State<InteractivePanel>
     // Shift + wheel always scrolls horizontally
     final newOffset = switch (HardwareKeyboard.instance.isShiftPressed) {
       true => _offset.value.translate(
-        delta.dy,
-        0,
-      ), // Control left-right movement
+          delta.dy,
+          0,
+        ), // Control left-right movement
       false => _offset.value + delta,
     };
     _stopFlinging();

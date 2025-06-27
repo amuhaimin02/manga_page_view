@@ -97,17 +97,17 @@ class PageStripState extends State<PageStrip> {
       nextPoint = switch (widget.direction) {
         MangaPageViewDirection.up => pageBounds.topLeft.translate(0, -spacing),
         MangaPageViewDirection.left => pageBounds.topLeft.translate(
-          -spacing,
-          0,
-        ),
+            -spacing,
+            0,
+          ),
         MangaPageViewDirection.down => pageBounds.bottomLeft.translate(
-          0,
-          spacing,
-        ),
+            0,
+            spacing,
+          ),
         MangaPageViewDirection.right => pageBounds.topRight.translate(
-          spacing,
-          0,
-        ),
+            spacing,
+            0,
+          ),
       };
     }
   }
@@ -184,9 +184,8 @@ class PageStripState extends State<PageStrip> {
       child: Padding(
         padding: widget.padding,
         child: Flex(
-          direction: widget.direction.isVertical
-              ? Axis.vertical
-              : Axis.horizontal,
+          direction:
+              widget.direction.isVertical ? Axis.vertical : Axis.horizontal,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: widget.spacing,
@@ -214,8 +213,7 @@ class PageStripState extends State<PageStrip> {
             return false;
           },
           child: SizeChangedLayoutNotifier(
-            child:
-                _loadedWidgets[index] ??
+            child: _loadedWidgets[index] ??
                 SizedBox.fromSize(size: widget.initialPageSize),
           ),
         );

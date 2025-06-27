@@ -39,15 +39,17 @@ class MangaPageView extends StatefulWidget {
     this.endEdgeDragIndicatorBuilder,
     this.onStartEdgeDrag,
     this.onEndEdgeDrag,
-  }) : assert(
-         onStartEdgeDrag != null ? startEdgeDragIndicatorBuilder != null : true,
-         "When using edge drag gestures, indicatorBuilder must not be null",
-       ),
-       assert(
-         onEndEdgeDrag != null ? endEdgeDragIndicatorBuilder != null : true,
-         "When using edge drag gestures, indicatorBuilder must not be null",
-       ),
-       assert(pageCount > 0, "pageCount must be greater than 0");
+  })  : assert(
+          onStartEdgeDrag != null
+              ? startEdgeDragIndicatorBuilder != null
+              : true,
+          "When using edge drag gestures, indicatorBuilder must not be null",
+        ),
+        assert(
+          onEndEdgeDrag != null ? endEdgeDragIndicatorBuilder != null : true,
+          "When using edge drag gestures, indicatorBuilder must not be null",
+        ),
+        assert(pageCount > 0, "pageCount must be greater than 0");
 
   /// The viewing mode for the manga pages.
   ///
@@ -176,27 +178,27 @@ class _MangaPageViewState extends State<MangaPageView> {
   Widget build(BuildContext context) {
     Widget child = switch (widget.mode) {
       MangaPageViewMode.continuous => MangaPageContinuousView(
-        initialPageIndex: _currentPage,
-        controller: _controller,
-        direction: widget.direction,
-        options: widget.options,
-        pageCount: widget.pageCount,
-        pageBuilder: widget.pageBuilder,
-        onPageChange: _onPageChange,
-        onProgressChange: _onProgressChange,
-        onZoomChange: _onZoomChange,
-      ),
+          initialPageIndex: _currentPage,
+          controller: _controller,
+          direction: widget.direction,
+          options: widget.options,
+          pageCount: widget.pageCount,
+          pageBuilder: widget.pageBuilder,
+          onPageChange: _onPageChange,
+          onProgressChange: _onProgressChange,
+          onZoomChange: _onZoomChange,
+        ),
       MangaPageViewMode.paged => MangaPagePagedView(
-        controller: _controller,
-        initialPageIndex: _currentPage,
-        direction: widget.direction,
-        options: widget.options,
-        pageCount: widget.pageCount,
-        pageBuilder: widget.pageBuilder,
-        onPageChange: _onPageChange,
-        onProgressChange: _onProgressChange,
-        onZoomChange: _onZoomChange,
-      ),
+          controller: _controller,
+          initialPageIndex: _currentPage,
+          direction: widget.direction,
+          options: widget.options,
+          pageCount: widget.pageCount,
+          pageBuilder: widget.pageBuilder,
+          onPageChange: _onPageChange,
+          onProgressChange: _onProgressChange,
+          onZoomChange: _onZoomChange,
+        ),
     };
 
     if (_isEdgeGesturesEnabled) {

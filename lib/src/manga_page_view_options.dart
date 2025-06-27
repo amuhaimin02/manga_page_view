@@ -25,11 +25,11 @@ class MangaPageViewOptions {
     this.initialFadeInDuration = const Duration(milliseconds: 300),
     this.initialFadeInCurve = Curves.linear,
     this.edgeIndicatorContainerSize = 200,
-  }) : assert(minZoomLevel > 0),
-       assert(maxZoomLevel > 0),
-       assert(maxZoomLevel > minZoomLevel),
-       assert(initialZoomLevel >= minZoomLevel),
-       assert(initialZoomLevel <= maxZoomLevel);
+  })  : assert(minZoomLevel > 0),
+        assert(maxZoomLevel > 0),
+        assert(maxZoomLevel > minZoomLevel),
+        assert(initialZoomLevel >= minZoomLevel),
+        assert(initialZoomLevel <= maxZoomLevel);
 
   /// The minimum allowed zoom level.
   ///
