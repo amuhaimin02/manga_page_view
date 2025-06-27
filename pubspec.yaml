@@ -5,7 +5,7 @@ homepage: https://github.com/amuhaimin02/manga_page_view
 repository: https://github.com/amuhaimin02/manga_page_view
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.0.0
   flutter: ">=1.17.0"
 
 dependencies:
