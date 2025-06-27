@@ -49,7 +49,7 @@ class MangaPageView extends StatefulWidget {
           onEndEdgeDrag != null ? endEdgeDragIndicatorBuilder != null : true,
           "When using edge drag gestures, indicatorBuilder must not be null",
         ),
-        assert(pageCount > 0, "pageCount must be greater than 0");
+        assert(pageCount > 0);
 
   /// The viewing mode for the manga pages.
   ///

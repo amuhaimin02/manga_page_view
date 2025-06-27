@@ -24,12 +24,18 @@ class MangaPageViewOptions {
     this.zoomOnFocalPoint = true,
     this.initialFadeInDuration = const Duration(milliseconds: 300),
     this.initialFadeInCurve = Curves.linear,
-    this.edgeIndicatorContainerSize = 200,
+    this.edgeIndicatorContainerSize = 200.0,
   })  : assert(minZoomLevel > 0),
         assert(maxZoomLevel > 0),
         assert(maxZoomLevel > minZoomLevel),
         assert(initialZoomLevel >= minZoomLevel),
-        assert(initialZoomLevel <= maxZoomLevel);
+        assert(initialZoomLevel <= maxZoomLevel),
+        assert(spacing >= 0),
+        assert(precacheAhead >= 0),
+        assert(precacheBehind >= 0),
+        assert(pageWidthLimit == null || pageWidthLimit > 0),
+        assert(pageHeightLimit == null || pageHeightLimit > 0),
+        assert(edgeIndicatorContainerSize > 0);
 
   /// The minimum allowed zoom level.
   ///
@@ -145,6 +151,57 @@ class MangaPageViewOptions {
   ///
   /// This value also determines how many pixels user should drag to trigger the gestures.
   final double edgeIndicatorContainerSize;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is MangaPageViewOptions &&
+        other.minZoomLevel == minZoomLevel &&
+        other.maxZoomLevel == maxZoomLevel &&
+        other.initialZoomLevel == initialZoomLevel &&
+        other.presetZoomLevels == presetZoomLevels &&
+        other.padding == padding &&
+        other.spacing == spacing &&
+        other.initialPageSize == initialPageSize &&
+        other.mainAxisOverscroll == mainAxisOverscroll &&
+        other.crossAxisOverscroll == crossAxisOverscroll &&
+        other.zoomOvershoot == zoomOvershoot &&
+        other.precacheAhead == precacheAhead &&
+        other.precacheBehind == precacheBehind &&
+        other.pageWidthLimit == pageWidthLimit &&
+        other.pageHeightLimit == pageHeightLimit &&
+        other.pageSenseGravity == pageSenseGravity &&
+        other.pageJumpGravity == pageJumpGravity &&
+        other.zoomOnFocalPoint == zoomOnFocalPoint &&
+        other.initialFadeInDuration == initialFadeInDuration &&
+        other.initialFadeInCurve == initialFadeInCurve &&
+        other.edgeIndicatorContainerSize == edgeIndicatorContainerSize;
+  }
+
+  @override
+  int get hashCode {
+    return minZoomLevel.hashCode ^
+        maxZoomLevel.hashCode ^
+        initialZoomLevel.hashCode ^
+        presetZoomLevels.hashCode ^
+        padding.hashCode ^
+        spacing.hashCode ^
+        initialPageSize.hashCode ^
+        mainAxisOverscroll.hashCode ^
+        crossAxisOverscroll.hashCode ^
+        zoomOvershoot.hashCode ^
+        precacheAhead.hashCode ^
+        precacheBehind.hashCode ^
+        pageWidthLimit.hashCode ^
+        pageHeightLimit.hashCode ^
+        pageSenseGravity.hashCode ^
+        pageJumpGravity.hashCode ^
+        zoomOnFocalPoint.hashCode ^
+        initialFadeInDuration.hashCode ^
+        initialFadeInCurve.hashCode ^
+        edgeIndicatorContainerSize.hashCode;
+  }
 }
 
 /// Defines the display mode of the [MangaPageView].
