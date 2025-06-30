@@ -76,10 +76,10 @@ class PageCarouselState extends State<PageCarousel>
 
   @override
   void dispose() {
-    super.dispose();
     _snapAnimation.removeListener(_onSnapAnimationUpdate);
     _snapAnimation.dispose();
     _scrollProgress.dispose();
+    super.dispose();
   }
 
   void jumpToPage(int newIndex) {

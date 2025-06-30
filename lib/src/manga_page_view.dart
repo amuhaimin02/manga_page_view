@@ -144,8 +144,8 @@ class _MangaPageViewState extends State<MangaPageView> {
 
   @override
   void dispose() {
-    super.dispose();
     _defaultController.dispose();
+    super.dispose();
   }
 
   /// Indicates whether edge gestures are enabled.

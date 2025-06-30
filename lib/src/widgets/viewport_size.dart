@@ -34,8 +34,8 @@ class _ViewportSizeState extends State<ViewportSize> {
 
   @override
   void dispose() {
-    _notifier.dispose();
     super.dispose();
+    _notifier.dispose();
   }
 }
 

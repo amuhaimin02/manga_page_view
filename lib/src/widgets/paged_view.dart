@@ -64,8 +64,8 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
 
   @override
   void dispose() {
-    super.dispose();
     _controllerIntentStream?.cancel();
+    super.dispose();
   }
 
   void _onControllerIntent(ControllerChangeIntent intent) {
