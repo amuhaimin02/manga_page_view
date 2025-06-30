@@ -7,9 +7,11 @@ A Flutter widget designed to display comic and manga pages with intuitive naviga
 ## Showcase
 
 - Continuous mode
+
 ![Continuous mode](https://github.com/amuhaimin02/manga_page_view/raw/main/showcase/continuous1.gif)
 
 - Paged mode
+
 ![Paged mode](https://github.com/amuhaimin02/manga_page_view/raw/main/showcase/paged1.gif)
 
 ## Features
@@ -57,7 +59,7 @@ MangaPageView(
 );
 ```
 
-- Extensive usage
+- Extended usage
 ```dart
 MangaPageView(
   mode: MangaPageViewMode.continuous, // Long horizontal strip
@@ -73,33 +75,36 @@ MangaPageView(
       600,
       800,
     ), // Space to occupy when page widget not loaded yet
-    pageWidthLimit: 1000, // Page width never exceeds this amount of width
+    pageWidthLimit: 1000, // Page width never exceeds this amount
     spacing: 16.0, // Spaces between pages
     padding: EdgeInsets.all(8.0), // Spaces around pages
-    precacheAhead: 3, // Always load 3 page ahead from current
-    precacheBehind: 3, // Always load 3 page behind from current
+    precacheAhead: 3, // Always load 3 pages ahead
+    precacheBehind: 3, // Always load 3 pages behind
     mainAxisOverscroll:
         false, // Restrict horizontal axis from overscrolling
     crossAxisOverscroll:
-        false, // Restrict horizontal axis from overscrolling
-    zoomOvershoot: true, // Overshoot when zooming gives fluidity
-    zoomOnFocalPoint: true,
+        false, // Restrict vertical axis from overscrolling
+    zoomOvershoot: true, // Overshoot when zooming gives a bit of fluidity
+    zoomOnFocalPoint: true, // If false, zooming point will be on center
   ),
   controller:
       MangaPageViewController(), // For programmatic control. Best to put it as a field
   pageCount: 20,
   pageBuilder: (context, index) {
     // Replace with your actual page widget, perhaps an Image
-    // Tips: always provide sizes or padding to your loading and error widgets, if available
+    // Tips: always provide sizes or padding to your loading and error widgets
     return Image.network(
       'https://picsum.photos/600/800?t=$index',
       fit: BoxFit
           .contain, // Try to fit and constrain image to available size
-      loadingBuilder: (context, child, loadingProgress) => Container(
-        padding: EdgeInsets.all(24),
-        alignment: Alignment.center,
-        child: CircularProgressIndicator(),
-      ),
+      loadingBuilder: (context, child, loadingProgress) {
+        // Even your loading widget needs some space
+        return Container(
+          padding: EdgeInsets.all(24),
+          alignment: Alignment.center,
+          child: CircularProgressIndicator(),
+        ),
+      }
     );
   },
   onPageChange: (index) {
