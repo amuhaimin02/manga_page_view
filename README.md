@@ -16,17 +16,21 @@ A Flutter widget designed to display comic and manga pages with intuitive naviga
 
 ## Features
 
-* Two modes: continuous (webtoon, long strip) or paged
+* Two styles of view
+  * Continuous (for long strip or webtoons) 
+  * Paged (one page on screen at a time)
 * Four way reading direction: top-down, bottom-up, left-to-right, right-to-left
 * Common pan and zoom gestures
   * Double tap to zoom
   * Pinch to zoom
   * Double tap and drag to zoom in/out
-* Mouse and trackpad support (mouse wheel, two-finger-swipe pan, pinch on trackpad)
+* Mouse and trackpad support (mouse wheel, two-finger-swipe pan, pinch on trackpad).
 * Edge gestures (previous/next chapters, etc)
 * Toggleable overscroll options (vertical, horizontal, zooming)
-* Internal widget precache
+* Internal widget precache - configurable
 * Simplistic widget setup using `pageCount` and `pageBuilder`
+* Supports any widget as a page, not limited to `Image` widgets
+* Very lightweight - only Flutter as dependency
 * Usable on all Flutter-supported platforms (mobile, web, desktop)
 
 ## Examples
