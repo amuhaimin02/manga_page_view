@@ -168,7 +168,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     _isChangingPage = true;
 
     // Early callback
-    widget.onPageChange?.call(pageIndex);
+    _doPageChangeCallback(pageIndex);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       final pageRect = _stripState.pageBounds[pageIndex];
@@ -184,6 +184,9 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
 
   void _animateToPage(int pageIndex, Duration duration, Curve curve) {
     _isChangingPage = true;
+
+    // Early callback
+    _doPageChangeCallback(pageIndex);
 
     final pageRect = _stripState.pageBounds[pageIndex];
     _panelState.animateToOffset(
@@ -335,9 +338,13 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     final pageIndex = checkIndex.clamp(0, widget.pageCount - 1);
 
     if (!_isChangingPage && _currentPage != pageIndex) {
-      widget.onPageChange?.call(pageIndex);
-      _currentPage = pageIndex;
+      _doPageChangeCallback(pageIndex);
     }
+  }
+
+  void _doPageChangeCallback(int pageIndex) {
+    widget.onPageChange?.call(pageIndex);
+    _currentPage = pageIndex;
   }
 
   double _offsetToFraction(Offset offset) {
