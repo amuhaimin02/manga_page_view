@@ -127,26 +127,14 @@ class InteractivePanelState extends State<InteractivePanel>
 
   @override
   void dispose() {
-    _viewportSizeProvider.removeListener(_onViewportChanged);
-    _scrollRegionChange.removeListener(_updateScrollableRegion);
-    _offset
-      ..removeListener(_sendScrollInfo)
-      ..dispose();
-    _zoomLevel
-      ..removeListener(_sendScrollInfo)
-      ..dispose();
+    _offset.dispose();
+    _zoomLevel.dispose();
     _viewport.dispose();
-    _childSize
-      ..removeListener(_onChildSizeChanged)
-      ..dispose();
+    _childSize.dispose();
     _flingXAnimation.dispose();
     _flingYAnimation.dispose();
-    _zoomAnimation
-      ..removeListener(_onAnimateZoomUpdate)
-      ..dispose();
-    _offsetAnimation
-      ..removeListener(_onAnimateOffsetUpdate)
-      ..dispose();
+    _zoomAnimation.dispose();
+    _offsetAnimation.dispose();
     _firstAppearanceAnimation.dispose();
 
     super.dispose();
@@ -827,6 +815,9 @@ class InteractivePanelState extends State<InteractivePanel>
             }
             _handleLift();
           }
+        },
+        onPointerCancel: (event) {
+          // TODO: Is this needed?
         },
         onPointerMove: (event) {
           // Only detects left mouse click or touch
