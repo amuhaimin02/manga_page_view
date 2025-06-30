@@ -87,10 +87,12 @@ class MangaPageView extends StatefulWidget {
   final Function(double zoomLevel)? onZoomChange;
 
   /// A callback function that is invoked when the scroll progress changes.
+  ///
   /// Value will be between 0.0 and 1.0 inclusive, for start and end, respectively
   final Function(double progress)? onProgressChange;
 
   /// A builder function for the indicator displayed when dragging from the start edge.
+  ///
   /// This is typically used to show a "previous chapter" or similar indicator.
   ///
   /// This builder will be called even if [onStartEdgeDrag] is null,
@@ -98,6 +100,7 @@ class MangaPageView extends StatefulWidget {
   final EdgeDragGestureIndicatorBuilder? startEdgeDragIndicatorBuilder;
 
   /// A builder function for the indicator displayed when dragging from the end edge.
+  ///
   /// This is typically used to show a "next chapter" or similar indicator.
   ///
   /// This builder will be called even if [onEndEdgeDrag] is null,
@@ -105,12 +108,14 @@ class MangaPageView extends StatefulWidget {
   final EdgeDragGestureIndicatorBuilder? endEdgeDragIndicatorBuilder;
 
   /// A callback function that is invoked when a drag gesture from the start edge is completed.
+  ///
   /// This can be used to trigger navigation to a previous chapter or section.
   ///
   /// When this callback is set, [startEdgeDragIndicatorBuilder] must not be null.
   final VoidCallback? onStartEdgeDrag;
 
   /// A callback function that is invoked when a drag gesture from the end edge is completed.
+  ///
   /// This can be used to trigger navigation to a next chapter or section.
   ///
   /// When this callback is set, [endEdgeDragIndicatorBuilder] must not be null.

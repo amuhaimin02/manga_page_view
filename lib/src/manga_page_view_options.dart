@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 /// Options for configuring the behavior of a [MangaPageView].
 class MangaPageViewOptions {
   /// Creates a set of options for a [MangaPageView].
+  ///
   /// All parameters are optional and have default values.
   const MangaPageViewOptions({
     this.minZoomLevel = 0.5,
@@ -53,6 +54,7 @@ class MangaPageViewOptions {
   final double initialZoomLevel;
 
   /// A list of zoom levels that can be quickly cycled when double tapping to zoom.
+  ///
   /// Values are sorted internally, and those that fall outside min/max zoom bounds will be ignored.
   final List<double> presetZoomLevels;
 
@@ -79,9 +81,8 @@ class MangaPageViewOptions {
   ///
   /// This is used for empty placeholder sizing and for size estimation when scrolling through pages.
   ///
-  /// Tip: Be sure to provide a suitable value based on the expected viewport size and your pages' content.
-  /// Setting too low or too high might cause page jumping to not load properly.
-  /// Default of 512x512 pixels can serve as a good starting point.
+  /// Providing a value close to the actual average page size can improve the accuracy of
+  /// scroll estimations and reduce layout shifts as pages load.
   final Size initialPageSize;
 
   /// Whether overscrolling is allowed in the main axis.
