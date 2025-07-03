@@ -7,7 +7,8 @@ class GestureUtils {
   }
 
   static bool isPrimaryTouch(PointerEvent event) {
-    return event.kind == PointerDeviceKind.touch && event.device <= 0;
+    // TODO: Checking event.device works on other platform other than iOS. Why??
+    return event.kind == PointerDeviceKind.touch;
   }
 
   static bool isLeftClicking(PointerEvent event) {

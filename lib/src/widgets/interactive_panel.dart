@@ -13,9 +13,6 @@ import 'viewport_size.dart';
 /// Distance in pixels to be considered within edge
 const edgeCheckThreshold = 16;
 
-/// Unique custom ID for trackpad devices so as to not conflict with ordinary pointers
-const trackpadDeviceId = 99;
-
 /// Animation properties when animating zoom change
 const defaultZoomAnimationDuration = Duration(milliseconds: 300);
 const defaultZoomAnimationCurve = Curves.easeInOut;
@@ -87,6 +84,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
   final _activePointers = <int, VelocityTracker>{};
   final _activePositions = <int, Offset>{};
+  VelocityTracker? _trackpadVelocityTracker;
   final _doubleTapDetector = DoubleTapDetector();
   Offset? _startTouchPoint;
   double? _startPinchDistance;
@@ -757,14 +755,14 @@ class InteractivePanelState extends State<InteractivePanel>
             return;
           }
 
-          _activePointers[event.device] = VelocityTracker.withKind(event.kind)
+          _activePointers[event.pointer] = VelocityTracker.withKind(event.kind)
             ..addPosition(event.timeStamp, event.localPosition);
 
-          _activePositions[event.device] = event.localPosition;
+          _activePositions[event.pointer] = event.localPosition;
 
           _handleTouch();
 
-          if (event.device <= 0) {
+          if (_activePointers.length == 1) {
             // Primary touch
             _doubleTapDetector.registerTap(
               event.timeStamp,
@@ -775,7 +773,7 @@ class InteractivePanelState extends State<InteractivePanel>
             if (_doubleTapDetector.isActive(event.timeStamp)) {
               _isZoomDragging = true;
             }
-          } else if (event.device == 1) {
+          } else if (_activePointers.length == 2) {
             // Secondary touch
             final firstTouchPosition = _activePositions[0];
             final secondTouchPosition = _activePositions[1];
@@ -787,13 +785,13 @@ class InteractivePanelState extends State<InteractivePanel>
         },
         onPointerUp: (event) {
           // Skip if the gestures aren't captured by pointerDown/pointerMove events
-          if (!_activePointers.containsKey(event.device)) return;
+          if (!_activePointers.containsKey(event.pointer)) return;
 
-          final tracker = _activePointers[event.device]!;
-          _activePointers.remove(event.device);
-          _activePositions.remove(event.device);
+          final tracker = _activePointers[event.pointer]!;
+          _activePointers.remove(event.pointer);
+          _activePositions.remove(event.pointer);
 
-          if (event.device == 1) {
+          if (_activePointers.length == 1) {
             // Second touch released
             // Record zoom level in case of user wants to pinch again
             _isPinching = false;
@@ -830,24 +828,24 @@ class InteractivePanelState extends State<InteractivePanel>
           // Often triggers on devices with high sampling rate
           if (event.localDelta == Offset.zero) return;
 
-          _activePointers[event.device]!.addPosition(
+          _activePointers[event.pointer]!.addPosition(
             event.timeStamp,
             event.localPosition,
           );
-          _activePositions[event.device] = event.localPosition;
+          _activePositions[event.pointer] = event.localPosition;
 
           if (_isZoomDragging) {
             _handleZoomDrag(event.localPosition);
             return;
           }
 
-          if (_activePointers.containsKey(0) &&
-              _activePointers.containsKey(1)) {
+          if (_activePointers.length == 2) {
             _isPinching = true;
 
+            final pointers = _activePointers.keys.toList();
             final (firstPoint, secondPoint) = (
-              _activePositions[0]!,
-              _activePositions[1]!,
+              _activePositions[pointers[0]]!,
+              _activePositions[pointers[1]]!,
             );
             final focalPoint = (firstPoint + secondPoint) / 2;
             final distance = (firstPoint - secondPoint).distance;
@@ -867,7 +865,7 @@ class InteractivePanelState extends State<InteractivePanel>
           }
         },
         onPointerPanZoomStart: (event) {
-          _activePointers[trackpadDeviceId] = VelocityTracker.withKind(
+          _trackpadVelocityTracker = VelocityTracker.withKind(
             event.kind,
           );
           _handleTouch();
@@ -878,15 +876,15 @@ class InteractivePanelState extends State<InteractivePanel>
             _handlePinch(event.localPosition, event.scale);
           }
 
-          _activePointers[trackpadDeviceId]!.addPosition(
+          _trackpadVelocityTracker!.addPosition(
             event.timeStamp,
             event.localPan,
           );
           _handlePanDrag(event.localPanDelta);
         },
         onPointerPanZoomEnd: (event) {
-          final tracker = _activePointers[trackpadDeviceId]!;
-          _activePointers.remove(trackpadDeviceId);
+          final tracker = _trackpadVelocityTracker!;
+          _trackpadVelocityTracker = null;
           _handleLift();
           _handleFling(tracker.getVelocity());
         },
