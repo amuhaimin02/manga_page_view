@@ -775,11 +775,13 @@ class InteractivePanelState extends State<InteractivePanel>
             }
           } else if (_activePointers.length == 2) {
             // Secondary touch
-            final firstTouchPosition = _activePositions[0];
-            final secondTouchPosition = _activePositions[1];
-            if (firstTouchPosition != null && secondTouchPosition != null) {
-              _startPinchDistance =
-                  (firstTouchPosition - secondTouchPosition).distance;
+            final pointers = _activePointers.keys.toList();
+            final (firstPoint, secondPoint) = (
+              _activePositions[pointers[0]],
+              _activePositions[pointers[1]],
+            );
+            if (firstPoint != null && secondPoint != null) {
+              _startPinchDistance = (firstPoint - secondPoint).distance;
             }
           }
         },
