@@ -20,6 +20,7 @@ class PageStrip extends StatefulWidget {
     required this.precacheBehind,
     required this.widthLimit,
     required this.heightLimit,
+    required this.onPageSizeChanged,
   });
 
   final MangaPageViewDirection direction;
@@ -32,6 +33,7 @@ class PageStrip extends StatefulWidget {
   final double? heightLimit;
   final int pageCount;
   final IndexedWidgetBuilder pageBuilder;
+  final Function(int pageIndex, Size oldSize, Size newSize) onPageSizeChanged;
 
   @override
   State<PageStrip> createState() => PageStripState();
@@ -65,9 +67,11 @@ class PageStripState extends State<PageStrip> {
   }
 
   void _onPageSizeChanged(BuildContext context, int index) {
-    final pageSize = (context.findRenderObject() as RenderBox).size;
-    _pageBounds[index] = Offset.zero & pageSize;
+    final currentPageSize = _pageBounds[index].size;
+    final newPageSize = (context.findRenderObject() as RenderBox).size;
+    _pageBounds[index] = Offset.zero & newPageSize;
     _updatePageBounds();
+    widget.onPageSizeChanged(index, currentPageSize, newPageSize);
   }
 
   void _updatePageBounds() {
@@ -139,14 +143,15 @@ class PageStripState extends State<PageStrip> {
             pageToLoad.add(nextPage);
           }
         }
-        for (int p = 1; p <= widget.precacheBehind; p++) {
-          final nextPage = firstPageVisible - p;
-          if (nextPage >= 0 &&
-              nextPage < widget.pageCount &&
-              !_loadedWidgets.containsKey(nextPage)) {
-            pageToLoad.add(nextPage);
-          }
-        }
+        // TODO: Temporarily disabling precache behind as it interferes with UX when user jumps to page N directly
+        // for (int p = 1; p <= widget.precacheBehind; p++) {
+        //   final nextPage = firstPageVisible - p;
+        //   if (nextPage >= 0 &&
+        //       nextPage < widget.pageCount &&
+        //       !_loadedWidgets.containsKey(nextPage)) {
+        //     pageToLoad.add(nextPage);
+        //   }
+        // }
       }
       if (pageToLoad.isNotEmpty) {
         setState(() {

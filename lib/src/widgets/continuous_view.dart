@@ -277,6 +277,10 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     }
   }
 
+  void _onPageSizeChanged(int pageIndex, Size oldSize, Size newSize) {
+    // print('Size changed for page $pageIndex: $oldSize -> $newSize');
+  }
+
   void _updatePageDisplay() {
     final viewRegion = _computeVisibleWindow(
       _currentOffset,
@@ -480,6 +484,7 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         heightLimit: widget.options.pageHeightLimit,
         pageCount: widget.pageCount,
         pageBuilder: widget.pageBuilder,
+        onPageSizeChanged: _onPageSizeChanged,
       ),
     );
   }
