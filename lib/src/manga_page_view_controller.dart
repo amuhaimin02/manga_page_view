@@ -78,6 +78,10 @@ class MangaPageViewController {
   /// Positive value moves the view forward and negative value moves the view backward,
   /// depending on the set direction on the page view.
   ///
+  /// This is similar to [panBy] but only allows for two-way directional scroll, as opposed to four-way.
+  /// The start and end direction depends on the direction set.
+  /// For four-way scrolling, consider using [panBy] instead.
+  ///
   /// Optionally, you may provide a [duration] and a [curve] to animate the movement.
   /// Having a [duration] of [Duration.zero] effectively disables the animation entirely.
   void scrollBy(
@@ -88,6 +92,20 @@ class MangaPageViewController {
     _intents.add(ScrollDeltaChangeIntent(delta, duration, curve));
   }
 
+  /// Pans the controlled [MangaPageView] by the given pan delta.
+  ///
+  /// [delta] value corresponds to the number of pixels to move on both axis.
+  /// Positive dx value moves the view to the right and negative value moves the view to the left.
+  /// Positive dy value moves the view to the bottom and negative value moves the view to the top.
+  ///
+  /// This is similar to [scrollBy] but allows for four-way directional scroll, as opposed to two-way.
+  /// For simple two-way scrolling, consider using [scrollBy] instead.
+  /// Note that the offsets given is not influences by the page view direction unlike [scrollBy].
+  ///
+  /// Optionally, you may provide a [duration] and a [curve] to animate the movement.
+  /// Having a [duration] of [Duration.zero] effectively disables the animation entirely.
+  ///
+  /// Note: The pan delta is affected by the current zoom level.
   void panBy(
     Offset delta, {
     Duration duration = Duration.zero,
