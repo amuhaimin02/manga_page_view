@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:manga_page_view/manga_page_view.dart';
 
 void main() {
@@ -50,6 +51,9 @@ class _MangaPageViewExampleScreenState
   final _totalPages = 40;
   final _currentProgress = ValueNotifier(0.0);
 
+  // For KeyboardListener
+  final _keyboardFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -58,16 +62,34 @@ class _MangaPageViewExampleScreenState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scrollDirection =
-        MediaQuery.of(context).orientation == Orientation.portrait
-        ? MangaPageViewDirection.down
-        : MangaPageViewDirection.right;
+    _scrollDirection = MangaPageViewDirection.down;
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.arrowUp:
+          _controller.panBy(Offset(0, -20));
+        case LogicalKeyboardKey.arrowDown:
+          _controller.panBy(Offset(0, 20));
+        case LogicalKeyboardKey.arrowLeft:
+          _controller.panBy(Offset(-20, 0));
+        case LogicalKeyboardKey.arrowRight:
+          _controller.panBy(Offset(20, 0));
+        case LogicalKeyboardKey.pageDown:
+          _controller.moveToPage(_currentPage.value + 1);
+        case LogicalKeyboardKey.pageUp:
+          _controller.moveToPage(_currentPage.value - 1);
+        default:
+        // Other key pressed
+      }
+    }
   }
 
   @override
@@ -80,58 +102,62 @@ class _MangaPageViewExampleScreenState
   }
 
   Widget _buildPageView(BuildContext context) {
-    return MangaPageView(
-      mode: _mode,
-      direction: _scrollDirection,
-      controller: _controller,
-      options: MangaPageViewOptions(
-        mainAxisOverscroll: _overshoot,
-        crossAxisOverscroll: _overshoot,
-        maxZoomLevel: 8,
-        precacheAhead: 2,
-        precacheBehind: 2,
-        zoomOvershoot: _overshoot,
-        pageJumpGravity: _scrollGravity,
-        pageSenseGravity: _scrollGravity,
-        initialPageSize: Size(600, 600),
-        pageWidthLimit: 1000,
-        padding: EdgeInsets.all(16),
-        spacing: 16,
+    return KeyboardListener(
+      focusNode: _keyboardFocusNode,
+      onKeyEvent: _onKeyEvent,
+      child: MangaPageView(
+        mode: _mode,
+        direction: _scrollDirection,
+        controller: _controller,
+        options: MangaPageViewOptions(
+          mainAxisOverscroll: _overshoot,
+          crossAxisOverscroll: _overshoot,
+          maxZoomLevel: 8,
+          precacheAhead: 2,
+          precacheBehind: 2,
+          zoomOvershoot: _overshoot,
+          pageJumpGravity: _scrollGravity,
+          pageSenseGravity: _scrollGravity,
+          initialPageSize: Size(600, 600),
+          pageWidthLimit: 1000,
+          padding: EdgeInsets.all(16),
+          spacing: 16,
+        ),
+        pageCount: _totalPages,
+        pageBuilder: (context, index) {
+          // TODO: Uncomment one of the lines to change the contents
+          return _buildBufferedRandomSizePage(context, index);
+          // return _buildChangingRandomSizePage(context, index);
+          // return _buildLongPage(context, index);
+          // return _buildCachedNetworkImage(context, index);
+          // return _buildNetworkImage(context, index);
+        },
+        onPageChange: (index) {
+          _currentPage.value = index;
+        },
+        onZoomChange: (zoomLevel) {
+          _currentZoomLevel.value = zoomLevel;
+        },
+        onProgressChange: (progress) {
+          _currentProgress.value = progress;
+        },
+        startEdgeDragIndicatorBuilder: (context, info) =>
+            _buildIndicator(context, info, false),
+        endEdgeDragIndicatorBuilder: (context, info) =>
+            _buildIndicator(context, info, true),
+        onStartEdgeDrag: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Going to previous chapter')));
+        },
+        onEndEdgeDrag: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Going to next chapter')));
+        },
       ),
-      pageCount: _totalPages,
-      pageBuilder: (context, index) {
-        // TODO: Uncomment one of the lines to change the contents
-        return _buildBufferedRandomSizePage(context, index);
-        // return _buildChangingRandomSizePage(context, index);
-        // return _buildLongPage(context, index);
-        // return _buildCachedNetworkImage(context, index);
-        // return _buildNetworkImage(context, index);
-      },
-      onPageChange: (index) {
-        _currentPage.value = index;
-      },
-      onZoomChange: (zoomLevel) {
-        _currentZoomLevel.value = zoomLevel;
-      },
-      onProgressChange: (progress) {
-        _currentProgress.value = progress;
-      },
-      startEdgeDragIndicatorBuilder: (context, info) =>
-          _buildIndicator(context, info, false),
-      endEdgeDragIndicatorBuilder: (context, info) =>
-          _buildIndicator(context, info, true),
-      onStartEdgeDrag: () {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Going to previous chapter')));
-      },
-      onEndEdgeDrag: () {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Going to next chapter')));
-      },
     );
   }
 

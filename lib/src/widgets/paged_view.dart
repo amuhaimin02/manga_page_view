@@ -71,6 +71,8 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
   void _onControllerIntent(ControllerChangeIntent intent) {
     switch (intent) {
       case PageChangeIntent(:final index, :final duration, :final curve):
+        if (index < 0 || index >= widget.pageCount) return;
+
         if (duration > Duration.zero) {
           _carouselState.animateToPage(index, duration, curve);
         } else {
@@ -96,6 +98,14 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
       case ScrollDeltaChangeIntent(:final delta, :final duration, :final curve):
         if (_activePanelState == null) return;
         final targetOffset = _scrollBy(delta);
+        if (duration > Duration.zero) {
+          _activePanelState!.animateToOffset(targetOffset, duration, curve);
+        } else {
+          _activePanelState!.jumpToOffset(targetOffset);
+        }
+      case PanDeltaChangeIntent(:final delta, :final duration, :final curve):
+        if (_activePanelState == null) return;
+        final targetOffset = _panBy(delta);
         if (duration > Duration.zero) {
           _activePanelState!.animateToOffset(targetOffset, duration, curve);
         } else {
@@ -158,6 +168,12 @@ class _MangaPagePagedViewState extends State<MangaPagePagedView> {
         );
         break;
     }
+    return newOffset;
+  }
+
+  Offset _panBy(Offset delta) {
+    final currentOffset = _activePanelState!.offset;
+    final newOffset = currentOffset + delta;
     return newOffset;
   }
 

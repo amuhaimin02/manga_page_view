@@ -88,6 +88,8 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
   void _onControllerIntent(ControllerChangeIntent intent) {
     switch (intent) {
       case PageChangeIntent(:final index, :final duration, :final curve):
+        if (index < 0 || index >= widget.pageCount) return;
+
         if (duration > Duration.zero) {
           _animateToPage(index, duration, curve);
         } else {
@@ -113,6 +115,18 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         }
       case ScrollDeltaChangeIntent(:final delta, :final duration, :final curve):
         final targetOffset = _scrollBy(delta);
+        if (duration > Duration.zero) {
+          _panelState.animateToOffset(
+            targetOffset,
+            duration,
+            curve,
+            onEnd: _onPageChangeEnd,
+          );
+        } else {
+          _panelState.jumpToOffset(targetOffset);
+        }
+      case PanDeltaChangeIntent(:final delta, :final duration, :final curve):
+        final targetOffset = _panBy(delta);
         if (duration > Duration.zero) {
           _panelState.animateToOffset(
             targetOffset,
@@ -170,11 +184,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
     // Early callback
     _doPageChangeCallback(pageIndex);
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       final pageRect = _stripState.pageBounds[pageIndex];
       _panelState.jumpToOffset(_getPageJumpOffset(pageRect));
       _onPageChangeEnd();
     });
+    WidgetsBinding.instance.scheduleFrame(); // Force refresh
   }
 
   void _onPageChangeEnd() {
@@ -240,6 +255,12 @@ class _MangaPageContinuousViewState extends State<MangaPageContinuousView> {
         );
         break;
     }
+    return newOffset;
+  }
+
+  Offset _panBy(Offset delta) {
+    final currentOffset = _panelState.offset;
+    final newOffset = currentOffset + delta;
     return newOffset;
   }
 

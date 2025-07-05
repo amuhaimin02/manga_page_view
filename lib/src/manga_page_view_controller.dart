@@ -88,6 +88,14 @@ class MangaPageViewController {
     _intents.add(ScrollDeltaChangeIntent(delta, duration, curve));
   }
 
+  void panBy(
+    Offset delta, {
+    Duration duration = Duration.zero,
+    Curve curve = Curves.easeInOut,
+  }) {
+    _intents.add(PanDeltaChangeIntent(delta, duration, curve));
+  }
+
   /// Add a listener that is called when the page changes.
   ///
   /// The listener is called with the new page index.
@@ -174,6 +182,16 @@ class ScrollDeltaChangeIntent extends ControllerChangeIntent {
   const ScrollDeltaChangeIntent(this.delta, this.duration, this.curve);
 
   final double delta;
+
+  final Duration duration;
+
+  final Curve curve;
+}
+
+class PanDeltaChangeIntent extends ControllerChangeIntent {
+  const PanDeltaChangeIntent(this.delta, this.duration, this.curve);
+
+  final Offset delta;
 
   final Duration duration;
 

@@ -147,7 +147,7 @@ class InteractivePanelState extends State<InteractivePanel>
 
     _viewportSizeProvider.addListener(_onViewportChanged);
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _resetPosition();
       _sendScrollInfo();
     });
@@ -175,10 +175,11 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void jumpToOffset(Offset offset) {
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _stopFlinging();
       _offset.value = _limitOffsetInScrollable(offset);
     });
+    WidgetsBinding.instance.scheduleFrame(); // Force refresh
   }
 
   void animateToOffset(
@@ -187,9 +188,10 @@ class InteractivePanelState extends State<InteractivePanel>
     Curve curve, {
     VoidCallback? onEnd,
   }) {
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _animateOffsetChange(offset, duration, curve, onEnd: onEnd);
     });
+    WidgetsBinding.instance.scheduleFrame(); // Force refresh
   }
 
   void zoomTo(double zoomLevel) {
@@ -737,7 +739,7 @@ class InteractivePanelState extends State<InteractivePanel>
   }
 
   void _onChildSizeChanged() {
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollableRegion();
       _offset.value = _limitOffsetInScrollable(_offset.value);
     });
